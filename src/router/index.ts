@@ -4,6 +4,11 @@ import DashboardView from '../views/dashboard/DashboardView.vue'
 import CampanasView from '../views/campanas/CampanasView.vue'
 import LideresView from '../views/lideres/LideresView.vue'
 import ValidacionView from '../views/validacion/ValidacionView.vue'
+import InventarioView from '../views/inventario/InventarioView.vue'
+import DeudasView from '../views/deudas/DeudasView.vue'
+import RecompensasView from '../views/recompensas/RecompensasView.vue'
+import ReportesView from '../views/reportes/ReportesView.vue'
+import ConfiguracionView from '../views/configuracion/ConfiguracionView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,7 +41,32 @@ const router = createRouter({
       name: 'validacion',
       component: ValidacionView,
       meta: { requiresAuth: true }
-    }
+    },
+    { path: '/inventario',    
+      name: 'inventario',    
+      component: InventarioView,    
+      meta: { requiresAuth: true } 
+    },
+    { path: '/deudas',        
+      name: 'deudas',        
+      component: DeudasView,        
+      meta: { requiresAuth: true } 
+    },
+    { path: '/recompensas',   
+      name: 'recompensas',   
+      component: RecompensasView,   
+      meta: { requiresAuth: true } 
+    },
+    { path: '/reportes',      
+      name: 'reportes',      
+      component: ReportesView,      
+      meta: { requiresAuth: true } 
+    },
+    { path: '/configuracion', 
+      name: 'configuracion', 
+      component: ConfiguracionView, 
+      meta: { requiresAuth: true } 
+    },
   ]
 })
 
