@@ -2,9 +2,12 @@
   <div class="login-bg">
     <div class="login-card">
 
-      <!-- Solo logo sin texto -->
       <div class="logo-section">
-        <img :src="logo" alt="Logo Innovex" class="logo-img" />
+        <img :src="logoAzul" alt="Logo Azul" class="logo-img" />
+        <div class="logo-text-wrapper">
+          <hr class="logo-divider" />
+          <p class="logo-text"><span class="logo-highlight">INNO</span>VEX</p>
+        </div>
       </div>
 
       <h2 class="welcome-title">¡Bienvenido a Promolider!</h2>
@@ -54,15 +57,12 @@
             <span class="recaptcha-text">No soy un robot</span>
           </div>
           <div class="recaptcha-right">
-            <svg viewBox="0 0 70 70" width="46" height="46" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="35" cy="35" r="30" fill="none" stroke="#4285F4" stroke-width="7"
-                stroke-dasharray="125 65" stroke-linecap="round" transform="rotate(-90 35 35)"/>
-              <circle cx="35" cy="35" r="30" fill="none" stroke="#34A853" stroke-width="7"
-                stroke-dasharray="62 128" stroke-dashoffset="-62" stroke-linecap="round"
-                transform="rotate(-90 35 35)"/>
-            </svg>
+            <img
+              :src="recaptchaLogo"
+              alt="reCAPTCHA"
+              style="width: 50px; height: 50px; object-fit: contain;"
+            />
             <div class="recaptcha-brand">
-              <span class="recaptcha-name">reCAPTCHA</span>
               <span class="recaptcha-sub">Privacidad · Condiciones</span>
             </div>
           </div>
@@ -84,7 +84,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-const logo = new URL('../../assets/logo-innovex.png', import.meta.url).href
+const recaptchaLogo = new URL('../../assets/RecaptchaLogo.png', import.meta.url).href
+const logoAzul      = new URL('../../assets/logo-azul.png',     import.meta.url).href
 
 const router         = useRouter()
 const username       = ref('')
@@ -109,16 +110,6 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    // 🔹 REEMPLAZA ESTO CON TU API REAL:
-    // const response = await fetch('https://tu-api.com/auth/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ usuario: username.value, contrasena: password.value })
-    // })
-    // if (!response.ok) throw new Error('Credenciales incorrectas')
-    // const data = await response.json()
-    // localStorage.setItem('token', data.token)
-
     await new Promise(resolve => setTimeout(resolve, 800))
     localStorage.setItem('token', 'token-simulado')
     router.push({ name: 'dashboard' })
@@ -141,7 +132,6 @@ html, body, #app {
 </style>
 
 <style scoped>
-/* ── Fondo azul texturizado igual a la imagen original ── */
 .login-bg {
   position: fixed;
   inset: 0;
@@ -160,13 +150,12 @@ html, body, #app {
   background-blend-mode: overlay, screen, multiply, normal;
 }
 
-/* ── Tarjeta negra — mismas proporciones que la imagen ── */
 .login-card {
   background: #0d0d0d;
   border-radius: 18px;
-  padding: 32px 36px 36px;
+  padding: 28px 32px 32px;
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
   box-shadow:
     0 32px 100px rgba(0, 0, 0, 0.85),
     0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -174,34 +163,69 @@ html, body, #app {
   z-index: 1;
 }
 
-/* ── Logo centrado, solo imagen, grande ── */
+/* ── Logo section: logo grande, texto centrado verticalmente ── */
 .logo-section {
   display: flex;
+  flex-direction: row;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 24px;
+  align-items: center;   /* centra verticalmente logo y texto */
+  margin-bottom: 18px;
+  gap: 8px;
 }
 
 .logo-img {
-  width: 120px;
-  height: 120px;
+  width: 110px;          /* logo grande independiente */
+  height: 110px;
   object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* El texto se centra solo en la altura del logo */
+.logo-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;  /* centra verticalmente dentro del espacio del logo */
+  gap: 6px;
+  height: 110px;            /* misma altura que el logo para centrar perfectamente */
+}
+
+.logo-divider {
+  border: none;
+  border-top: 1px solid #555555;
+  margin: 0;
+  width: 100%;
+}
+
+.logo-text {
+  color: #3eb5f5;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  margin: 0;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.logo-highlight {
+  color: #ffffff;
 }
 
 /* ── Títulos ── */
 .welcome-title {
   color: #3eb5f5;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   text-align: left;
-  margin: 0 0 7px;
+  margin: 0 0 6px;
 }
 
 .welcome-subtitle {
   color: #999;
-  font-size: 13px;
+  font-size: 12px;
   text-align: left;
-  margin: 0 0 24px;
+  margin: 0 0 20px;
   font-weight: 400;
 }
 
@@ -209,13 +233,13 @@ html, body, #app {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .field-label {
@@ -263,6 +287,17 @@ html, body, #app {
   padding: 0;
   display: flex;
   align-items: center;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-password:focus,
+.toggle-password:focus-visible,
+.toggle-password:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* ── Opciones ── */
@@ -304,7 +339,7 @@ html, body, #app {
   content: '';
   position: absolute;
   left: 3px;
-  top: 0;
+  top: 0px;
   width: 5px;
   height: 9px;
   border: 2px solid white;
@@ -331,15 +366,15 @@ html, body, #app {
   justify-content: space-between;
   background: #f9f9f9;
   border-radius: 4px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid #d0d0d0;
-  min-height: 70px;
+  min-height: 56px;
 }
 
 .recaptcha-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .recaptcha-custom-check {
@@ -389,12 +424,6 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.recaptcha-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: #4285F4;
 }
 
 .recaptcha-sub {
