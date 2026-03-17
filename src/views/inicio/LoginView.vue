@@ -84,8 +84,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-const recaptchaLogo = new URL('../../assets/RecaptchaLogo.png', import.meta.url).href
-const logoAzul      = new URL('../../assets/logo-azul.png',     import.meta.url).href
+import recaptchaLogoUrl from '../../assets/RecaptchaLogo.png'
+import logoAzulUrl from '../../assets/logo-azul.png'
+
+const recaptchaLogo = recaptchaLogoUrl
+const logoAzul      = logoAzulUrl
 
 const router         = useRouter()
 const username       = ref('')
@@ -110,11 +113,42 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    localStorage.setItem('token', 'token-simulado')
+    const response = await fetch('http://localhost:8000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: username.value,
+        password: password.value,
+        device_name: 'vue_web_client'
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Usuario o contraseña incorrectos.')
+    }
+
+    // Guardar token y datos del usuario
+    localStorage.setItem('token',        data.token)
+    localStorage.setItem('user_nombre',  data.user.nombre)
+    localStorage.setItem('user_apellido',data.user.apellido)
+    localStorage.setItem('user_uuid',    data.user.uuid)
+
+    // Guardar empresa_id del primer workspace disponible
+    if (data.lobby && data.lobby.length > 0) {
+      localStorage.setItem('empresa_id', String(data.lobby[0].empresa_id))
+    } else {
+      localStorage.setItem('empresa_id', '1')
+    }
+
     router.push({ name: 'dashboard' })
-  } catch (error) {
-    errorMsg.value = 'Usuario o contraseña incorrectos.'
+
+  } catch (error: any) {
+    errorMsg.value = error.message || 'Error al conectar con el servidor.'
   } finally {
     loading.value = false
   }
@@ -163,31 +197,29 @@ html, body, #app {
   z-index: 1;
 }
 
-/* ── Logo section: logo grande, texto centrado verticalmente ── */
 .logo-section {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  align-items: center;   /* centra verticalmente logo y texto */
+  align-items: center;
   margin-bottom: 18px;
   gap: 8px;
 }
 
 .logo-img {
-  width: 110px;          /* logo grande independiente */
+  width: 110px;
   height: 110px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-/* El texto se centra solo en la altura del logo */
 .logo-text-wrapper {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;  /* centra verticalmente dentro del espacio del logo */
+  justify-content: center;
   gap: 6px;
-  height: 110px;            /* misma altura que el logo para centrar perfectamente */
+  height: 110px;
 }
 
 .logo-divider {
@@ -212,7 +244,6 @@ html, body, #app {
   color: #ffffff;
 }
 
-/* ── Títulos ── */
 .welcome-title {
   color: #3eb5f5;
   font-size: 16px;
@@ -229,7 +260,6 @@ html, body, #app {
   font-weight: 400;
 }
 
-/* ── Formulario ── */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -266,7 +296,6 @@ html, body, #app {
   box-shadow: 0 0 0 2px #3eb5f5;
 }
 
-/* ── Password ── */
 .password-wrapper {
   position: relative;
   width: 100%;
@@ -300,7 +329,6 @@ html, body, #app {
   border: none !important;
 }
 
-/* ── Opciones ── */
 .options-row {
   display: flex;
   align-items: center;
@@ -359,7 +387,6 @@ html, body, #app {
   color: #3eb5f5;
 }
 
-/* ── reCAPTCHA ── */
 .recaptcha-box {
   display: flex;
   align-items: center;
@@ -432,7 +459,6 @@ html, body, #app {
   white-space: nowrap;
 }
 
-/* ── Error ── */
 .error-msg {
   color: #ff5c5c;
   font-size: 12px;
@@ -440,7 +466,6 @@ html, body, #app {
   margin: 0;
 }
 
-/* ── Botón ── */
 .submit-btn {
   background: linear-gradient(180deg, #4dc0fc 0%, #2296e0 100%);
   color: white;

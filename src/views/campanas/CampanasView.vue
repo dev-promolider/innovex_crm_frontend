@@ -9,27 +9,27 @@
       </div>
       <div class="sidebar-section-label">General</div>
       <nav class="sidebar-nav">
-        <RouterLink to="/dashboard"  class="nav-item" active-class="active">
+        <RouterLink to="/dashboard"   class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           <span>Dashboard</span>
         </RouterLink>
-        <RouterLink to="/campanas"   class="nav-item" active-class="active">
+        <RouterLink to="/campanas"    class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
           <span>Campañas y Kit</span>
         </RouterLink>
-        <RouterLink to="/lideres"    class="nav-item" active-class="active">
+        <RouterLink to="/lideres"     class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Gestión de Líderes</span>
         </RouterLink>
-        <RouterLink to="/validacion" class="nav-item" active-class="active">
+        <RouterLink to="/validacion"  class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span>Validación Ventas</span>
         </RouterLink>
-        <RouterLink to="/inventario" class="nav-item" active-class="active">
+        <RouterLink to="/inventario"  class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <span>Control Inventario</span>
         </RouterLink>
-        <RouterLink to="/deudas"     class="nav-item" active-class="active">
+        <RouterLink to="/deudas"      class="nav-item" active-class="active">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <span>Deudas y Finanzas</span>
         </RouterLink>
@@ -37,8 +37,8 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
           <span>Recompensas</span>
         </RouterLink>
-        <RouterLink to="/reportes"   class="nav-item" active-class="active">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <RouterLink to="/reportes"    class="nav-item" active-class="active">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
           <span>Reportes</span>
         </RouterLink>
       </nav>
@@ -61,7 +61,14 @@
       <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
-          <span class="breadcrumb">Inicio › <strong>Campañas</strong></span>
+          <span class="breadcrumb">
+            Inicio ›
+            <span v-if="!campanaSeleccionada"><strong>Campañas</strong></span>
+            <span v-else>
+              <a href="#" @click.prevent="volverALista" class="breadcrumb-link">Campañas</a>
+              › <strong>{{ campanaSeleccionada.nombre }}</strong>
+            </span>
+          </span>
         </div>
         <div class="topbar-center">
           <div class="search-box">
@@ -71,10 +78,10 @@
         </div>
         <div class="topbar-right">
           <div class="user-info">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar">{{ inicialUsuario }}</div>
             <div class="user-details">
-              <span class="user-name">Admin</span>
-              <span class="user-email">maria9.l@gmail.com</span>
+              <span class="user-name">{{ nombreUsuario }}</span>
+              <span class="user-email">{{ emailUsuario }}</span>
             </div>
           </div>
           <button class="notif-btn">
@@ -84,165 +91,533 @@
         </div>
       </header>
 
-      <!-- Contenido -->
-      <div class="page-body">
+      <!-- ══════════════════════════════════════════════ -->
+      <!-- VISTA 1: LISTA DE CAMPAÑAS                    -->
+      <!-- ══════════════════════════════════════════════ -->
+      <div v-if="!campanaSeleccionada" class="page-body">
+
+        <div v-if="errorMsg" class="alert-error">
+          {{ errorMsg }}
+          <button @click="errorMsg = ''" class="alert-close">✕</button>
+        </div>
 
         <div class="page-header">
           <div>
             <h1 class="page-title">Campañas y Kit</h1>
-            <p class="page-subtitle">{{ campanas.length }} campañas encontradas</p>
+            <p class="page-subtitle">
+              <span v-if="cargando">Cargando...</span>
+              <span v-else>{{ meta.total ?? campanas.length }} campañas encontradas</span>
+            </p>
           </div>
-          <button class="btn-primary">+ Nueva Campaña</button>
+          <button class="btn-primary" @click="abrirModalCampana()">+ Nueva Campaña</button>
         </div>
 
-        <!-- Layout: filtros + tabla -->
         <div class="content-layout">
-
-          <!-- Panel de filtros -->
           <aside class="filters-panel">
             <h3 class="filters-title">Filtros</h3>
-
             <div class="filter-section">
               <label class="filter-label">Estado</label>
               <div class="filter-options">
-                <label class="filter-radio" :class="{ active: filtroEstado === 'todos' }">
-                  <input type="radio" v-model="filtroEstado" value="todos" />
-                  <span class="radio-dot" style="background:#4ab8f5"></span> Todos
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'activo' }">
-                  <input type="radio" v-model="filtroEstado" value="activo" />
-                  <span class="radio-dot" style="background:#22c55e"></span> Activa
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'pausado' }">
-                  <input type="radio" v-model="filtroEstado" value="pausado" />
-                  <span class="radio-dot" style="background:#f59e0b"></span> Pausada
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'borrador' }">
-                  <input type="radio" v-model="filtroEstado" value="borrador" />
-                  <span class="radio-dot" style="background:#94a3b8"></span> Borrador
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'finalizado' }">
-                  <input type="radio" v-model="filtroEstado" value="finalizado" />
-                  <span class="radio-dot" style="background:#6366f1"></span> Finalizada
+                <label v-for="op in opcionesEstado" :key="op.value"
+                       class="filter-radio" :class="{ active: filtroEstado === op.value }"
+                       @click="filtroEstado = op.value">
+                  <input type="radio" v-model="filtroEstado" :value="op.value" />
+                  <span class="radio-dot" :style="{ background: op.color }"></span>
+                  {{ op.label }}
                 </label>
               </div>
             </div>
-
             <div class="filter-section">
               <label class="filter-label">Rango de Fechas</label>
               <label class="date-label">Fecha Inicio</label>
               <input type="date" v-model="fechaInicio" class="date-input" />
-              <label class="date-label" style="margin-top:8px">Fecha fin</label>
+              <label class="date-label" style="margin-top:8px">Fecha Fin</label>
               <input type="date" v-model="fechaFin" class="date-input" />
             </div>
-
             <div class="filter-section resumen-box">
               <h4 class="resumen-title">Resumen</h4>
-              <div class="resumen-row"><span>Total campañas</span><span class="resumen-val">{{ campanas.length }}</span></div>
-              <div class="resumen-row"><span>Activas</span><span class="resumen-val">{{ campanas.filter(c=>c.estado==='Activo').length }}</span></div>
-              <div class="resumen-row"><span>Kits definidos</span><span class="resumen-val">21</span></div>
-              <div class="resumen-row"><span>Ventas validadas</span><span class="resumen-val">1,289</span></div>
+              <div class="resumen-row"><span>Total campañas</span><span class="resumen-val">{{ meta.total ?? campanas.length }}</span></div>
+              <div class="resumen-row"><span>Activas</span><span class="resumen-val">{{ contarEstado('activa') }}</span></div>
+              <div class="resumen-row"><span>Pausadas</span><span class="resumen-val">{{ contarEstado('pausada') }}</span></div>
+              <div class="resumen-row"><span>Borradores</span><span class="resumen-val">{{ contarEstado('borrador') }}</span></div>
             </div>
           </aside>
 
-          <!-- Tabla de campañas -->
           <div class="table-area">
             <div class="table-toolbar">
               <div class="search-box">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
               </div>
-              <div class="view-toggle">
-                <button class="view-btn active">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
-                </button>
-                <button class="view-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                </button>
-              </div>
             </div>
 
-            <div class="table-wrap">
+            <div v-if="cargando" class="loading-state">
+              <div class="spinner"></div>
+              <span>Cargando campañas...</span>
+            </div>
+
+            <div v-else class="table-wrap">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha/Hora</th>
+                    <th>Campaña</th>
                     <th>Fechas</th>
-                    <th>Kits</th>
-                    <th>Stock Inicial</th>
-                    <th>Kits Entregados</th>
-                    <th>Progreso</th>
+                    <th>Creador</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="c in campanasFiltradas" :key="c.id">
+                  <tr v-if="campanasFiltradas.length === 0">
+                    <td colspan="5" class="empty-state">No se encontraron campañas.</td>
+                  </tr>
+                  <tr v-for="c in campanasFiltradas" :key="c.id" class="tr-clickable" @click="verDetalle(c)">
                     <td>
                       <div class="camp-name">{{ c.nombre }}</div>
-                      <div class="camp-desc">{{ c.descripcion }}</div>
+                      <div class="camp-desc">{{ c.descripcion ?? '—' }}</div>
                     </td>
                     <td class="td-dates">
-                      <span>{{ c.fechaInicio }}</span>
-                      <span>{{ c.fechaFin }}</span>
+                      <span>{{ formatFecha(c.fecha_inicio) }}</span>
+                      <span>{{ formatFecha(c.fecha_fin) }}</span>
                     </td>
-                    <td class="td-center">{{ c.kits }}</td>
-                    <td class="td-center">{{ c.stockInicial }}</td>
-                    <td class="td-center">{{ c.kitsEntregados }}</td>
-                    <td class="td-progress">
-                      <div class="progress-bar">
-                        <div class="progress-fill" :style="{ width: c.progreso + '%', background: colorProgreso(c.progreso) }"></div>
-                      </div>
-                      <span class="progress-pct">{{ c.progreso }}%</span>
-                    </td>
-                    <td>
-                      <span class="badge" :class="'estado-' + c.estado.toLowerCase()">{{ c.estado }}</span>
+                    <td class="td-creador">{{ c.creador ? c.creador.nombre + ' ' + c.creador.apellido : '—' }}</td>
+                    <td><span class="badge" :class="'estado-' + c.estado">{{ c.estado }}</span></td>
+                    <td class="td-actions" @click.stop>
+                      <button class="btn-action" @click="abrirModalCampana(c)" title="Editar">✏️</button>
+                      <button class="btn-action" @click="confirmarEliminar(c)" title="Eliminar">🗑️</button>
                     </td>
                   </tr>
                 </tbody>
               </table>
+              <div v-if="meta.last_page > 1" class="pagination">
+                <button :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)" class="page-btn">‹</button>
+                <span class="page-info">Página {{ meta.current_page }} de {{ meta.last_page }}</span>
+                <button :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)" class="page-btn">›</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- ══════════════════════════════════════════════ -->
+      <!-- VISTA 2: DETALLE DE CAMPAÑA + KITS            -->
+      <!-- ══════════════════════════════════════════════ -->
+      <div v-else class="page-body">
+
+        <div v-if="errorMsg" class="alert-error">
+          {{ errorMsg }}
+          <button @click="errorMsg = ''" class="alert-close">✕</button>
+        </div>
+
+        <div class="detalle-header">
+          <button class="btn-back" @click="volverALista">← Volver</button>
+          <div class="detalle-info">
+            <div>
+              <h1 class="page-title">{{ campanaSeleccionada.nombre }}</h1>
+              <p class="page-subtitle">{{ campanaSeleccionada.descripcion ?? 'Sin descripción' }}</p>
+            </div>
+            <div class="detalle-meta">
+              <span class="badge" :class="'estado-' + campanaSeleccionada.estado">{{ campanaSeleccionada.estado }}</span>
+              <span class="meta-fechas">{{ formatFecha(campanaSeleccionada.fecha_inicio) }} — {{ formatFecha(campanaSeleccionada.fecha_fin) }}</span>
+            </div>
+          </div>
+          <button class="btn-primary" @click="abrirModalKit()">+ Nuevo Kit</button>
+        </div>
+
+        <div class="table-area" style="margin-top:0">
+          <div class="table-toolbar">
+            <h3 style="font-size:15px;font-weight:700;color:#1a1a1a;margin:0">
+              Kits de esta campaña
+              <span style="font-size:12px;color:#999;font-weight:400;margin-left:8px">{{ kits.length }} kits</span>
+            </h3>
+          </div>
+
+          <div v-if="cargandoKits" class="loading-state">
+            <div class="spinner"></div>
+            <span>Cargando kits...</span>
+          </div>
+
+          <div v-else class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kit</th>
+                  <th>Precio</th>
+                  <th>Stock Central</th>
+                  <th>Comprometido</th>
+                  <th>Disponible</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="kits.length === 0">
+                  <td colspan="7" class="empty-state">No hay kits en esta campaña. ¡Crea el primero!</td>
+                </tr>
+                <tr v-for="k in kits" :key="k.id">
+                  <td>
+                    <div class="camp-name">{{ k.nombre }}</div>
+                    <div class="camp-desc">{{ k.descripcion ?? '—' }}</div>
+                  </td>
+                  <td class="td-center">S/ {{ k.precio_unitario }}</td>
+                  <td class="td-center">{{ k.stock_central }}</td>
+                  <td class="td-center">{{ k.stock_comprometido }}</td>
+                  <td class="td-center">
+                    <span :class="stockDisponible(k) > 0 ? 'stock-ok' : 'stock-agotado'">
+                      {{ stockDisponible(k) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" :class="k.activo ? 'estado-activa' : 'estado-borrador'">
+                      {{ k.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td class="td-actions">
+                    <button class="btn-action" @click="verContenidoKit(k)" title="Ver contenido">📦</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </main>
+
+    <!-- ── Modal Crear/Editar Campaña ── -->
+    <div v-if="modalCampana" class="modal-overlay" @click.self="modalCampana = false">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>{{ modoEdicion ? 'Editar Campaña' : 'Nueva Campaña' }}</h2>
+          <button class="modal-close" @click="modalCampana = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input v-model="formCampana.nombre" type="text" placeholder="Nombre de la campaña" class="form-input" />
+            <span v-if="formErrors.nombre" class="form-error">{{ formErrors.nombre }}</span>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea v-model="formCampana.descripcion" placeholder="Descripción opcional" class="form-input form-textarea"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado *</label>
+              <select v-model="formCampana.estado" class="form-input">
+                <option value="borrador">Borrador</option>
+                <option value="activa">Activa</option>
+                <option value="pausada">Pausada</option>
+                <option value="finalizada">Finalizada</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha Inicio</label>
+              <input v-model="formCampana.fecha_inicio" type="date" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Fecha Fin</label>
+              <input v-model="formCampana.fecha_fin" type="date" class="form-input" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalCampana = false">Cancelar</button>
+          <button class="btn-primary" @click="guardarCampana" :disabled="guardando">
+            {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Crear Kit ── -->
+    <div v-if="modalKit" class="modal-overlay" @click.self="modalKit = false">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h2>Nuevo Kit</h2>
+          <button class="modal-close" @click="modalKit = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input v-model="formKit.nombre" type="text" placeholder="Nombre del kit" class="form-input" />
+            <span v-if="kitErrors.nombre" class="form-error">{{ kitErrors.nombre }}</span>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea v-model="formKit.descripcion" placeholder="Descripción opcional" class="form-input form-textarea"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Precio Unitario (S/) *</label>
+              <input v-model="formKit.precio_unitario" type="number" min="0.01" step="0.01" placeholder="0.00" class="form-input" />
+              <span v-if="kitErrors.precio_unitario" class="form-error">{{ kitErrors.precio_unitario }}</span>
+            </div>
+            <div class="form-group">
+              <label>Stock Inicial *</label>
+              <input v-model="formKit.stock_central" type="number" min="0" placeholder="0" class="form-input" />
+              <span v-if="kitErrors.stock_central" class="form-error">{{ kitErrors.stock_central }}</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Contenido del Kit *</label>
+            <div v-for="(prod, i) in formKit.productos" :key="i" class="producto-row">
+              <input v-model="prod.nombre" type="text" placeholder="Nombre del producto" class="form-input" />
+              <input v-model.number="prod.cantidad" type="number" min="1" placeholder="Cant." class="form-input form-input-sm" />
+              <button class="btn-remove" @click="eliminarProducto(i)" v-if="formKit.productos.length > 1">✕</button>
+            </div>
+            <button class="btn-add-producto" @click="agregarProducto">+ Agregar producto</button>
+            <span v-if="kitErrors.contenido_detalle" class="form-error">{{ kitErrors.contenido_detalle }}</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalKit = false">Cancelar</button>
+          <button class="btn-primary" @click="guardarKit" :disabled="guardando">
+            {{ guardando ? 'Guardando...' : 'Crear Kit' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Ver Contenido Kit ── -->
+    <div v-if="modalContenido" class="modal-overlay" @click.self="modalContenido = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>📦 {{ kitDetalle?.nombre }}</h2>
+          <button class="modal-close" @click="modalContenido = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <table class="data-table">
+            <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              <tr v-for="(p, i) in kitDetalle?.contenido_detalle?.productos" :key="i">
+                <td>{{ p.nombre }}</td>
+                <td class="td-center">{{ p.cantidad }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalContenido = false">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Confirmar Eliminar ── -->
+    <div v-if="modalEliminar" class="modal-overlay" @click.self="modalEliminar = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>Eliminar Campaña</h2>
+          <button class="modal-close" @click="modalEliminar = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de eliminar <strong>{{ campanaAEliminar?.nombre }}</strong>?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalEliminar = false">Cancelar</button>
+          <button class="btn-danger" @click="eliminarCampana" :disabled="guardando">
+            {{ guardando ? 'Eliminando...' : 'Sí, eliminar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-const logo   = new URL('../../assets/logo-innovex.png', import.meta.url).href
-const router = useRouter()
-const cerrarSesion = () => { localStorage.removeItem('token'); router.push({ name: 'login' }) }
+const API_BASE = 'http://localhost:8000/api'
+const logo     = new URL('../../assets/logo-innovex.png', import.meta.url).href
+const router   = useRouter()
 
+const token:     string = localStorage.getItem('token')      ?? ''
+const empresaId: string = localStorage.getItem('empresa_id') ?? '1'
+const nombreUsuario  = ref(localStorage.getItem('user_nombre') ?? 'Admin')
+const emailUsuario   = ref(localStorage.getItem('user_email')  ?? '')
+const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase())
+const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
+
+const hdrs = () => ({
+  'Content-Type':  'application/json',
+  'Accept':        'application/json',
+  'Authorization': `Bearer ${token}`,
+  'X-Empresa-Id':  empresaId,
+})
+
+// ── Campañas state ──
+const campanas     = ref<any[]>([])
+const cargando     = ref(false)
+const guardando    = ref(false)
+const errorMsg     = ref('')
+const busqueda     = ref('')
 const filtroEstado = ref('todos')
 const fechaInicio  = ref('')
 const fechaFin     = ref('')
-const busqueda     = ref('')
+const meta         = ref({ total: 0, current_page: 1, last_page: 1 })
 
-const campanas = ref([
-  { id:1, nombre:'Campaña Primavera 2024',    descripcion:'Kits de primavera con kit...',   fechaInicio:'2024-09-01', fechaFin:'2024-11-30', kits:3, stockInicial:500, kitsEntregados:387, progreso:62, estado:'Finalizada' },
-  { id:2, nombre:'Campaña Verano Premium',    descripcion:'Kits premium para temporada...', fechaInicio:'2024-12-01', fechaFin:'2025-02-28', kits:4, stockInicial:400, kitsEntregados:280, progreso:61, estado:'Finalizada' },
-  { id:3, nombre:'Campaña Bienestar Total',   descripcion:'Línea completa de bienestar y...',fechaInicio:'2025-03-01', fechaFin:'2025-05-31', kits:5, stockInicial:600, kitsEntregados:421, progreso:63, estado:'Activo' },
-  { id:4, nombre:'Campaña Belleza Esencial',  descripcion:'Kits de belleza esencial para u.',fechaInicio:'2025-03-01', fechaFin:'2025-06-30', kits:3, stockInicial:350, kitsEntregados:185, progreso:41, estado:'Activo' },
-  { id:5, nombre:'Campaña Nutrición Plus',    descripcion:'Nueva línea de nutrición y supl.',fechaInicio:'2025-05-01', fechaFin:'2025-09-31', kits:2, stockInicial:200, kitsEntregados:0,   progreso:0,  estado:'Borrador' },
-  { id:6, nombre:'Campaña Fuerza Natural',    descripcion:'Productos naturales con ingr...',  fechaInicio:'2025-02-01', fechaFin:'2025-04-30', kits:4, stockInicial:450, kitsEntregados:201, progreso:40, estado:'Pausada' },
-])
+const modalCampana     = ref(false)
+const modoEdicion      = ref(false)
+const campanaEditando  = ref<any>(null)
+const modalEliminar    = ref(false)
+const campanaAEliminar = ref<any>(null)
+const formErrors       = ref<Record<string, string>>({})
+const formCampana      = ref({ nombre: '', descripcion: '', estado: 'borrador', fecha_inicio: '', fecha_fin: '' })
 
-const campanasFiltradas = computed(() => {
-  return campanas.value.filter(c => {
-    const matchEstado = filtroEstado.value === 'todos' || c.estado.toLowerCase() === filtroEstado.value
+// ── Kits state ──
+const campanaSeleccionada = ref<any>(null)
+const kits                = ref<any[]>([])
+const cargandoKits        = ref(false)
+const modalKit            = ref(false)
+const kitErrors           = ref<Record<string, string>>({})
+const modalContenido      = ref(false)
+const kitDetalle          = ref<any>(null)
+const formKit             = ref({ nombre: '', descripcion: '', precio_unitario: '', stock_central: '', productos: [{ nombre: '', cantidad: 1 }] })
+
+const opcionesEstado = [
+  { value: 'todos',      label: 'Todos',      color: '#4ab8f5' },
+  { value: 'activa',     label: 'Activa',     color: '#22c55e' },
+  { value: 'pausada',    label: 'Pausada',    color: '#f59e0b' },
+  { value: 'borrador',   label: 'Borrador',   color: '#94a3b8' },
+  { value: 'finalizada', label: 'Finalizada', color: '#6366f1' },
+]
+
+const formatFecha     = (f: string | null) => {
+  if (!f) return '—'
+  const fecha = new Date(f)
+  return isNaN(fecha.getTime()) ? '—' : fecha.toLocaleDateString('es-PE')
+}
+const contarEstado    = (e: string) => campanas.value.filter(c => c.estado === e).length
+const stockDisponible = (k: any) => k.stock_central - k.stock_comprometido
+
+const campanasFiltradas = computed(() =>
+  campanas.value.filter(c => {
+    const matchEstado   = filtroEstado.value === 'todos' || c.estado === filtroEstado.value
     const matchBusqueda = c.nombre.toLowerCase().includes(busqueda.value.toLowerCase())
     return matchEstado && matchBusqueda
   })
-})
+)
 
-const colorProgreso = (pct: number) => {
-  if (pct >= 60) return '#22c55e'
-  if (pct >= 30) return '#f59e0b'
-  return '#ef4444'
+// ── Campañas API ──
+const cargarCampanas = async (pagina = 1) => {
+  cargando.value = true; errorMsg.value = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/campanas?page=${pagina}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (json.status === 'success') {
+      campanas.value = json.data.data ?? json.data
+      meta.value = { total: json.data.total ?? campanas.value.length, current_page: json.data.current_page ?? 1, last_page: json.data.last_page ?? 1 }
+    } else { errorMsg.value = json.message ?? 'Error al cargar campañas.' }
+  } catch { errorMsg.value = 'No se pudo conectar con el servidor.' }
+  finally { cargando.value = false }
 }
+
+const cambiarPagina = (p: number) => cargarCampanas(p)
+
+const abrirModalCampana = (campana?: any) => {
+  formErrors.value = {}
+  if (campana) {
+    modoEdicion.value = true; campanaEditando.value = campana
+    formCampana.value = { nombre: campana.nombre, descripcion: campana.descripcion ?? '', estado: campana.estado, fecha_inicio: campana.fecha_inicio ?? '', fecha_fin: campana.fecha_fin ?? '' }
+  } else {
+    modoEdicion.value = false; campanaEditando.value = null
+    formCampana.value = { nombre: '', descripcion: '', estado: 'borrador', fecha_inicio: '', fecha_fin: '' }
+  }
+  modalCampana.value = true
+}
+
+const guardarCampana = async () => {
+  formErrors.value = {}
+  if (!formCampana.value.nombre.trim()) { formErrors.value.nombre = 'El nombre es obligatorio.'; return }
+  guardando.value = true
+  try {
+    const url    = modoEdicion.value ? `${API_BASE}/workspace/admin/campanas/${campanaEditando.value.id}` : `${API_BASE}/workspace/admin/campanas`
+    const method = modoEdicion.value ? 'PUT' : 'POST'
+    const res    = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(formCampana.value) })
+    const json   = await res.json()
+    if (res.ok && json.status === 'success') { modalCampana.value = false; await cargarCampanas(meta.value.current_page) }
+    else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { formErrors.value[k] = json.errors[k][0] }) }
+    else { errorMsg.value = json.message ?? 'Error al guardar.' }
+  } catch { errorMsg.value = 'No se pudo conectar.' }
+  finally { guardando.value = false }
+}
+
+const confirmarEliminar = (c: any) => { campanaAEliminar.value = c; modalEliminar.value = true }
+
+const eliminarCampana = async () => {
+  if (!campanaAEliminar.value) return
+  guardando.value = true
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/campanas/${campanaAEliminar.value.id}`, { method: 'DELETE', headers: hdrs() })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') { modalEliminar.value = false; await cargarCampanas(meta.value.current_page) }
+    else { errorMsg.value = json.message ?? 'Error al eliminar.' }
+  } catch { errorMsg.value = 'No se pudo conectar.' }
+  finally { guardando.value = false }
+}
+
+// ── Kits API ──
+const verDetalle = async (campana: any) => {
+  campanaSeleccionada.value = campana
+  await cargarKits(campana.id)
+}
+
+const volverALista = () => { campanaSeleccionada.value = null; kits.value = [] }
+
+const cargarKits = async (campanaId: number) => {
+  cargandoKits.value = true; errorMsg.value = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/kits?campana_id=${campanaId}`, { headers: hdrs() })
+    const json = await res.json()
+    if (json.status === 'success') { kits.value = json.data.data ?? json.data }
+    else { errorMsg.value = json.message ?? 'Error al cargar kits.' }
+  } catch { errorMsg.value = 'No se pudo conectar.' }
+  finally { cargandoKits.value = false }
+}
+
+const abrirModalKit = () => {
+  kitErrors.value = {}
+  formKit.value = { nombre: '', descripcion: '', precio_unitario: '', stock_central: '', productos: [{ nombre: '', cantidad: 1 }] }
+  modalKit.value = true
+}
+
+const agregarProducto  = () => formKit.value.productos.push({ nombre: '', cantidad: 1 })
+const eliminarProducto = (i: number) => formKit.value.productos.splice(i, 1)
+
+const guardarKit = async () => {
+  kitErrors.value = {}
+  if (!formKit.value.nombre.trim())       { kitErrors.value.nombre = 'El nombre es obligatorio.'; return }
+  if (!formKit.value.precio_unitario)     { kitErrors.value.precio_unitario = 'El precio es obligatorio.'; return }
+  if (formKit.value.stock_central === '') { kitErrors.value.stock_central = 'El stock es obligatorio.'; return }
+  const productosValidos = formKit.value.productos.filter(p => p.nombre.trim())
+  if (productosValidos.length === 0)      { kitErrors.value.contenido_detalle = 'Agrega al menos un producto.'; return }
+
+  guardando.value = true
+  try {
+    const body = {
+      campana_id:        campanaSeleccionada.value.id,
+      nombre:            formKit.value.nombre,
+      descripcion:       formKit.value.descripcion,
+      precio_unitario:   parseFloat(formKit.value.precio_unitario),
+      stock_central:     parseInt(formKit.value.stock_central),
+      contenido_detalle: { productos: productosValidos },
+    }
+    const res  = await fetch(`${API_BASE}/workspace/admin/kits`, { method: 'POST', headers: hdrs(), body: JSON.stringify(body) })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') { modalKit.value = false; await cargarKits(campanaSeleccionada.value.id) }
+    else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { kitErrors.value[k] = json.errors[k][0] }) }
+    else { errorMsg.value = json.message ?? 'Error al crear kit.' }
+  } catch { errorMsg.value = 'No se pudo conectar.' }
+  finally { guardando.value = false }
+}
+
+const verContenidoKit = (k: any) => { kitDetalle.value = k; modalContenido.value = true }
+
+onMounted(() => cargarCampanas())
 </script>
 
 <style>
@@ -251,8 +626,6 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 
 <style scoped>
 .dashboard-layout { display:flex; min-height:100vh; background:#f4f6f9; }
-
-/* ── SIDEBAR (igual en todas las vistas) ── */
 .sidebar { width:200px; background:#0f1b2d; display:flex; flex-direction:column; padding:0; position:fixed; top:0; left:0; height:100vh; z-index:100; border-right:1px solid #1a2d45; overflow-y:auto; }
 .sidebar-logo { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 16px 16px; border-bottom:1px solid #1a2d45; gap:6px; }
 .sidebar-logo-img { width:56px; height:56px; object-fit:contain; }
@@ -265,14 +638,13 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .nav-item.nav-logout { color:#ef4444; margin-top:2px; }
 .nav-item.nav-logout:hover { background:#2a1010; color:#f87171; }
 .sidebar-bottom { display:flex; flex-direction:column; gap:2px; padding:0 10px 16px; }
-
-/* ── MAIN ── */
 .main-content { margin-left:200px; flex:1; display:flex; flex-direction:column; min-height:100vh; }
-
 .topbar { background:white; height:56px; display:flex; align-items:center; padding:0 24px; gap:16px; border-bottom:1px solid #eee; position:sticky; top:0; z-index:50; }
-.topbar-left { min-width:160px; }
+.topbar-left { min-width:200px; }
 .breadcrumb { font-size:13px; color:#999; }
 .breadcrumb strong { color:#333; }
+.breadcrumb-link { color:#4ab8f5; text-decoration:none; }
+.breadcrumb-link:hover { text-decoration:underline; }
 .topbar-center { flex:1; display:flex; justify-content:center; }
 .search-box { display:flex; align-items:center; gap:8px; background:#f4f6f9; border-radius:20px; padding:6px 14px; width:280px; }
 .search-input { border:none; background:transparent; outline:none; font-size:13px; color:#333; width:100%; }
@@ -284,18 +656,24 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .user-email { font-size:11px; color:#999; }
 .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#666; padding:6px; }
 .notif-badge { position:absolute; top:2px; right:2px; background:#ef4444; color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-
 .page-body { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
-
+.detalle-header { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.detalle-info { flex:1; }
+.detalle-meta { display:flex; align-items:center; gap:12px; margin-top:6px; }
+.meta-fechas { font-size:12px; color:#666; }
+.btn-back { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; white-space:nowrap; }
+.btn-back:hover { background:#f4f6f9; }
 .btn-primary { display:flex; align-items:center; gap:6px; padding:9px 18px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:13px; font-weight:600; color:white; cursor:pointer; }
-
-/* ── Layout filtros + tabla ── */
+.btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+.btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
+.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-close { background:none; border:none; cursor:pointer; color:#b91c1c; font-size:16px; }
 .content-layout { display:flex; gap:20px; align-items:flex-start; }
-
-/* Panel filtros */
 .filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .filters-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 16px; }
 .filter-section { margin-bottom:20px; }
@@ -308,20 +686,13 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .date-label { font-size:11px; color:#888; display:block; margin-bottom:4px; }
 .date-input { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px; color:#333; outline:none; box-sizing:border-box; }
 .date-input:focus { border-color:#4ab8f5; }
-
 .resumen-box { background:#f8fafc; border-radius:8px; padding:12px; }
 .resumen-title { font-size:12px; font-weight:700; color:#444; margin:0 0 10px; }
 .resumen-row { display:flex; justify-content:space-between; font-size:12px; color:#666; padding:3px 0; border-bottom:1px solid #eee; }
 .resumen-row:last-child { border-bottom:none; }
 .resumen-val { font-weight:700; color:#1a1a1a; }
-
-/* Área tabla */
 .table-area { flex:1; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-.view-toggle { display:flex; gap:4px; }
-.view-btn { padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; color:#666; }
-.view-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
-
 .table-wrap { overflow-x:auto; }
 .data-table { width:100%; border-collapse:collapse; font-size:13px; }
 .data-table thead tr { background:#1a1a2e; color:white; }
@@ -329,20 +700,50 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
 .data-table td { padding:12px 14px; vertical-align:middle; }
-
+.tr-clickable { cursor:pointer; }
 .camp-name { font-weight:600; color:#1a1a1a; font-size:13px; }
 .camp-desc { font-size:11px; color:#999; margin-top:2px; }
 .td-dates { font-size:12px; color:#666; display:flex; flex-direction:column; gap:2px; }
+.td-creador { font-size:12px; color:#555; }
 .td-center { text-align:center; font-weight:600; color:#333; }
-
-.td-progress { display:flex; align-items:center; gap:8px; }
-.progress-bar { flex:1; height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden; }
-.progress-fill { height:100%; border-radius:10px; transition:width 0.3s; }
-.progress-pct { font-size:12px; font-weight:600; color:#555; min-width:32px; }
-
+.td-actions { display:flex; gap:6px; }
+.btn-action { background:none; border:none; cursor:pointer; font-size:15px; padding:4px; border-radius:4px; transition:background 0.15s; }
+.btn-action:hover { background:#f0f0f0; }
+.empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
+.stock-ok { color:#166534; font-weight:700; }
+.stock-agotado { color:#b91c1c; font-weight:700; }
 .badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; }
-.estado-activo     { background:#dcfce7; color:#166534; }
+.estado-activa     { background:#dcfce7; color:#166534; }
 .estado-finalizada { background:#e0e7ff; color:#3730a3; }
 .estado-pausada    { background:#fef3c7; color:#b45309; }
 .estado-borrador   { background:#f1f5f9; color:#64748b; }
+.pagination { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:16px; }
+.page-btn { padding:6px 14px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; font-size:16px; color:#555; }
+.page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.page-info { font-size:13px; color:#666; }
+.loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
+.spinner { width:20px; height:20px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal-lg { width:560px; }
+.modal-sm { width:380px; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
+.modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
+.modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
+.modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.modal-body p { font-size:14px; color:#555; margin:0; }
+.modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.form-group { display:flex; flex-direction:column; gap:6px; flex:1; }
+.form-group label { font-size:12px; font-weight:600; color:#555; }
+.form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
+.form-input:focus { border-color:#4ab8f5; }
+.form-input-sm { width:80px !important; }
+.form-textarea { resize:vertical; min-height:70px; }
+.form-row { display:flex; gap:12px; }
+.form-error { font-size:11px; color:#ef4444; }
+.producto-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.btn-remove { background:none; border:none; cursor:pointer; color:#ef4444; font-size:16px; padding:4px; }
+.btn-add-producto { background:none; border:1px dashed #4ab8f5; color:#1a6ab5; font-size:12px; font-weight:600; padding:7px 14px; border-radius:8px; cursor:pointer; margin-top:4px; }
+.btn-add-producto:hover { background:#eff6ff; }
 </style>
