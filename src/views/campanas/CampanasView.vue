@@ -103,7 +103,7 @@
 
         <div class="page-header">
           <div>
-            <h1 class="page-title">Campañas y Kit</h1>
+            <h1 class="page-title">Campañas y Kits</h1>
             <p class="page-subtitle">
               <span v-if="cargando">Cargando...</span>
               <span v-else>{{ meta.total ?? campanas.length }} campañas encontradas</span>
@@ -113,6 +113,7 @@
         </div>
 
         <div class="content-layout">
+          <!-- Panel filtros -->
           <aside class="filters-panel">
             <h3 class="filters-title">Filtros</h3>
             <div class="filter-section">
@@ -129,25 +130,34 @@
             </div>
             <div class="filter-section">
               <label class="filter-label">Rango de Fechas</label>
-              <label class="date-label">Fecha Inicio</label>
+              <label class="date-label">Fecha inicio</label>
               <input type="date" v-model="fechaInicio" class="date-input" />
-              <label class="date-label" style="margin-top:8px">Fecha Fin</label>
+              <label class="date-label" style="margin-top:8px">Fecha fin</label>
               <input type="date" v-model="fechaFin" class="date-input" />
             </div>
             <div class="filter-section resumen-box">
               <h4 class="resumen-title">Resumen</h4>
               <div class="resumen-row"><span>Total campañas</span><span class="resumen-val">{{ meta.total ?? campanas.length }}</span></div>
               <div class="resumen-row"><span>Activas</span><span class="resumen-val">{{ contarEstado('activa') }}</span></div>
-              <div class="resumen-row"><span>Pausadas</span><span class="resumen-val">{{ contarEstado('pausada') }}</span></div>
-              <div class="resumen-row"><span>Borradores</span><span class="resumen-val">{{ contarEstado('borrador') }}</span></div>
+              <div class="resumen-row"><span>Kits definidos</span><span class="resumen-val">{{ totalKitsDefinidos }}</span></div>
+              <div class="resumen-row"><span>Ventas validadas</span><span class="resumen-val">—</span></div>
             </div>
           </aside>
 
+          <!-- Tabla -->
           <div class="table-area">
             <div class="table-toolbar">
               <div class="search-box">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
+              </div>
+              <div class="view-toggle">
+                <button class="view-btn active">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
+                </button>
+                <button class="view-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </button>
               </div>
             </div>
 
@@ -160,16 +170,18 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Campaña</th>
+                    <th>Fecha/Hora</th>
                     <th>Fechas</th>
-                    <th>Creador</th>
+                    <th>Kits</th>
+                    <th>Stock Inicial</th>
+                    <th>Kits Entregados</th>
+                    <th>Progreso</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="campanasFiltradas.length === 0">
-                    <td colspan="5" class="empty-state">No se encontraron campañas.</td>
+                    <td colspan="7" class="empty-state">No se encontraron campañas.</td>
                   </tr>
                   <tr v-for="c in campanasFiltradas" :key="c.id" class="tr-clickable" @click="verDetalle(c)">
                     <td>
@@ -180,11 +192,20 @@
                       <span>{{ formatFecha(c.fecha_inicio) }}</span>
                       <span>{{ formatFecha(c.fecha_fin) }}</span>
                     </td>
-                    <td class="td-creador">{{ c.creador ? c.creador.nombre + ' ' + c.creador.apellido : '—' }}</td>
-                    <td><span class="badge" :class="'estado-' + c.estado">{{ c.estado }}</span></td>
-                    <td class="td-actions" @click.stop>
-                      <button class="btn-action" @click="abrirModalCampana(c)" title="Editar">✏️</button>
-                      <button class="btn-action" @click="confirmarEliminar(c)" title="Eliminar">🗑️</button>
+                    <td class="td-center">{{ kitsMeta[c.id]?.total ?? '—' }}</td>
+                    <td class="td-center">{{ kitsMeta[c.id]?.stockInicial ?? '—' }}</td>
+                    <td class="td-center">{{ kitsMeta[c.id]?.comprometido ?? '—' }}</td>
+                    <td class="td-progress">
+                      <div class="progress-bar">
+                        <div class="progress-fill"
+                             :style="{ width: (kitsMeta[c.id]?.progreso ?? 0) + '%',
+                                       background: colorProgreso(kitsMeta[c.id]?.progreso ?? 0) }">
+                        </div>
+                      </div>
+                      <span class="progress-pct">{{ kitsMeta[c.id]?.progreso ?? 0 }}%</span>
+                    </td>
+                    <td>
+                      <span class="badge" :class="'estado-' + c.estado">{{ c.estado }}</span>
                     </td>
                   </tr>
                 </tbody>
@@ -221,7 +242,10 @@
               <span class="meta-fechas">{{ formatFecha(campanaSeleccionada.fecha_inicio) }} — {{ formatFecha(campanaSeleccionada.fecha_fin) }}</span>
             </div>
           </div>
-          <button class="btn-primary" @click="abrirModalKit()">+ Nuevo Kit</button>
+          <div class="detalle-acciones">
+            <button class="btn-outline" @click="abrirModalCampana(campanaSeleccionada)">✏️ Editar</button>
+            <button class="btn-primary" @click="abrirModalKit()">+ Nuevo Kit</button>
+          </div>
         </div>
 
         <div class="table-area" style="margin-top:0">
@@ -458,6 +482,8 @@ const filtroEstado = ref('todos')
 const fechaInicio  = ref('')
 const fechaFin     = ref('')
 const meta         = ref({ total: 0, current_page: 1, last_page: 1 })
+// kits metadata por campaña: { [campanaId]: { total, stockInicial, comprometido, progreso } }
+const kitsMeta     = ref<Record<number, any>>({})
 
 const modalCampana     = ref(false)
 const modoEdicion      = ref(false)
@@ -485,13 +511,20 @@ const opcionesEstado = [
   { value: 'finalizada', label: 'Finalizada', color: '#6366f1' },
 ]
 
-const formatFecha     = (f: string | null) => {
+const formatFecha = (f: string | null) => {
   if (!f) return '—'
   const fecha = new Date(f)
   return isNaN(fecha.getTime()) ? '—' : fecha.toLocaleDateString('es-PE')
 }
 const contarEstado    = (e: string) => campanas.value.filter(c => c.estado === e).length
 const stockDisponible = (k: any) => k.stock_central - k.stock_comprometido
+const totalKitsDefinidos = computed(() => Object.values(kitsMeta.value).reduce((a: number, m: any) => a + (m.total ?? 0), 0))
+
+const colorProgreso = (pct: number) => {
+  if (pct >= 60) return '#22c55e'
+  if (pct >= 30) return '#f59e0b'
+  return '#ef4444'
+}
 
 const campanasFiltradas = computed(() =>
   campanas.value.filter(c => {
@@ -501,16 +534,38 @@ const campanasFiltradas = computed(() =>
   })
 )
 
-// ── Campañas API ──
+// ── API ──
+const hdrsGet = () => ({
+  'Accept':        'application/json',
+  'Authorization': `Bearer ${token}`,
+  'X-Empresa-Id':  empresaId,
+})
+
+const cargarKitsMeta = async (campanaId: number) => {
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/kits?campana_id=${campanaId}`, { headers: hdrsGet() })
+    const json = await res.json()
+    if (json.status === 'success') {
+      const lista: any[] = json.data.data ?? json.data
+      const stockInicial  = lista.reduce((a: number, k: any) => a + (k.stock_central ?? 0), 0)
+      const comprometido  = lista.reduce((a: number, k: any) => a + (k.stock_comprometido ?? 0), 0)
+      const progreso      = stockInicial > 0 ? Math.round((comprometido / stockInicial) * 100) : 0
+      kitsMeta.value[campanaId] = { total: lista.length, stockInicial, comprometido, progreso }
+    }
+  } catch { /* silencioso */ }
+}
+
 const cargarCampanas = async (pagina = 1) => {
   cargando.value = true; errorMsg.value = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/campanas?page=${pagina}`, { headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/campanas?page=${pagina}`, { headers: hdrsGet() })
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
       campanas.value = json.data.data ?? json.data
       meta.value = { total: json.data.total ?? campanas.value.length, current_page: json.data.current_page ?? 1, last_page: json.data.last_page ?? 1 }
+      // cargar metadatos de kits para cada campaña
+      campanas.value.forEach((c: any) => cargarKitsMeta(c.id))
     } else { errorMsg.value = json.message ?? 'Error al cargar campañas.' }
   } catch { errorMsg.value = 'No se pudo conectar con el servidor.' }
   finally { cargando.value = false }
@@ -539,7 +594,11 @@ const guardarCampana = async () => {
     const method = modoEdicion.value ? 'PUT' : 'POST'
     const res    = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(formCampana.value) })
     const json   = await res.json()
-    if (res.ok && json.status === 'success') { modalCampana.value = false; await cargarCampanas(meta.value.current_page) }
+    if (res.ok && json.status === 'success') {
+      modalCampana.value = false
+      if (campanaSeleccionada.value) campanaSeleccionada.value = json.data
+      await cargarCampanas(meta.value.current_page)
+    }
     else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { formErrors.value[k] = json.errors[k][0] }) }
     else { errorMsg.value = json.message ?? 'Error al guardar.' }
   } catch { errorMsg.value = 'No se pudo conectar.' }
@@ -552,7 +611,7 @@ const eliminarCampana = async () => {
   if (!campanaAEliminar.value) return
   guardando.value = true
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/campanas/${campanaAEliminar.value.id}`, { method: 'DELETE', headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/campanas/${campanaAEliminar.value.id}`, { method: 'DELETE', headers: hdrsGet() })
     const json = await res.json()
     if (res.ok && json.status === 'success') { modalEliminar.value = false; await cargarCampanas(meta.value.current_page) }
     else { errorMsg.value = json.message ?? 'Error al eliminar.' }
@@ -560,7 +619,6 @@ const eliminarCampana = async () => {
   finally { guardando.value = false }
 }
 
-// ── Kits API ──
 const verDetalle = async (campana: any) => {
   campanaSeleccionada.value = campana
   await cargarKits(campana.id)
@@ -571,7 +629,7 @@ const volverALista = () => { campanaSeleccionada.value = null; kits.value = [] }
 const cargarKits = async (campanaId: number) => {
   cargandoKits.value = true; errorMsg.value = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/kits?campana_id=${campanaId}`, { headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/kits?campana_id=${campanaId}`, { headers: hdrsGet() })
     const json = await res.json()
     if (json.status === 'success') { kits.value = json.data.data ?? json.data }
     else { errorMsg.value = json.message ?? 'Error al cargar kits.' }
@@ -608,7 +666,11 @@ const guardarKit = async () => {
     }
     const res  = await fetch(`${API_BASE}/workspace/admin/kits`, { method: 'POST', headers: hdrs(), body: JSON.stringify(body) })
     const json = await res.json()
-    if (res.ok && json.status === 'success') { modalKit.value = false; await cargarKits(campanaSeleccionada.value.id) }
+    if (res.ok && json.status === 'success') {
+      modalKit.value = false
+      await cargarKits(campanaSeleccionada.value.id)
+      await cargarKitsMeta(campanaSeleccionada.value.id)
+    }
     else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { kitErrors.value[k] = json.errors[k][0] }) }
     else { errorMsg.value = json.message ?? 'Error al crear kit.' }
   } catch { errorMsg.value = 'No se pudo conectar.' }
@@ -663,11 +725,14 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .detalle-header { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .detalle-info { flex:1; }
 .detalle-meta { display:flex; align-items:center; gap:12px; margin-top:6px; }
+.detalle-acciones { display:flex; gap:10px; align-items:center; }
 .meta-fechas { font-size:12px; color:#666; }
 .btn-back { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; white-space:nowrap; }
 .btn-back:hover { background:#f4f6f9; }
 .btn-primary { display:flex; align-items:center; gap:6px; padding:9px 18px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:13px; font-weight:600; color:white; cursor:pointer; }
 .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+.btn-outline { display:flex; align-items:center; gap:6px; padding:9px 18px; border:1px solid #4ab8f5; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#1a6ab5; cursor:pointer; }
+.btn-outline:hover { background:#eff6ff; }
 .btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
 .btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
 .btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
@@ -693,6 +758,9 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .resumen-val { font-weight:700; color:#1a1a1a; }
 .table-area { flex:1; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.view-toggle { display:flex; gap:4px; }
+.view-btn { padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; color:#666; }
+.view-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
 .table-wrap { overflow-x:auto; }
 .data-table { width:100%; border-collapse:collapse; font-size:13px; }
 .data-table thead tr { background:#1a1a2e; color:white; }
@@ -704,9 +772,12 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .camp-name { font-weight:600; color:#1a1a1a; font-size:13px; }
 .camp-desc { font-size:11px; color:#999; margin-top:2px; }
 .td-dates { font-size:12px; color:#666; display:flex; flex-direction:column; gap:2px; }
-.td-creador { font-size:12px; color:#555; }
 .td-center { text-align:center; font-weight:600; color:#333; }
 .td-actions { display:flex; gap:6px; }
+.td-progress { display:flex; align-items:center; gap:8px; }
+.progress-bar { flex:1; height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden; min-width:60px; }
+.progress-fill { height:100%; border-radius:10px; transition:width 0.3s; }
+.progress-pct { font-size:12px; font-weight:600; color:#555; min-width:32px; }
 .btn-action { background:none; border:none; cursor:pointer; font-size:15px; padding:4px; border-radius:4px; transition:background 0.15s; }
 .btn-action:hover { background:#f0f0f0; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
