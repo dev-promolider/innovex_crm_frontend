@@ -25,169 +25,320 @@
 
     <main class="main-content">
       <header class="topbar">
-        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Validación</strong></span></div>
-        <div class="topbar-center"><div class="search-box"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="" class="search-input" /></div></div>
+        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Validación Ventas</strong></span></div>
+        <div class="topbar-center">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="" class="search-input" />
+          </div>
+        </div>
         <div class="topbar-right">
-          <div class="user-info"><div class="user-avatar">A</div><div class="user-details"><span class="user-name">Admin</span><span class="user-email">maria9.l@gmail.com</span></div></div>
-          <button class="notif-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge">1</span></button>
+          <div class="user-info">
+            <div class="user-avatar">{{ inicialUsuario }}</div>
+            <div class="user-details">
+              <span class="user-name">{{ nombreUsuario }}</span>
+              <span class="user-email">{{ emailUsuario }}</span>
+            </div>
+          </div>
+          <button class="notif-btn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-badge">{{ ventas.length }}</span>
+          </button>
         </div>
       </header>
 
       <div class="page-body">
-        <div class="content-layout">
 
-          <!-- Panel Filtros -->
-          <aside class="filters-panel">
-            <h3 class="filters-title">Filtros</h3>
+        <div v-if="errorMsg" class="alert-error">
+          {{ errorMsg }}
+          <button @click="errorMsg = ''" class="alert-close">✕</button>
+        </div>
 
-            <div class="counters-row">
-              <div class="counter-item counter-pendiente">
-                <span class="counter-label">Pendientes</span>
-                <span class="counter-val">4</span>
-              </div>
-              <div class="counter-item counter-validada">
-                <span class="counter-label">Validadas</span>
-                <span class="counter-val">3</span>
-              </div>
-              <div class="counter-item counter-rechazada">
-                <span class="counter-label">Rechazados</span>
-                <span class="counter-val">1</span>
-              </div>
+        <div v-if="successMsg" class="alert-success">
+          {{ successMsg }}
+          <button @click="successMsg = ''" class="alert-close">✕</button>
+        </div>
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Validación de Ventas</h1>
+            <p class="page-subtitle">
+              <span v-if="cargando">Cargando...</span>
+              <span v-else>{{ meta.total }} ventas pendientes de validación</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- KPI rápido -->
+        <div class="kpi-row">
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-info">
+              <span class="kpi-label">Pendientes</span>
+              <span class="kpi-value">{{ meta.total }}</span>
             </div>
-
-            <div class="filter-section">
-              <label class="filter-label">Estado</label>
-              <div class="filter-options">
-                <label class="filter-radio" :class="{ active: filtroEstado === 'todos' }">
-                  <input type="radio" v-model="filtroEstado" value="todos" />
-                  <span class="radio-dot" style="background:#4ab8f5"></span> Todos
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'Pendiente' }">
-                  <input type="radio" v-model="filtroEstado" value="Pendiente" />
-                  <span class="radio-dot" style="background:#f59e0b"></span> Pendiente
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'Validada' }">
-                  <input type="radio" v-model="filtroEstado" value="Validada" />
-                  <span class="radio-dot" style="background:#22c55e"></span> Validada
-                </label>
-                <label class="filter-radio" :class="{ active: filtroEstado === 'Rechazada' }">
-                  <input type="radio" v-model="filtroEstado" value="Rechazada" />
-                  <span class="radio-dot" style="background:#ef4444"></span> Rechazada
-                </label>
-              </div>
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
-
-            <div class="filter-section">
-              <label class="filter-label">Rango de Fechas</label>
-              <label class="date-label">Fecha Inicio</label>
-              <input type="date" v-model="fechaInicio" class="date-input" />
-              <label class="date-label" style="margin-top:8px">Fecha fin</label>
-              <input type="date" v-model="fechaFin" class="date-input" />
+          </div>
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-info">
+              <span class="kpi-label">Monto Total Pendiente</span>
+              <span class="kpi-value">S/ {{ montoTotal }}</span>
             </div>
-          </aside>
-
-          <!-- Área principal -->
-          <div class="main-area">
-            <div class="page-header">
-              <div>
-                <h1 class="page-title">Validación de Ventas</h1>
-                <p class="page-subtitle">6 campañas encontradas</p>
-              </div>
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
             </div>
+          </div>
+        </div>
 
-            <div class="search-bar">
-              <div class="search-box search-wide">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
-              </div>
-            </div>
+        <!-- Tabla -->
+        <div class="table-card">
+          <div class="table-toolbar">
+            <h3 class="table-title">Ventas Pendientes de Validación</h3>
+          </div>
 
-            <div class="table-card">
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Fecha</th>
-                      <th>Vendedor</th>
-                      <th>Líder</th>
-                      <th>Kit</th>
-                      <th>Monto</th>
-                      <th>Banco</th>
-                      <th>Comprobante</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="v in ventasFiltradas" :key="v.id">
-                      <td class="td-cliente">{{ v.cliente }}</td>
-                      <td class="td-fecha">{{ v.fecha }}</td>
-                      <td class="td-vendedor">{{ v.vendedor }}</td>
-                      <td class="td-lider">{{ v.lider }}</td>
-                      <td class="td-kit">{{ v.kit }}</td>
-                      <td class="td-monto">$ {{ v.monto.toFixed(2) }}</td>
-                      <td class="td-banco">{{ v.banco }}</td>
-                      <td>
-                        <div class="comprobante">
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#4ab8f5" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                          <span class="comp-code">{{ v.comprobante }}</span>
-                        </div>
-                      </td>
-                      <td><span class="badge" :class="'est-' + v.estado.toLowerCase()">{{ v.estado }}</span></td>
-                      <td>
-                        <button class="acc-more">
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#666" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+          <div v-if="cargando" class="loading-state">
+            <div class="spinner"></div>
+            <span>Cargando ventas...</span>
+          </div>
+
+          <div v-else class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Vendedor</th>
+                  <th>Kit</th>
+                  <th>Cantidad</th>
+                  <th>Monto Total</th>
+                  <th>Consumidor</th>
+                  <th>Voucher</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="ventas.length === 0">
+                  <td colspan="8" class="empty-state">✅ No hay ventas pendientes de validación.</td>
+                </tr>
+                <tr v-for="v in ventas" :key="v.id">
+                  <td class="td-fecha">{{ formatFecha(v.capturado_at) }}</td>
+                  <td>
+                    <div class="vendedor-info">
+                      <div class="vendedor-avatar">{{ inicialesVendedor(v) }}</div>
+                      <div>
+                        <div class="vendedor-name">{{ nombreVendedor(v) }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-kit">{{ v.kit?.nombre ?? '—' }}</td>
+                  <td class="td-center">{{ v.cantidad_vendida }}</td>
+                  <td class="td-monto">S/ {{ Number(v.monto_total_venta).toFixed(2) }}</td>
+                  <td class="td-consumidor">{{ v.consumidor_nombre ?? '—' }}</td>
+                  <td class="td-center">
+                    <a v-if="v.comprobante_foto_url" :href="v.comprobante_foto_url" target="_blank" class="voucher-link">
+                      Ver 📄
+                    </a>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                  <td>
+                    <div class="acciones">
+                      <button class="btn-aprobar" @click="aprobar(v)" :disabled="procesando === v.id" title="Aprobar">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        {{ procesando === v.id ? '...' : 'Aprobar' }}
+                      </button>
+                      <button class="btn-rechazar" @click="abrirModalRechazar(v)" title="Rechazar">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Rechazar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          <div v-if="meta.last_page > 1" class="table-footer">
+            <span class="table-count">Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} total</span>
+            <div class="pagination">
+              <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
+              <button class="page-btn active">{{ meta.current_page }}</button>
+              <button class="page-btn" :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)">Siguiente</button>
             </div>
           </div>
         </div>
       </div>
     </main>
+
+    <!-- Modal Rechazar -->
+    <div v-if="modalRechazar" class="modal-overlay" @click.self="modalRechazar = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>Rechazar Venta</h2>
+          <button class="modal-close" @click="modalRechazar = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>Venta de <strong>{{ nombreVendedor(ventaSeleccionada) }}</strong> — Kit: <strong>{{ ventaSeleccionada?.kit?.nombre }}</strong></p>
+          <div class="form-group" style="margin-top:14px">
+            <label>Motivo del rechazo *</label>
+            <textarea v-model="motivoRechazo" placeholder="Explica por qué se rechaza esta venta..." class="form-input form-textarea"></textarea>
+            <span v-if="errorMotivo" class="form-error">{{ errorMotivo }}</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalRechazar = false">Cancelar</button>
+          <button class="btn-danger" @click="rechazar" :disabled="procesando !== null">
+            {{ procesando !== null ? 'Procesando...' : 'Confirmar Rechazo' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-const logo   = new URL('../../assets/logo-innovex.png', import.meta.url).href
+const API_BASE = 'http://localhost:8000/api'
+const logo = new URL('../../assets/logo-innovex.png', import.meta.url).href
 const router = useRouter()
-const cerrarSesion = () => { localStorage.removeItem('token'); router.push({ name: 'login' }) }
 
-const filtroEstado = ref('todos')
-const fechaInicio  = ref('')
-const fechaFin     = ref('')
-const busqueda     = ref('')
+const token     = localStorage.getItem('token')      ?? ''
+const empresaId = localStorage.getItem('empresa_id') ?? '1'
+const nombreUsuario  = ref(localStorage.getItem('user_nombre') ?? 'Admin')
+const emailUsuario   = ref(localStorage.getItem('user_email')  ?? '')
+const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase())
+const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
 
-const ventas = ref([
-  { id:1, cliente:'Patricia Vega',   fecha:'2025-02-18 09:23', vendedor:'Juan Pérez',    lider:'María González', kit:'Kit Bienestar Básico',   monto:120.00, banco:'BCP',        comprobante:'TRF-2024-001', estado:'Pendiente' },
-  { id:2, cliente:'Roberto Lima',    fecha:'2025-02-18 10:15', vendedor:'Sandra Quispe', lider:'Ana Torres',     kit:'Kit Bienestar Premium',  monto:210.00, banco:'BBVA',       comprobante:'TRF-2024-002', estado:'Pendiente' },
-  { id:3, cliente:'Elena Moreno',    fecha:'2025-02-17 14:42', vendedor:'Luis Castro',   lider:'Diego Herrera',  kit:'Kit Belleza Día',        monto:95.00,  banco:'Interbank',  comprobante:'TRF-2024-003', estado:'Validada'  },
-  { id:4, cliente:'Miguel Sánchez',  fecha:'2025-02-17 11:08', vendedor:'Carla Rojas',   lider:'Lucía Paredes',  kit:'Kit Bienestar Elite',    monto:320.00, banco:'Scotiabank', comprobante:'TRF-2024-004', estado:'Rechazada' },
-  { id:5, cliente:'Andrea Fuentes',  fecha:'2025-02-17 11:30', vendedor:'Pedro Núñez',   lider:'Eduardo Flores', kit:'Kit Bienestar Básico',   monto:120.00, banco:'BCP',        comprobante:'TRF-2024-005', estado:'Pendiente' },
-  { id:6, cliente:'Fernando Chávez', fecha:'2025-02-18 09:55', vendedor:'Ana Lima',      lider:'María González', kit:'Kit Belleza Noche',      monto:115.00, banco:'BBVA',       comprobante:'TRF-2024-006', estado:'Validada'  },
-  { id:7, cliente:'Carmen Díaz',     fecha:'2025-02-18 13:20', vendedor:'Jorge Mendez',  lider:'Carlos Mendoza', kit:'Kit Bienestar Premium',  monto:210.00, banco:'BCP',        comprobante:'TRF-2024-007', estado:'Validada'  },
-  { id:8, cliente:'Ricardo Torres',  fecha:'2025-02-15 10:45', vendedor:'Sandra Quispe', lider:'Sofía Ríos',     kit:'Kit Bienestar Básico',   monto:120.00, banco:'BCP',        comprobante:'TRF-2024-008', estado:'Pendiente' },
-])
+const hdrs = () => ({
+  'Content-Type':  'application/json',
+  'Accept':        'application/json',
+  'Authorization': `Bearer ${token}`,
+  'X-Empresa-Id':  empresaId,
+})
 
-const ventasFiltradas = computed(() => ventas.value.filter(v => {
-  const matchEstado   = filtroEstado.value === 'todos' || v.estado === filtroEstado.value
-  const matchBusqueda = v.cliente.toLowerCase().includes(busqueda.value.toLowerCase()) ||
-                        v.kit.toLowerCase().includes(busqueda.value.toLowerCase())
-  return matchEstado && matchBusqueda
-}))
+// ── State ──
+const ventas     = ref<any[]>([])
+const cargando   = ref(false)
+const procesando = ref<number | null>(null)
+const errorMsg   = ref('')
+const successMsg = ref('')
+const meta = ref({ total: 0, current_page: 1, last_page: 1 })
+
+const modalRechazar     = ref(false)
+const ventaSeleccionada = ref<any>(null)
+const motivoRechazo     = ref('')
+const errorMotivo       = ref('')
+
+// ── Computed ──
+const montoTotal = computed(() =>
+  ventas.value.reduce((sum, v) => sum + Number(v.monto_total_venta ?? 0), 0).toFixed(2)
+)
+
+// ── Helpers ──
+const formatFecha = (f: string) => f ? new Date(f).toLocaleString('es-PE') : '—'
+
+const nombreVendedor = (v: any) => {
+  const u = v?.vendedor?.usuario
+  return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : '—'
+}
+
+const inicialesVendedor = (v: any) => {
+  const u = v?.vendedor?.usuario
+  if (!u) return '?'
+  return ((u.nombre?.[0] ?? '') + (u.apellido?.[0] ?? '')).toUpperCase()
+}
+
+// ── API ──
+const cargarVentas = async (pagina = 1) => {
+  cargando.value = true
+  errorMsg.value = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/ventas/pendientes?page=${pagina}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (json.status === 'success') {
+      ventas.value = json.data.data ?? json.data
+      meta.value = {
+        total:        json.data.total        ?? ventas.value.length,
+        current_page: json.data.current_page ?? 1,
+        last_page:    json.data.last_page    ?? 1,
+      }
+    } else {
+      errorMsg.value = json.message ?? 'Error al cargar ventas.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar con el servidor.'
+  } finally {
+    cargando.value = false
+  }
+}
+
+const aprobar = async (v: any) => {
+  procesando.value = v.id
+  errorMsg.value   = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/ventas/${v.id}/aprobar`, { method: 'POST', headers: hdrs() })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      successMsg.value = '✅ Venta aprobada correctamente.'
+      await cargarVentas(meta.value.current_page)
+    } else {
+      errorMsg.value = json.message ?? 'Error al aprobar.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar.'
+  } finally {
+    procesando.value = null
+  }
+}
+
+const abrirModalRechazar = (v: any) => {
+  ventaSeleccionada.value = v
+  motivoRechazo.value     = ''
+  errorMotivo.value       = ''
+  modalRechazar.value     = true
+}
+
+const rechazar = async () => {
+  if (!motivoRechazo.value.trim()) {
+    errorMotivo.value = 'El motivo es obligatorio.'
+    return
+  }
+  if (!ventaSeleccionada.value) return
+  procesando.value = ventaSeleccionada.value.id
+  errorMsg.value   = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/ventas/${ventaSeleccionada.value.id}/rechazar`, {
+      method: 'POST',
+      headers: hdrs(),
+      body: JSON.stringify({ motivo: motivoRechazo.value })
+    })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      successMsg.value    = '❌ Venta rechazada correctamente.'
+      modalRechazar.value = false
+      await cargarVentas(meta.value.current_page)
+    } else {
+      errorMsg.value = json.message ?? 'Error al rechazar.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar.'
+  } finally {
+    procesando.value = null
+  }
+}
+
+const cambiarPagina = (p: number) => cargarVentas(p)
+
+onMounted(() => cargarVentas())
 </script>
 
 <style>
 html, body, #app { margin:0!important; padding:0!important; height:100%!important; background:#f4f6f9!important; font-family:'Segoe UI',Arial,sans-serif; }
 </style>
-
 <style scoped>
 .dashboard-layout { display:flex; min-height:100vh; background:#f4f6f9; }
 .sidebar { width:200px; background:#0f1b2d; display:flex; flex-direction:column; padding:0; position:fixed; top:0; left:0; height:100vh; z-index:100; border-right:1px solid #1a2d45; overflow-y:auto; }
@@ -204,7 +355,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .sidebar-bottom { display:flex; flex-direction:column; gap:2px; padding:0 10px 16px; }
 .main-content { margin-left:200px; flex:1; display:flex; flex-direction:column; min-height:100vh; }
 .topbar { background:white; height:56px; display:flex; align-items:center; padding:0 24px; gap:16px; border-bottom:1px solid #eee; position:sticky; top:0; z-index:50; }
-.topbar-left { min-width:160px; }
+.topbar-left { min-width:200px; }
 .breadcrumb { font-size:13px; color:#999; }
 .breadcrumb strong { color:#333; }
 .topbar-center { flex:1; display:flex; justify-content:center; }
@@ -218,63 +369,72 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .user-email { font-size:11px; color:#999; }
 .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#666; padding:6px; }
 .notif-badge { position:absolute; top:2px; right:2px; background:#ef4444; color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-
-.page-body { padding:24px 28px; }
-.content-layout { display:flex; gap:20px; align-items:flex-start; }
-
-/* Filtros */
-.filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
-.filters-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 14px; }
-.counters-row { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-.counter-item { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:12px; }
-.counter-label { font-weight:500; }
-.counter-val { font-weight:700; font-size:14px; }
-.counter-pendiente { background:#fef3c7; color:#b45309; }
-.counter-validada  { background:#dcfce7; color:#166534; }
-.counter-rechazada { background:#fee2e2; color:#991b1b; }
-.filter-section { margin-bottom:18px; }
-.filter-label { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
-.filter-options { display:flex; flex-direction:column; gap:5px; }
-.filter-radio { display:flex; align-items:center; gap:8px; font-size:13px; color:#444; cursor:pointer; padding:5px 8px; border-radius:6px; transition:background 0.15s; }
-.filter-radio input { display:none; }
-.filter-radio.active { background:#eff6ff; color:#1a6ab5; font-weight:600; }
-.radio-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-.date-label { font-size:11px; color:#888; display:block; margin-bottom:4px; }
-.date-input { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px; color:#333; outline:none; box-sizing:border-box; }
-
-/* Main area */
-.main-area { flex:1; display:flex; flex-direction:column; gap:16px; }
+.page-body { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
-.search-bar { display:flex; }
-.search-wide { width:100%; max-width:480px; }
-
+.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
+.kpi-row { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.kpi-card { border-radius:16px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; color:white; }
+.kpi-blue   { background:linear-gradient(135deg,#0d2d6b,#1250b0); }
+.kpi-orange { background:linear-gradient(135deg,#7c2d00,#b84500); }
+.kpi-label  { font-size:11px; opacity:0.85; display:block; margin-bottom:6px; }
+.kpi-value  { font-size:28px; font-weight:700; display:block; }
+.kpi-icon   { opacity:0.65; }
 .table-card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.table-title { font-size:15px; font-weight:700; color:#1a1a1a; margin:0; }
+.loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
+.spinner { width:20px; height:20px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
 .table-wrap { overflow-x:auto; }
-.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
 .data-table thead tr { background:#1a1a2e; color:white; }
-.data-table th { padding:10px 12px; text-align:left; font-weight:600; font-size:11px; white-space:nowrap; }
+.data-table th { padding:10px 14px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap; }
 .data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
-.data-table td { padding:10px 12px; vertical-align:middle; }
-
-.td-cliente  { font-weight:600; color:#1a1a1a; white-space:nowrap; }
-.td-fecha    { color:#888; font-size:11px; white-space:nowrap; }
-.td-vendedor { color:#555; white-space:nowrap; }
-.td-lider    { font-weight:600; color:#333; white-space:nowrap; }
-.td-kit      { color:#555; white-space:nowrap; }
-.td-monto    { font-weight:700; color:#1a1a1a; white-space:nowrap; }
-.td-banco    { font-weight:600; color:#333; }
-
-.comprobante { display:flex; align-items:center; gap:4px; }
-.comp-code   { color:#4ab8f5; font-size:11px; font-weight:600; white-space:nowrap; }
-
-.badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
-.est-pendiente { background:#fef3c7; color:#b45309; }
-.est-validada  { background:#dcfce7; color:#166534; }
-.est-rechazada { background:#fee2e2; color:#991b1b; }
-
-.acc-more { background:none; border:none; cursor:pointer; padding:4px 6px; border-radius:4px; }
-.acc-more:hover { background:#f1f5f9; }
+.data-table td { padding:10px 14px; vertical-align:middle; }
+.td-fecha { color:#888; font-size:11px; white-space:nowrap; }
+.td-kit { font-weight:600; color:#333; }
+.td-center { text-align:center; font-weight:600; color:#333; }
+.td-monto { font-weight:700; color:#1a1a1a; }
+.td-consumidor { color:#666; font-size:12px; }
+.vendedor-info { display:flex; align-items:center; gap:8px; }
+.vendedor-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); color:white; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.vendedor-name { font-weight:600; color:#1a1a1a; font-size:12px; }
+.voucher-link { color:#4ab8f5; text-decoration:none; font-weight:600; font-size:12px; }
+.voucher-link:hover { text-decoration:underline; }
+.text-muted { color:#999; }
+.acciones { display:flex; gap:6px; }
+.btn-aprobar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.btn-aprobar:hover { background:#bbf7d0; }
+.btn-aprobar:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-rechazar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.btn-rechazar:hover { background:#fecaca; }
+.empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
+.table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
+.table-count { font-size:12px; color:#999; }
+.pagination { display:flex; gap:6px; }
+.page-btn { padding:5px 12px; border:1px solid #ddd; border-radius:6px; background:white; font-size:12px; cursor:pointer; color:#555; }
+.page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.page-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal-sm { width:420px; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
+.modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
+.modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
+.modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.modal-body p { font-size:13px; color:#555; margin:0; }
+.modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group label { font-size:12px; font-weight:600; color:#555; }
+.form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
+.form-textarea { resize:vertical; min-height:80px; }
+.form-error { font-size:11px; color:#ef4444; }
 </style>
