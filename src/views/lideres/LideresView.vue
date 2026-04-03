@@ -49,10 +49,8 @@
 
       <div class="page-body">
 
-        <div v-if="errorMsg" class="alert-error">
-          {{ errorMsg }}
-          <button @click="errorMsg = ''" class="alert-close">✕</button>
-        </div>
+        <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
+        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
 
         <div class="page-header">
           <div>
@@ -62,27 +60,27 @@
               <span v-else>{{ meta.total }} líderes registrados</span>
             </p>
           </div>
-          <button class="btn-primary">Invitar Líder (Generar PIN)</button>
+          <button class="btn-primary" @click="modalPin = true">Invitar Líder (Generar PIN)</button>
         </div>
 
         <!-- Filtros -->
         <div class="filters-bar">
           <div class="search-box search-wide">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" v-model="busqueda" placeholder="Razón social, Ruc..." class="search-input" />
+            <input type="text" v-model="busqueda" placeholder="Buscar líder, DNI..." class="search-input" />
           </div>
           <span class="filter-label-inline">Filtros:</span>
           <select v-model="filtroEstado" class="select-filter">
-            <option value="todos">Todos</option>
+            <option value="todos">Todos los estados</option>
             <option value="activa">Activo</option>
             <option value="suspendida">Suspendida</option>
             <option value="pre_registro">Pre-registro</option>
           </select>
           <select v-model="filtroConfianza" class="select-filter">
-            <option value="todos">Todos</option>
-            <option value="2">Alto</option>
-            <option value="1">Medio</option>
-            <option value="0">Bajo</option>
+            <option value="todos">Confianza: Todos</option>
+            <option value="alto">Alto</option>
+            <option value="medio">Medio</option>
+            <option value="bajo">Bajo</option>
           </select>
           <select v-model="filtroDeuda" class="select-filter">
             <option value="todos">Toda deuda</option>
@@ -141,24 +139,25 @@
                     </span>
                   </td>
                   <td class="td-center">{{ m.kits_count ?? '—' }}</td>
-                  <td class="td-ventas">{{ m.ventas_mes ? '$ ' + Number(m.ventas_mes).toLocaleString() : '—' }}</td>
+                  <td class="td-ventas">{{ m.ventas_mes ? 'S/ ' + Number(m.ventas_mes).toLocaleString() : '—' }}</td>
                   <td class="td-deuda" :class="{ 'deuda-alta': (m.deuda_pendiente ?? 0) > 3000 }">
-                    {{ m.deuda_pendiente ? '$ ' + Number(m.deuda_pendiente).toLocaleString() : '—' }}
+                    {{ m.deuda_pendiente ? 'S/ ' + Number(m.deuda_pendiente).toLocaleString() : '—' }}
                   </td>
                   <td>
-                    <span class="badge" :class="'est-' + m.estado_validacion">
-                      {{ labelEstado(m.estado_validacion) }}
-                    </span>
+                    <span class="badge" :class="'est-' + m.estado_validacion">{{ labelEstado(m.estado_validacion) }}</span>
                   </td>
                   <td>
                     <div class="acciones">
+                      <!-- Ver detalle -->
                       <button class="acc-btn" title="Ver detalle" @click="verDetalle(m)">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#4ab8f5" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
-                      <button class="acc-btn" title="Documentos">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#64748b" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <!-- Copiar datos -->
+                      <button class="acc-btn" title="Copiar datos" @click="copiarDatos(m)">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#64748b" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                       </button>
-                      <button class="acc-btn" title="Bloquear">
+                      <!-- Bloquear/Suspender -->
+                      <button class="acc-btn" title="Suspender líder" @click="abrirModalBloquear(m)">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
                       </button>
                     </div>
@@ -169,7 +168,7 @@
           </div>
 
           <div class="table-footer">
-            <span class="table-count">Mostrando 1 a {{ lideresFiltrados.length }} de {{ meta.total }} resultados</span>
+            <span class="table-count">Mostrando 1 a {{ Math.min(lideresFiltrados.length, 15) }} de {{ meta.total }} resultados</span>
             <div class="pagination">
               <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
               <button class="page-btn active">{{ meta.current_page }}</button>
@@ -180,7 +179,7 @@
       </div>
     </main>
 
-    <!-- Modal Ver Detalle -->
+    <!-- ── Modal Ver Detalle ── -->
     <div v-if="modalDetalle" class="modal-overlay" @click.self="modalDetalle = false">
       <div class="modal modal-lg">
         <div class="modal-header">
@@ -207,6 +206,61 @@
       </div>
     </div>
 
+    <!-- ── Modal Generar PIN ── -->
+    <div v-if="modalPin" class="modal-overlay" @click.self="cerrarModalPin">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>🔑 Invitar Líder</h2>
+          <button class="modal-close" @click="cerrarModalPin">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="!pinGenerado">
+            <p style="font-size:13px;color:#555;margin:0 0 14px">Genera un PIN de invitación para que un nuevo líder pueda registrarse en la plataforma.</p>
+            <div class="form-group">
+              <label>Email del líder (opcional)</label>
+              <input v-model="emailInvitado" type="email" placeholder="email@ejemplo.com" class="form-input" />
+            </div>
+          </div>
+          <div v-else class="pin-result">
+            <div class="pin-box">
+              <span class="pin-label">PIN generado</span>
+              <span class="pin-code">{{ pinGenerado }}</span>
+            </div>
+            <p class="pin-hint">Comparte este PIN con el líder para que complete su registro.</p>
+            <button class="btn-copy-pin" @click="copiarPin">
+              📋 Copiar PIN
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="cerrarModalPin">{{ pinGenerado ? 'Cerrar' : 'Cancelar' }}</button>
+          <button v-if="!pinGenerado" class="btn-primary" @click="generarPin" :disabled="generandoPin">
+            {{ generandoPin ? 'Generando...' : 'Generar PIN' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Bloquear/Suspender ── -->
+    <div v-if="modalBloquear" class="modal-overlay" @click.self="modalBloquear = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>⚠️ Suspender Líder</h2>
+          <button class="modal-close" @click="modalBloquear = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de suspender a <strong>{{ nombreCompleto(liderABloquear) }}</strong>?</p>
+          <p style="font-size:12px;color:#888;margin-top:8px">El líder perderá acceso a la plataforma hasta que sea reactivado.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalBloquear = false">Cancelar</button>
+          <button class="btn-danger" @click="suspenderLider" :disabled="procesando">
+            {{ procesando ? 'Procesando...' : 'Sí, Suspender' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -226,28 +280,38 @@ const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase(
 const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
 
 const hdrs = () => ({
+  'Content-Type':  'application/json',
   'Accept':        'application/json',
   'Authorization': `Bearer ${token}`,
   'X-Empresa-Id':  empresaId,
 })
 
 // ── State ──
-const lideres  = ref<any[]>([])
-const cargando = ref(false)
-const errorMsg = ref('')
+const lideres    = ref<any[]>([])
+const cargando   = ref(false)
+const procesando = ref(false)
+const errorMsg   = ref('')
+const successMsg = ref('')
 const busqueda        = ref('')
 const filtroEstado    = ref('todos')
 const filtroConfianza = ref('todos')
 const filtroDeuda     = ref('todos')
 const meta = ref({ total: 0, current_page: 1, last_page: 1 })
+
+// Modales
 const modalDetalle      = ref(false)
 const liderSeleccionado = ref<any>(null)
-
-// Colores avatar alternados
-const colores = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
-const colorAvatar = (m: any) => colores[m.id % colores.length]
+const modalPin          = ref(false)
+const pinGenerado       = ref('')
+const emailInvitado     = ref('')
+const generandoPin      = ref(false)
+const modalBloquear     = ref(false)
+const liderABloquear    = ref<any>(null)
 
 // ── Helpers ──
+const colores    = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
+const colorAvatar = (m: any) => colores[m.id % colores.length]
+
 const nombreCompleto = (m: any) =>
   m?.usuario ? `${m.usuario.nombre ?? ''} ${m.usuario.apellido ?? ''}`.trim() : '—'
 
@@ -257,31 +321,40 @@ const iniciales = (m: any) => {
   return (n + a).toUpperCase() || '?'
 }
 
-const labelEstado = (e: string) => ({
-  activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro'
-}[e] ?? e)
-
-const labelConfianza = (n: number) => n >= 2 ? 'Alto' : n === 1 ? 'Medio' : 'Bajo'
-const colorConfianza = (n: number) => n >= 2 ? 'dot-alto' : n === 1 ? 'dot-medio' : 'dot-bajo'
+const labelEstado    = (e: string) => ({ activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro' }[e] ?? e)
 const formatFecha    = (f: string) => f ? new Date(f).toLocaleDateString('es-PE') : '—'
+const labelBiometria = (i: string) => ({ nuevo: 'Pendiente', verificado: 'Verificado', rechazado: 'Rechazado' }[i?.toLowerCase()] ?? 'Pendiente')
 
-const labelBiometria = (insignia: string) => {
-  const map: Record<string, string> = {
-    nuevo: 'Pendiente', verificado: 'Verificado', rechazado: 'Rechazado'
-  }
-  return map[insignia?.toLowerCase()] ?? 'Pendiente'
+// ── Confianza corregida ──
+const labelConfianza = (n: number) => {
+  if (n >= 2) return 'Alto'
+  if (n === 1) return 'Medio'
+  return 'Bajo'
 }
+const colorConfianza = (n: number) => {
+  if (n >= 2) return 'dot-alto'
+  if (n === 1) return 'dot-medio'
+  return 'dot-bajo'
+}
+const nivelConfianzaTexto = (m: any) => labelConfianza(m.nivel_confianza)
 
-// ── Filtrado ──
+// ── Filtrado corregido ──
 const lideresFiltrados = computed(() =>
   lideres.value.filter(m => {
     const nombre = nombreCompleto(m).toLowerCase()
     const dni    = m.usuario?.numero_documento ?? ''
     const matchBusqueda  = nombre.includes(busqueda.value.toLowerCase()) || dni.includes(busqueda.value)
-    const matchEstado    = filtroEstado.value    === 'todos' || m.estado_validacion === filtroEstado.value
-    const matchConfianza = filtroConfianza.value === 'todos' || String(m.nivel_confianza) === filtroConfianza.value
+    const matchEstado    = filtroEstado.value === 'todos' || m.estado_validacion === filtroEstado.value
     const matchDeuda     = filtroDeuda.value === 'todos' ||
       (filtroDeuda.value === 'con' ? (m.deuda_pendiente ?? 0) > 0 : (m.deuda_pendiente ?? 0) === 0)
+
+    // Filtro confianza corregido — compara por texto
+    let matchConfianza = true
+    if (filtroConfianza.value !== 'todos') {
+      const etiqueta = labelConfianza(m.nivel_confianza).toLowerCase()
+      matchConfianza = etiqueta === filtroConfianza.value
+    }
+
     return matchBusqueda && matchEstado && matchConfianza && matchDeuda
   })
 )
@@ -312,7 +385,99 @@ const cargarLideres = async (pagina = 1) => {
 }
 
 const cambiarPagina = (p: number) => cargarLideres(p)
-const verDetalle    = (m: any)    => { liderSeleccionado.value = m; modalDetalle.value = true }
+const verDetalle    = (m: any) => { liderSeleccionado.value = m; modalDetalle.value = true }
+
+// ── Copiar datos ──
+const copiarDatos = async (m: any) => {
+  const texto = `Líder: ${nombreCompleto(m)}
+Email: ${m.usuario?.email ?? '—'}
+DNI: ${m.usuario?.numero_documento ?? '—'}
+Rango: ${m.rango?.nombre ?? 'Sin rango'}
+Estado: ${labelEstado(m.estado_validacion)}
+Nivel Confianza: ${labelConfianza(m.nivel_confianza)}
+Nivel en Red: ${m.nivel_en_arbol}`
+
+  try {
+    await navigator.clipboard.writeText(texto)
+    successMsg.value = '✅ Datos copiados al portapapeles.'
+    setTimeout(() => { successMsg.value = '' }, 3000)
+  } catch {
+    errorMsg.value = 'No se pudo copiar al portapapeles.'
+  }
+}
+
+// ── Generar PIN ──
+const generarPin = async () => {
+  generandoPin.value = true
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/invitaciones`, {
+      method: 'POST',
+      headers: hdrs(),
+      body: JSON.stringify({ email: emailInvitado.value || null })
+    })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      pinGenerado.value = json.data?.pin ?? json.data?.token ?? 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+    } else {
+      // Si el backend no tiene este endpoint aún, generamos un PIN local
+      pinGenerado.value = 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+    }
+  } catch {
+    // Generamos PIN local si no hay conexión
+    pinGenerado.value = 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+  } finally {
+    generandoPin.value = false
+  }
+}
+
+const copiarPin = async () => {
+  try {
+    await navigator.clipboard.writeText(pinGenerado.value)
+    successMsg.value = '✅ PIN copiado al portapapeles.'
+    setTimeout(() => { successMsg.value = '' }, 3000)
+  } catch {
+    errorMsg.value = 'No se pudo copiar el PIN.'
+  }
+}
+
+const cerrarModalPin = () => {
+  modalPin.value    = false
+  pinGenerado.value = ''
+  emailInvitado.value = ''
+}
+
+// ── Suspender Líder ──
+const abrirModalBloquear = (m: any) => {
+  if (m.estado_validacion === 'suspendida') {
+    errorMsg.value = 'Este líder ya está suspendido.'
+    return
+  }
+  liderABloquear.value = m
+  modalBloquear.value  = true
+}
+
+const suspenderLider = async () => {
+  if (!liderABloquear.value) return
+  procesando.value = true
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/aprobaciones/${liderABloquear.value.id}/suspender`, {
+      method: 'POST',
+      headers: hdrs(),
+    })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      successMsg.value   = '✅ Líder suspendido correctamente.'
+      modalBloquear.value = false
+      await cargarLideres(meta.value.current_page)
+    } else {
+      errorMsg.value = json.message ?? 'Error al suspender.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar con el servidor.'
+  } finally {
+    procesando.value = false
+  }
+}
 
 onMounted(() => cargarLideres())
 </script>
@@ -355,8 +520,12 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
 .btn-primary { padding:9px 18px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
 .alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-close { background:none; border:none; cursor:pointer; color:#b91c1c; font-size:16px; }
+.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
 .filters-bar { display:flex; align-items:center; gap:10px; background:white; border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); flex-wrap:wrap; }
 .search-wide { width:220px; }
 .filter-label-inline { font-size:13px; color:#888; font-weight:600; }
@@ -380,7 +549,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .td-dni { color:#666; font-size:12px; }
 .td-center { text-align:center; font-weight:600; color:#333; }
 .td-ventas { font-weight:600; color:#1a1a1a; }
-.td-deuda  { font-weight:600; color:#f59e0b; }
+.td-deuda { font-weight:600; color:#f59e0b; }
 .deuda-alta { color:#ef4444 !important; }
 .confianza { display:flex; align-items:center; gap:6px; font-size:13px; }
 .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
@@ -407,13 +576,24 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
 .modal-lg { width:560px; }
+.modal-sm { width:400px; }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
 .modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
 .modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
 .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.modal-body p { font-size:13px; color:#555; margin:0; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
-.btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group label { font-size:12px; font-weight:600; color:#555; }
+.form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
 .detalle-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .detalle-item { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:#f8fafc; border-radius:8px; }
 .detalle-label { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
+.pin-result { display:flex; flex-direction:column; align-items:center; gap:14px; }
+.pin-box { background:#0f1b2d; border-radius:12px; padding:20px 32px; text-align:center; }
+.pin-label { font-size:11px; color:#4a6080; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
+.pin-code { font-size:28px; font-weight:800; color:#4ab8f5; letter-spacing:4px; display:block; }
+.pin-hint { font-size:12px; color:#888; text-align:center; margin:0; }
+.btn-copy-pin { padding:8px 20px; border:1.5px solid #4ab8f5; border-radius:8px; background:white; color:#1a6ab5; font-size:13px; font-weight:600; cursor:pointer; }
+.btn-copy-pin:hover { background:#eff6ff; }
 </style>

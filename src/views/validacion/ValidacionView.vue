@@ -25,7 +25,7 @@
 
     <main class="main-content">
       <header class="topbar">
-        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Validación Ventas</strong></span></div>
+        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Validación</strong></span></div>
         <div class="topbar-center">
           <div class="search-box">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -42,128 +42,160 @@
           </div>
           <button class="notif-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="notif-badge">{{ ventas.length }}</span>
+            <span class="notif-badge">{{ contarEstado('pendiente') }}</span>
           </button>
         </div>
       </header>
 
       <div class="page-body">
 
-        <div v-if="errorMsg" class="alert-error">
-          {{ errorMsg }}
-          <button @click="errorMsg = ''" class="alert-close">✕</button>
-        </div>
-
-        <div v-if="successMsg" class="alert-success">
-          {{ successMsg }}
-          <button @click="successMsg = ''" class="alert-close">✕</button>
-        </div>
+        <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
+        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
 
         <div class="page-header">
           <div>
             <h1 class="page-title">Validación de Ventas</h1>
             <p class="page-subtitle">
               <span v-if="cargando">Cargando...</span>
-              <span v-else>{{ meta.total }} ventas pendientes de validación</span>
+              <span v-else>{{ ventasFiltradas.length }} campañas encontradas</span>
             </p>
           </div>
         </div>
 
-        <!-- KPI rápido -->
-        <div class="kpi-row">
-          <div class="kpi-card kpi-orange">
-            <div class="kpi-info">
-              <span class="kpi-label">Pendientes</span>
-              <span class="kpi-value">{{ meta.total }}</span>
-            </div>
-            <div class="kpi-icon">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-          </div>
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-info">
-              <span class="kpi-label">Monto Total Pendiente</span>
-              <span class="kpi-value">S/ {{ montoTotal }}</span>
-            </div>
-            <div class="kpi-icon">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-            </div>
-          </div>
-        </div>
+        <div class="content-layout">
+          <!-- Panel Filtros -->
+          <aside class="filters-panel">
+            <h3 class="filters-title">Filtros</h3>
 
-        <!-- Tabla -->
-        <div class="table-card">
-          <div class="table-toolbar">
-            <h3 class="table-title">Ventas Pendientes de Validación</h3>
-          </div>
+            <!-- Contadores por estado -->
+            <div class="estado-counters">
+              <div class="counter-item counter-pendiente">
+                <span>Pendientes</span>
+                <span class="counter-badge">{{ contarEstado('pendiente') }}</span>
+              </div>
+              <div class="counter-item counter-validada">
+                <span>Validadas</span>
+                <span class="counter-badge">{{ contarEstado('aprobada') }}</span>
+              </div>
+              <div class="counter-item counter-rechazada">
+                <span>Rechazadas</span>
+                <span class="counter-badge">{{ contarEstado('rechazada') }}</span>
+              </div>
+            </div>
 
-          <div v-if="cargando" class="loading-state">
-            <div class="spinner"></div>
-            <span>Cargando ventas...</span>
-          </div>
+            <div class="filter-section">
+              <label class="filter-label">Estado</label>
+              <div class="filter-options">
+                <label v-for="op in opcionesEstado" :key="op.value"
+                  class="filter-radio" :class="{ active: filtroEstado === op.value }"
+                  @click="filtroEstado = op.value">
+                  <input type="radio" v-model="filtroEstado" :value="op.value" />
+                  <span class="radio-dot" :style="{ background: op.color }"></span>
+                  {{ op.label }}
+                </label>
+              </div>
+            </div>
 
-          <div v-else class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Vendedor</th>
-                  <th>Kit</th>
-                  <th>Cantidad</th>
-                  <th>Monto Total</th>
-                  <th>Consumidor</th>
-                  <th>Voucher</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="ventas.length === 0">
-                  <td colspan="8" class="empty-state">✅ No hay ventas pendientes de validación.</td>
-                </tr>
-                <tr v-for="v in ventas" :key="v.id">
-                  <td class="td-fecha">{{ formatFecha(v.capturado_at) }}</td>
-                  <td>
-                    <div class="vendedor-info">
-                      <div class="vendedor-avatar">{{ inicialesVendedor(v) }}</div>
-                      <div>
-                        <div class="vendedor-name">{{ nombreVendedor(v) }}</div>
+            <div class="filter-section">
+              <label class="filter-label">Rango de Fechas</label>
+              <label class="date-label">Fecha inicio</label>
+              <input type="date" v-model="fechaInicio" class="date-input" />
+              <label class="date-label" style="margin-top:8px">Fecha fin</label>
+              <input type="date" v-model="fechaFin" class="date-input" />
+            </div>
+          </aside>
+
+          <!-- Tabla -->
+          <div class="table-area">
+            <!-- Buscador -->
+            <div class="table-toolbar">
+              <div class="search-box search-wide">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
+              </div>
+            </div>
+
+            <div v-if="cargando" class="loading-state">
+              <div class="spinner"></div>
+              <span>Cargando ventas...</span>
+            </div>
+
+            <div v-else class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th>Vendedor</th>
+                    <th>Líder</th>
+                    <th>Kit</th>
+                    <th>Monto</th>
+                    <th>Banco</th>
+                    <th>Comprobante</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="ventasFiltradas.length === 0">
+                    <td colspan="10" class="empty-state">✅ No hay ventas con este filtro.</td>
+                  </tr>
+                  <tr v-for="v in ventasFiltradas" :key="v.id">
+                    <td>
+                      <div class="cliente-info">
+                        <div class="cliente-name">{{ v.consumidor_nombre ?? '—' }}</div>
+                        <div class="cliente-doc">{{ v.consumidor_documento ?? '' }}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td class="td-kit">{{ v.kit?.nombre ?? '—' }}</td>
-                  <td class="td-center">{{ v.cantidad_vendida }}</td>
-                  <td class="td-monto">S/ {{ Number(v.monto_total_venta).toFixed(2) }}</td>
-                  <td class="td-consumidor">{{ v.consumidor_nombre ?? '—' }}</td>
-                  <td class="td-center">
-                    <a v-if="v.comprobante_foto_url" :href="v.comprobante_foto_url" target="_blank" class="voucher-link">
-                      Ver 📄
-                    </a>
-                    <span v-else class="text-muted">—</span>
-                  </td>
-                  <td>
-                    <div class="acciones">
-                      <button class="btn-aprobar" @click="aprobar(v)" :disabled="procesando === v.id" title="Aprobar">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ procesando === v.id ? '...' : 'Aprobar' }}
-                      </button>
-                      <button class="btn-rechazar" @click="abrirModalRechazar(v)" title="Rechazar">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        Rechazar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    </td>
+                    <td class="td-fecha">{{ formatFecha(v.capturado_at) }}</td>
+                    <td>
+                      <div class="vendedor-info">
+                        <div class="vendedor-avatar">{{ inicialesVendedor(v) }}</div>
+                        <span class="vendedor-name">{{ nombreVendedor(v) }}</span>
+                      </div>
+                    </td>
+                    <td class="td-lider">{{ nombreLider(v) }}</td>
+                    <td class="td-kit">{{ v.kit?.nombre ?? '—' }}</td>
+                    <td class="td-monto">S/ {{ Number(v.monto_total_venta ?? 0).toFixed(2) }}</td>
+                    <td class="td-banco">{{ v.banco ?? 'BCP' }}</td>
+                    <td class="td-center">
+                      <a v-if="v.comprobante_foto_url" :href="v.comprobante_foto_url" target="_blank" class="comprobante-link">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {{ v.numero_comprobante ?? 'TRF-' + String(v.id).padStart(3,'0') }}
+                      </a>
+                      <span v-else class="text-muted">—</span>
+                    </td>
+                    <td>
+                      <span class="badge" :class="'est-' + (v.estado ?? 'pendiente')">
+                        {{ labelEstado(v.estado) }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="acciones" v-if="v.estado === 'pendiente' || !v.estado">
+                        <button class="btn-aprobar" @click="aprobar(v)" :disabled="procesando === v.id">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                          {{ procesando === v.id ? '...' : 'Aprobar' }}
+                        </button>
+                        <button class="btn-rechazar" @click="abrirModalRechazar(v)">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          Rechazar
+                        </button>
+                      </div>
+                      <span v-else class="text-muted">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-          <!-- Paginación -->
-          <div v-if="meta.last_page > 1" class="table-footer">
-            <span class="table-count">Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} total</span>
-            <div class="pagination">
-              <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
-              <button class="page-btn active">{{ meta.current_page }}</button>
-              <button class="page-btn" :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)">Siguiente</button>
+            <!-- Paginación -->
+            <div v-if="meta.last_page > 1" class="table-footer">
+              <span class="table-count">Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} total</span>
+              <div class="pagination">
+                <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
+                <button class="page-btn active">{{ meta.current_page }}</button>
+                <button class="page-btn" :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)">Siguiente</button>
+              </div>
             </div>
           </div>
         </div>
@@ -178,7 +210,9 @@
           <button class="modal-close" @click="modalRechazar = false">✕</button>
         </div>
         <div class="modal-body">
-          <p>Venta de <strong>{{ nombreVendedor(ventaSeleccionada) }}</strong> — Kit: <strong>{{ ventaSeleccionada?.kit?.nombre }}</strong></p>
+          <p>Cliente: <strong>{{ ventaSeleccionada?.consumidor_nombre ?? '—' }}</strong></p>
+          <p>Kit: <strong>{{ ventaSeleccionada?.kit?.nombre ?? '—' }}</strong></p>
+          <p>Monto: <strong>S/ {{ Number(ventaSeleccionada?.monto_total_venta ?? 0).toFixed(2) }}</strong></p>
           <div class="form-group" style="margin-top:14px">
             <label>Motivo del rechazo *</label>
             <textarea v-model="motivoRechazo" placeholder="Explica por qué se rechaza esta venta..." class="form-input form-textarea"></textarea>
@@ -220,11 +254,16 @@ const hdrs = () => ({
 })
 
 // ── State ──
-const ventas     = ref<any[]>([])
-const cargando   = ref(false)
-const procesando = ref<number | null>(null)
-const errorMsg   = ref('')
-const successMsg = ref('')
+const todasVentas = ref<any[]>([])
+const ventas      = ref<any[]>([])
+const cargando    = ref(false)
+const procesando  = ref<number | null>(null)
+const errorMsg    = ref('')
+const successMsg  = ref('')
+const busqueda    = ref('')
+const filtroEstado   = ref('todos')
+const fechaInicio    = ref('')
+const fechaFin       = ref('')
 const meta = ref({ total: 0, current_page: 1, last_page: 1 })
 
 const modalRechazar     = ref(false)
@@ -232,13 +271,19 @@ const ventaSeleccionada = ref<any>(null)
 const motivoRechazo     = ref('')
 const errorMotivo       = ref('')
 
-// ── Computed ──
-const montoTotal = computed(() =>
-  ventas.value.reduce((sum, v) => sum + Number(v.monto_total_venta ?? 0), 0).toFixed(2)
-)
+const opcionesEstado = [
+  { value: 'todos',     label: 'Todos',      color: '#4ab8f5' },
+  { value: 'pendiente', label: 'Pendiente',  color: '#f59e0b' },
+  { value: 'aprobada',  label: 'Validada',   color: '#22c55e' },
+  { value: 'rechazada', label: 'Rechazada',  color: '#ef4444' },
+]
 
 // ── Helpers ──
-const formatFecha = (f: string) => f ? new Date(f).toLocaleString('es-PE') : '—'
+const formatFecha = (f: string) => {
+  if (!f) return '—'
+  const d = new Date(f)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
 
 const nombreVendedor = (v: any) => {
   const u = v?.vendedor?.usuario
@@ -251,6 +296,30 @@ const inicialesVendedor = (v: any) => {
   return ((u.nombre?.[0] ?? '') + (u.apellido?.[0] ?? '')).toUpperCase()
 }
 
+const nombreLider = (v: any) => {
+  const ref = v?.vendedor?.referente?.usuario
+  if (ref) return `${ref.nombre ?? ''} ${ref.apellido ?? ''}`.trim()
+  return v?.lider_nombre ?? '—'
+}
+
+const labelEstado = (e: string) => ({
+  pendiente: 'Pendiente', aprobada: 'Validada', rechazada: 'Rechazada'
+}[e] ?? 'Pendiente')
+
+const contarEstado = (estado: string) => todasVentas.value.filter(v => (v.estado ?? 'pendiente') === estado).length
+
+// ── Filtrado ──
+const ventasFiltradas = computed(() =>
+  ventas.value.filter(v => {
+    const matchEstado  = filtroEstado.value === 'todos' || (v.estado ?? 'pendiente') === filtroEstado.value
+    const matchBusq    = !busqueda.value ||
+      (v.consumidor_nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase()) ||
+      nombreVendedor(v).toLowerCase().includes(busqueda.value.toLowerCase()) ||
+      (v.kit?.nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase())
+    return matchEstado && matchBusq
+  })
+)
+
 // ── API ──
 const cargarVentas = async (pagina = 1) => {
   cargando.value = true
@@ -260,7 +329,8 @@ const cargarVentas = async (pagina = 1) => {
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
-      ventas.value = json.data.data ?? json.data
+      ventas.value      = json.data.data ?? json.data
+      todasVentas.value = ventas.value
       meta.value = {
         total:        json.data.total        ?? ventas.value.length,
         current_page: json.data.current_page ?? 1,
@@ -284,6 +354,7 @@ const aprobar = async (v: any) => {
     const json = await res.json()
     if (res.ok && json.status === 'success') {
       successMsg.value = '✅ Venta aprobada correctamente.'
+      setTimeout(() => { successMsg.value = '' }, 3000)
       await cargarVentas(meta.value.current_page)
     } else {
       errorMsg.value = json.message ?? 'Error al aprobar.'
@@ -303,23 +374,20 @@ const abrirModalRechazar = (v: any) => {
 }
 
 const rechazar = async () => {
-  if (!motivoRechazo.value.trim()) {
-    errorMotivo.value = 'El motivo es obligatorio.'
-    return
-  }
+  if (!motivoRechazo.value.trim()) { errorMotivo.value = 'El motivo es obligatorio.'; return }
   if (!ventaSeleccionada.value) return
   procesando.value = ventaSeleccionada.value.id
   errorMsg.value   = ''
   try {
     const res  = await fetch(`${API_BASE}/workspace/admin/ventas/${ventaSeleccionada.value.id}/rechazar`, {
-      method: 'POST',
-      headers: hdrs(),
+      method: 'POST', headers: hdrs(),
       body: JSON.stringify({ motivo: motivoRechazo.value })
     })
     const json = await res.json()
     if (res.ok && json.status === 'success') {
       successMsg.value    = '❌ Venta rechazada correctamente.'
       modalRechazar.value = false
+      setTimeout(() => { successMsg.value = '' }, 3000)
       await cargarVentas(meta.value.current_page)
     } else {
       errorMsg.value = json.message ?? 'Error al rechazar.'
@@ -332,7 +400,6 @@ const rechazar = async () => {
 }
 
 const cambiarPagina = (p: number) => cargarVentas(p)
-
 onMounted(() => cargarVentas())
 </script>
 
@@ -376,42 +443,61 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
-.kpi-row { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-.kpi-card { border-radius:16px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; color:white; }
-.kpi-blue   { background:linear-gradient(135deg,#0d2d6b,#1250b0); }
-.kpi-orange { background:linear-gradient(135deg,#7c2d00,#b84500); }
-.kpi-label  { font-size:11px; opacity:0.85; display:block; margin-bottom:6px; }
-.kpi-value  { font-size:28px; font-weight:700; display:block; }
-.kpi-icon   { opacity:0.65; }
-.table-card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
-.table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-.table-title { font-size:15px; font-weight:700; color:#1a1a1a; margin:0; }
+.content-layout { display:flex; gap:20px; align-items:flex-start; }
+.filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.filters-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 14px; }
+.estado-counters { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.counter-item { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+.counter-pendiente { background:#fef3c7; color:#b45309; }
+.counter-validada  { background:#dcfce7; color:#166534; }
+.counter-rechazada { background:#fee2e2; color:#991b1b; }
+.counter-badge { font-size:13px; font-weight:700; }
+.filter-section { margin-bottom:16px; }
+.filter-label { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
+.filter-options { display:flex; flex-direction:column; gap:6px; }
+.filter-radio { display:flex; align-items:center; gap:8px; font-size:13px; color:#444; cursor:pointer; padding:5px 8px; border-radius:6px; transition:background 0.15s; }
+.filter-radio input { display:none; }
+.filter-radio.active { background:#eff6ff; color:#1a6ab5; font-weight:600; }
+.radio-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.date-label { font-size:11px; color:#888; display:block; margin-bottom:4px; }
+.date-input { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px; color:#333; outline:none; box-sizing:border-box; }
+.table-area { flex:1; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.table-toolbar { margin-bottom:14px; }
+.search-wide { width:100%; }
 .loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
 .spinner { width:20px; height:20px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .table-wrap { overflow-x:auto; }
-.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table { width:100%; border-collapse:collapse; font-size:12px; }
 .data-table thead tr { background:#1a1a2e; color:white; }
-.data-table th { padding:10px 14px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap; }
+.data-table th { padding:10px 12px; text-align:left; font-weight:600; font-size:11px; white-space:nowrap; }
 .data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
-.data-table td { padding:10px 14px; vertical-align:middle; }
+.data-table td { padding:10px 12px; vertical-align:middle; }
+.cliente-info { display:flex; flex-direction:column; }
+.cliente-name { font-weight:600; color:#1a1a1a; font-size:12px; }
+.cliente-doc { font-size:10px; color:#999; }
 .td-fecha { color:#888; font-size:11px; white-space:nowrap; }
-.td-kit { font-weight:600; color:#333; }
-.td-center { text-align:center; font-weight:600; color:#333; }
+.td-kit { font-weight:600; color:#333; font-size:12px; }
+.td-center { text-align:center; }
 .td-monto { font-weight:700; color:#1a1a1a; }
-.td-consumidor { color:#666; font-size:12px; }
-.vendedor-info { display:flex; align-items:center; gap:8px; }
-.vendedor-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); color:white; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.td-lider { color:#555; font-size:12px; }
+.td-banco { font-weight:600; color:#1a6ab5; font-size:12px; }
+.vendedor-info { display:flex; align-items:center; gap:6px; }
+.vendedor-avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); color:white; font-weight:700; font-size:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .vendedor-name { font-weight:600; color:#1a1a1a; font-size:12px; }
-.voucher-link { color:#4ab8f5; text-decoration:none; font-weight:600; font-size:12px; }
-.voucher-link:hover { text-decoration:underline; }
-.text-muted { color:#999; }
-.acciones { display:flex; gap:6px; }
-.btn-aprobar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.comprobante-link { display:flex; align-items:center; gap:4px; color:#4ab8f5; text-decoration:none; font-size:11px; font-weight:600; }
+.comprobante-link:hover { text-decoration:underline; }
+.text-muted { color:#999; font-size:12px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+.est-pendiente { background:#fef3c7; color:#b45309; }
+.est-aprobada  { background:#dcfce7; color:#166534; }
+.est-rechazada { background:#fee2e2; color:#991b1b; }
+.acciones { display:flex; gap:4px; }
+.btn-aprobar { display:flex; align-items:center; gap:3px; padding:4px 10px; border:none; border-radius:6px; background:#dcfce7; color:#166534; font-size:11px; font-weight:600; cursor:pointer; }
 .btn-aprobar:hover { background:#bbf7d0; }
 .btn-aprobar:disabled { opacity:0.5; cursor:not-allowed; }
-.btn-rechazar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.btn-rechazar { display:flex; align-items:center; gap:3px; padding:4px 10px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; cursor:pointer; }
 .btn-rechazar:hover { background:#fecaca; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
@@ -426,7 +512,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
 .modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
 .modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
-.modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:10px; }
 .modal-body p { font-size:13px; color:#555; margin:0; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
 .btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }

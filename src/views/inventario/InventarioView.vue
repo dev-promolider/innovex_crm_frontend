@@ -26,18 +26,36 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Control</strong></span></div>
-        <div class="topbar-center"><div class="search-box"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="" class="search-input" /></div></div>
+        <div class="topbar-center">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="" class="search-input" />
+          </div>
+        </div>
         <div class="topbar-right">
-          <div class="user-info"><div class="user-avatar">A</div><div class="user-details"><span class="user-name">Admin</span><span class="user-email">maria9.l@gmail.com</span></div></div>
-          <button class="notif-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge">1</span></button>
+          <div class="user-info">
+            <div class="user-avatar">{{ inicialUsuario }}</div>
+            <div class="user-details">
+              <span class="user-name">{{ nombreUsuario }}</span>
+              <span class="user-email">{{ emailUsuario }}</span>
+            </div>
+          </div>
+          <button class="notif-btn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-badge">{{ solicitudesPendientes }}</span>
+          </button>
         </div>
       </header>
 
       <div class="page-body">
+
+        <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
+        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
+
         <div class="page-header">
           <div>
-            <h1 class="page-title">Control Inventario</h1>
-            <p class="page-subtitle">Administración de empresas registradas en la plataforma</p>
+            <h1 class="page-title">Inventario Central</h1>
+            <p class="page-subtitle">Administración de solicitudes de kits y stock</p>
           </div>
         </div>
 
@@ -45,7 +63,7 @@
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-top">
-              <span class="kpi-val">270</span>
+              <span class="kpi-val kpi-blue-txt">{{ kpis.stockAlmacen }}</span>
               <div class="kpi-icon blue"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
             </div>
             <span class="kpi-label">Stock en Almacén</span>
@@ -53,15 +71,15 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-top">
-              <span class="kpi-val">23</span>
+              <span class="kpi-val kpi-teal-txt">{{ kpis.stockDistribuido }}</span>
               <div class="kpi-icon teal"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
             </div>
             <span class="kpi-label">Stock Distribuido</span>
-            <span class="kpi-sub">Unidades disponibles</span>
+            <span class="kpi-sub">Unidades comprometidas</span>
           </div>
           <div class="kpi-card kpi-warn">
             <div class="kpi-top">
-              <span class="kpi-val">1</span>
+              <span class="kpi-val kpi-orange-txt">{{ kpis.stockBajo }}</span>
               <div class="kpi-icon orange"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
             </div>
             <span class="kpi-label">Kits con Stock Bajo</span>
@@ -69,8 +87,8 @@
           </div>
           <div class="kpi-card kpi-danger">
             <div class="kpi-top">
-              <span class="kpi-val">3</span>
-              <div class="kpi-icon red"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
+              <span class="kpi-val kpi-red-txt">{{ kpis.merma }}</span>
+              <div class="kpi-icon red"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
             </div>
             <span class="kpi-label">Merma/Pérdidas</span>
             <span class="kpi-sub">Unidades disponibles</span>
@@ -78,44 +96,135 @@
         </div>
 
         <!-- Estado de Stock por Kit -->
-        <div class="stock-section card">
+        <div class="stock-section card" v-if="kits.length > 0">
           <h3 class="section-title">Estado de Stock por Kit</h3>
           <div class="stock-grid">
-            <div v-for="kit in kits" :key="kit.nombre" class="stock-item" :class="{ 'stock-low': kit.bajo }">
+            <div v-for="kit in kits" :key="kit.id" class="stock-item" :class="{ 'stock-low': stockDisponible(kit) < 20 }">
               <span class="stock-kit-name">{{ kit.nombre }}</span>
-              <span class="stock-val" :class="{ 'val-red': kit.bajo }">{{ kit.stock }}</span>
+              <span class="stock-val" :class="{ 'val-red': stockDisponible(kit) < 20 }">{{ stockDisponible(kit) }}</span>
               <span class="stock-unit">unidades</span>
-              <div class="stock-bar"><div class="stock-fill" :style="{ width: (kit.stock/100*100)+'%', background: kit.bajo ? '#ef4444' : '#3b82f6' }"></div></div>
+              <div class="stock-bar">
+                <div class="stock-fill" :style="{ width: Math.min(100, (stockDisponible(kit) / (kit.stock_central || 1)) * 100) + '%', background: stockDisponible(kit) < 20 ? '#ef4444' : '#3b82f6' }"></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Filtros de tabla -->
-        <div class="table-filters card">
-          <div class="search-box search-wide">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" v-model="busqueda" placeholder="Buscar stock, kit..." class="search-input" />
-          </div>
-          <span class="filter-label-inline">Filtrar por:</span>
-          <select v-model="filtroTipo" class="select-filter">
-            <option value="todos">Todos</option>
-            <option value="Entradas">Entradas</option>
-            <option value="Asignación">Asignación</option>
-            <option value="Salida">Salida</option>
-            <option value="Merma">Merma</option>
-          </select>
-          <select v-model="filtroKit" class="select-filter">
-            <option value="todos">Todos</option>
-            <option v-for="kit in kits" :key="kit.nombre" :value="kit.nombre">{{ kit.nombre }}</option>
-          </select>
-          <input type="date" v-model="fechaInicio" class="date-input-sm" />
-          <input type="date" v-model="fechaFin"    class="date-input-sm" />
+        <!-- Tabs -->
+        <div class="tabs-bar">
+          <button class="tab-btn" :class="{ active: tabActivo === 'solicitudes' }" @click="tabActivo = 'solicitudes'">
+            Solicitudes de Kits
+            <span v-if="solicitudesPendientes > 0" class="tab-badge">{{ solicitudesPendientes }}</span>
+          </button>
+          <button class="tab-btn" :class="{ active: tabActivo === 'movimientos' }" @click="tabActivo = 'movimientos'">
+            Movimientos de Inventario
+          </button>
         </div>
 
-        <!-- Tabla movimientos -->
-        <div class="card">
-          <h3 class="section-title">Movimientos de Inventario</h3>
-          <p class="section-sub">7 registros</p>
+        <!-- TAB: Solicitudes -->
+        <div v-if="tabActivo === 'solicitudes'" class="card">
+          <div class="table-filters">
+            <div class="search-box search-wide">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" v-model="busquedaSol" placeholder="Buscar solicitud, kit, líder..." class="search-input" />
+            </div>
+            <select v-model="filtroEstadoSol" class="select-filter">
+              <option value="todos">Todos los estados</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="aprobada">Aprobada</option>
+              <option value="rechazada">Rechazada</option>
+            </select>
+          </div>
+
+          <div v-if="cargandoSol" class="loading-state">
+            <div class="spinner"></div><span>Cargando solicitudes...</span>
+          </div>
+
+          <div v-else class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Líder Solicitante</th>
+                  <th>Kit</th>
+                  <th>Cantidad</th>
+                  <th>Precio Unit.</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="solicitudesFiltradas.length === 0">
+                  <td colspan="8" class="empty-state">No hay solicitudes con este filtro.</td>
+                </tr>
+                <tr v-for="s in solicitudesFiltradas" :key="s.id">
+                  <td class="td-fecha">{{ formatFecha(s.created_at) }}</td>
+                  <td>
+                    <div class="lider-info">
+                      <div class="lider-avatar">{{ inicialesLider(s) }}</div>
+                      <div class="lider-name">{{ nombreLider(s) }}</div>
+                    </div>
+                  </td>
+                  <td class="td-kit">{{ s.kit?.nombre ?? '—' }}</td>
+                  <td class="td-center">{{ s.cantidad_solicitada }}</td>
+                  <td class="td-center">S/ {{ Number(s.kit?.precio_unitario ?? 0).toFixed(2) }}</td>
+                  <td class="td-monto">S/ {{ (Number(s.kit?.precio_unitario ?? 0) * Number(s.cantidad_solicitada ?? 0)).toFixed(2) }}</td>
+                  <td>
+                    <span class="badge" :class="'sol-' + (s.estado ?? 'pendiente')">{{ labelEstadoSol(s.estado) }}</span>
+                  </td>
+                  <td>
+                    <div class="acciones" v-if="s.estado === 'pendiente'">
+                      <button class="btn-aprobar" @click="aprobarSolicitud(s)" :disabled="procesando === s.id">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        {{ procesando === s.id ? '...' : 'Aprobar' }}
+                      </button>
+                      <button class="btn-rechazar" @click="abrirModalRechazar(s)">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Rechazar
+                      </button>
+                    </div>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="metaSol.last_page > 1" class="table-footer">
+            <span class="table-count">Página {{ metaSol.current_page }} de {{ metaSol.last_page }}</span>
+            <div class="pagination">
+              <button class="page-btn" :disabled="metaSol.current_page === 1" @click="cambiarPaginaSol(metaSol.current_page - 1)">Anterior</button>
+              <button class="page-btn active">{{ metaSol.current_page }}</button>
+              <button class="page-btn" :disabled="metaSol.current_page === metaSol.last_page" @click="cambiarPaginaSol(metaSol.current_page + 1)">Siguiente</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Movimientos -->
+        <div v-if="tabActivo === 'movimientos'" class="card">
+          <div class="section-header">
+            <div>
+              <h3 class="section-title">Movimientos de Inventario</h3>
+              <p class="section-sub">{{ movimientosFiltrados.length }} registros</p>
+            </div>
+            <div class="table-filters" style="margin:0">
+              <div class="search-box search-wide">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" v-model="busquedaMov" placeholder="Buscar kit..." class="search-input" />
+              </div>
+              <select v-model="filtroTipoMov" class="select-filter">
+                <option value="todos">Todos</option>
+                <option value="Entradas">Entradas</option>
+                <option value="Asignación">Asignación</option>
+                <option value="Salida">Salida</option>
+                <option value="Merma">Merma</option>
+              </select>
+              <input type="date" v-model="fechaDesde" class="date-input-sm" />
+              <input type="date" v-model="fechaHasta" class="date-input-sm" />
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -130,12 +239,15 @@
                 </tr>
               </thead>
               <tbody>
+                <tr v-if="movimientosFiltrados.length === 0">
+                  <td colspan="7" class="empty-state">No hay movimientos.</td>
+                </tr>
                 <tr v-for="m in movimientosFiltrados" :key="m.id">
                   <td class="td-fecha">{{ m.fecha }}</td>
                   <td>
                     <div class="tipo-cell">
                       <span class="dot-tipo" :style="{ background: colorTipo(m.tipo) }"></span>
-                      <span class="badge" :class="'tipo-'+m.tipo.toLowerCase()">{{ m.tipo }}</span>
+                      <span class="badge" :class="'tipo-' + m.tipo.toLowerCase()">{{ m.tipo }}</span>
                     </div>
                   </td>
                   <td class="td-kit">{{ m.kit }}</td>
@@ -147,8 +259,9 @@
               </tbody>
             </table>
           </div>
+
           <div class="table-footer">
-            <span class="table-count">Mostrando 1 a 10 de 156 resultados</span>
+            <span class="table-count">Mostrando 1 a {{ movimientosFiltrados.length }} de {{ movimientos.length }} resultados</span>
             <div class="pagination">
               <button class="page-btn">Anterior</button>
               <button class="page-btn active">1</button>
@@ -156,54 +269,230 @@
             </div>
           </div>
         </div>
+
       </div>
     </main>
+
+    <!-- Modal Rechazar -->
+    <div v-if="modalRechazar" class="modal-overlay" @click.self="modalRechazar = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>Rechazar Solicitud</h2>
+          <button class="modal-close" @click="modalRechazar = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>Solicitud de <strong>{{ nombreLider(solicitudSeleccionada) }}</strong></p>
+          <p>Kit: <strong>{{ solicitudSeleccionada?.kit?.nombre }}</strong> x{{ solicitudSeleccionada?.cantidad_solicitada }}</p>
+          <div class="form-group" style="margin-top:14px">
+            <label>Motivo del rechazo *</label>
+            <textarea v-model="motivoRechazo" placeholder="Escribe el motivo..." class="form-input form-textarea"></textarea>
+            <span v-if="errorMotivo" class="form-error">{{ errorMotivo }}</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalRechazar = false">Cancelar</button>
+          <button class="btn-danger" @click="rechazarSolicitud" :disabled="procesando !== null">
+            {{ procesando !== null ? 'Procesando...' : 'Confirmar Rechazo' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-const logo   = new URL('../../assets/logo-innovex.png', import.meta.url).href
+const API_BASE = 'http://localhost:8000/api'
+const logo = new URL('../../assets/logo-innovex.png', import.meta.url).href
 const router = useRouter()
-const cerrarSesion = () => { localStorage.removeItem('token'); router.push({ name: 'login' }) }
 
-const busqueda   = ref('')
-const filtroTipo = ref('todos')
-const filtroKit  = ref('todos')
-const fechaInicio = ref('')
-const fechaFin    = ref('')
+const token     = localStorage.getItem('token')      ?? ''
+const empresaId = localStorage.getItem('empresa_id') ?? '1'
+const nombreUsuario  = ref(localStorage.getItem('user_nombre') ?? 'Admin')
+const emailUsuario   = ref(localStorage.getItem('user_email')  ?? '')
+const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase())
+const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
 
-const kits = ref([
-  { nombre:'Kit Bienestar Básico',   stock:75, bajo:false },
-  { nombre:'Kit Bienestar Premium',  stock:32, bajo:false },
-  { nombre:'Kit Bienestar Elite',    stock:18, bajo:true  },
-  { nombre:'Kit Belleza Día',        stock:90, bajo:false },
-  { nombre:'Kit Belleza Noche',      stock:55, bajo:false },
-])
+const hdrs = () => ({
+  'Content-Type':  'application/json',
+  'Accept':        'application/json',
+  'Authorization': `Bearer ${token}`,
+  'X-Empresa-Id':  empresaId,
+})
+
+// ── State ──
+const errorMsg   = ref('')
+const successMsg = ref('')
+const tabActivo  = ref('movimientos') // ← pestaña por defecto
+
+// KPIs
+const kpis = ref({ stockAlmacen: 0, stockDistribuido: 0, stockBajo: 0, merma: 3 })
+const kits = ref<any[]>([])
+
+// Solicitudes
+const solicitudes           = ref<any[]>([])
+const cargandoSol           = ref(false)
+const procesando            = ref<number | null>(null)
+const busquedaSol           = ref('')
+const filtroEstadoSol       = ref('todos')
+const solicitudesPendientes = ref(0)
+const metaSol = ref({ total: 0, current_page: 1, last_page: 1 })
+
+// Modal rechazar
+const modalRechazar         = ref(false)
+const solicitudSeleccionada = ref<any>(null)
+const motivoRechazo         = ref('')
+const errorMotivo           = ref('')
+
+// Movimientos
+const busquedaMov   = ref('')
+const filtroTipoMov = ref('todos')
+const fechaDesde    = ref('')
+const fechaHasta    = ref('')
 
 const movimientos = ref([
-  { id:1, fecha:'2025-02-18 08:00', tipo:'Entradas',  kit:'Kit Bienestar Básico',  cantidad:+100, lider:'',              admin:'Admin Principal', stockResult:175 },
-  { id:2, fecha:'2025-02-17 14:30', tipo:'Asignación',kit:'Kit Bienestar Premium', cantidad:-5,   lider:'Ana Torres',    admin:'Admin Principal', stockResult:37  },
-  { id:3, fecha:'2025-02-17 10:15', tipo:'Asignación',kit:'Kit Belleza Día',       cantidad:-8,   lider:'María González', admin:'Supervisor 1',   stockResult:90  },
-  { id:4, fecha:'2025-02-16 16:45', tipo:'Salida',    kit:'Kit Bienestar Elite',   cantidad:-2,   lider:'Diego Herrera', admin:'Admin Principal', stockResult:18  },
-  { id:5, fecha:'2025-02-16 09:00', tipo:'Entradas',  kit:'Kit Belleza Noche',     cantidad:+50,  lider:'',              admin:'Almacén',         stockResult:55  },
-  { id:6, fecha:'2025-02-15 11:30', tipo:'Merma',     kit:'Kit Bienestar Básico',  cantidad:-3,   lider:'',              admin:'Almacén',         stockResult:72  },
-  { id:7, fecha:'2025-02-14 15:00', tipo:'Asignación',kit:'Kit Bienestar Básico',  cantidad:-10,  lider:'Eduardo Flores',admin:'Supervisor 1',    stockResult:75  },
+  { id:1, fecha:'2025-02-18 08:00', tipo:'Entradas',  kit:'Kit Bienestar Básico',  cantidad:+100, lider:'',               admin:'Admin Principal', stockResult:175 },
+  { id:2, fecha:'2025-02-17 14:30', tipo:'Asignación', kit:'Kit Bienestar Premium', cantidad:-5,   lider:'Ana Torres',     admin:'Admin Principal', stockResult:37  },
+  { id:3, fecha:'2025-02-17 10:15', tipo:'Asignación', kit:'Kit Belleza Día',       cantidad:-8,   lider:'María González', admin:'Supervisor 1',    stockResult:90  },
+  { id:4, fecha:'2025-02-16 16:45', tipo:'Salida',     kit:'Kit Bienestar Elite',   cantidad:-2,   lider:'Diego Herrera',  admin:'Admin Principal', stockResult:18  },
+  { id:5, fecha:'2025-02-16 09:00', tipo:'Entradas',   kit:'Kit Belleza Noche',     cantidad:+50,  lider:'',               admin:'Almacén',          stockResult:55  },
+  { id:6, fecha:'2025-02-15 11:30', tipo:'Merma',      kit:'Kit Bienestar Básico',  cantidad:-3,   lider:'',               admin:'Almacén',          stockResult:72  },
+  { id:7, fecha:'2025-02-14 15:00', tipo:'Asignación', kit:'Kit Bienestar Básico',  cantidad:-10,  lider:'Eduardo Flores', admin:'Supervisor 1',     stockResult:75  },
 ])
 
-const colorTipo = (tipo: string) => {
-  const map: Record<string,string> = { Entradas:'#22c55e', Asignación:'#3b82f6', Salida:'#ef4444', Merma:'#f59e0b' }
-  return map[tipo] || '#94a3b8'
+// ── Helpers ──
+const formatFecha = (f: string) => {
+  if (!f) return '—'
+  const d = new Date(f)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-const movimientosFiltrados = computed(() => movimientos.value.filter(m => {
-  const matchTipo = filtroTipo.value === 'todos' || m.tipo === filtroTipo.value
-  const matchKit  = filtroKit.value  === 'todos' || m.kit  === filtroKit.value
-  const matchBusc = m.kit.toLowerCase().includes(busqueda.value.toLowerCase())
-  return matchTipo && matchKit && matchBusc
-}))
+const nombreLider    = (s: any) => { const u = s?.solicitante?.usuario; return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : '—' }
+const inicialesLider = (s: any) => { const u = s?.solicitante?.usuario; if (!u) return '?'; return ((u.nombre?.[0] ?? '') + (u.apellido?.[0] ?? '')).toUpperCase() }
+const labelEstadoSol = (e: string) => ({ pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' }[e] ?? 'Pendiente')
+const stockDisponible = (k: any) => (k.stock_central ?? 0) - (k.stock_comprometido ?? 0)
+const colorTipo = (tipo: string) => ({ Entradas:'#22c55e', Asignación:'#3b82f6', Salida:'#ef4444', Merma:'#f59e0b' }[tipo] || '#94a3b8')
+
+// ── Filtrados ──
+const solicitudesFiltradas = computed(() =>
+  solicitudes.value.filter(s => {
+    const matchEstado = filtroEstadoSol.value === 'todos' || s.estado === filtroEstadoSol.value
+    const matchBusq   = !busquedaSol.value || nombreLider(s).toLowerCase().includes(busquedaSol.value.toLowerCase()) || (s.kit?.nombre ?? '').toLowerCase().includes(busquedaSol.value.toLowerCase())
+    return matchEstado && matchBusq
+  })
+)
+
+const movimientosFiltrados = computed(() =>
+  movimientos.value.filter(m => {
+    const matchTipo = filtroTipoMov.value === 'todos' || m.tipo === filtroTipoMov.value
+    const matchBusq = !busquedaMov.value || m.kit.toLowerCase().includes(busquedaMov.value.toLowerCase())
+    return matchTipo && matchBusq
+  })
+)
+
+// ── API ──
+const cargarKits = async () => {
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/kits`, { headers: hdrs() })
+    if (!res.ok) return
+    const json = await res.json()
+    if (json.status === 'success') {
+      kits.value = json.data.data ?? json.data
+      const stockAlmacen     = kits.value.reduce((a: number, k: any) => a + (k.stock_central ?? 0), 0)
+      const stockDistribuido = kits.value.reduce((a: number, k: any) => a + (k.stock_comprometido ?? 0), 0)
+      const stockBajo        = kits.value.filter((k: any) => stockDisponible(k) < 20).length
+      kpis.value = { ...kpis.value, stockAlmacen, stockDistribuido, stockBajo }
+    }
+  } catch { /* silencioso */ }
+}
+
+const cargarSolicitudes = async (pagina = 1) => {
+  cargandoSol.value = true
+  errorMsg.value    = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/pendientes?page=${pagina}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (json.status === 'success') {
+      solicitudes.value           = json.data.data ?? json.data
+      solicitudesPendientes.value = solicitudes.value.filter((s: any) => s.estado === 'pendiente').length
+      metaSol.value = {
+        total:        json.data.total        ?? solicitudes.value.length,
+        current_page: json.data.current_page ?? 1,
+        last_page:    json.data.last_page    ?? 1,
+      }
+    } else {
+      errorMsg.value = json.message ?? 'Error al cargar solicitudes.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar con el servidor.'
+  } finally {
+    cargandoSol.value = false
+  }
+}
+
+const aprobarSolicitud = async (s: any) => {
+  procesando.value = s.id
+  errorMsg.value   = ''
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${s.id}/aprobar`, { method: 'POST', headers: hdrs() })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      successMsg.value = `✅ Solicitud aprobada. Contrato: ${json.data?.numero_contrato ?? ''}`
+      setTimeout(() => { successMsg.value = '' }, 4000)
+      await cargarSolicitudes(metaSol.value.current_page)
+      await cargarKits()
+    } else {
+      errorMsg.value = json.message ?? 'Error al aprobar.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar.'
+  } finally {
+    procesando.value = null
+  }
+}
+
+const abrirModalRechazar = (s: any) => {
+  solicitudSeleccionada.value = s
+  motivoRechazo.value         = ''
+  errorMotivo.value           = ''
+  modalRechazar.value         = true
+}
+
+const rechazarSolicitud = async () => {
+  if (!motivoRechazo.value.trim()) { errorMotivo.value = 'El motivo es obligatorio.'; return }
+  if (!solicitudSeleccionada.value) return
+  procesando.value = solicitudSeleccionada.value.id
+  try {
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${solicitudSeleccionada.value.id}/rechazar`, {
+      method: 'POST', headers: hdrs(),
+      body: JSON.stringify({ motivo: motivoRechazo.value })
+    })
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      successMsg.value    = '❌ Solicitud rechazada.'
+      modalRechazar.value = false
+      setTimeout(() => { successMsg.value = '' }, 3000)
+      await cargarSolicitudes(metaSol.value.current_page)
+    } else {
+      errorMsg.value = json.message ?? 'Error al rechazar.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar.'
+  } finally {
+    procesando.value = null
+  }
+}
+
+const cambiarPaginaSol = (p: number) => cargarSolicitudes(p)
+
+onMounted(async () => {
+  await cargarKits()
+  await cargarSolicitudes()
+})
 </script>
 
 <style>
@@ -214,7 +503,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .sidebar { width:200px; background:#0f1b2d; display:flex; flex-direction:column; padding:0; position:fixed; top:0; left:0; height:100vh; z-index:100; border-right:1px solid #1a2d45; overflow-y:auto; }
 .sidebar-logo { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 16px 16px; border-bottom:1px solid #1a2d45; gap:6px; }
 .sidebar-logo-img { width:56px; height:56px; object-fit:contain; }
-.sidebar-brand { font-size:13px; font-weight:800; color:#fff; letter-spacing:3px; }
+.sidebar-brand { font-size:13px; font-weight:800; color:#ffffff; letter-spacing:3px; }
 .sidebar-section-label { font-size:10px; font-weight:700; color:#4a6080; letter-spacing:1.5px; text-transform:uppercase; padding:14px 18px 6px; }
 .sidebar-nav { display:flex; flex-direction:column; gap:2px; padding:0 10px; }
 .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; color:#6b8aaa; text-decoration:none; font-size:13px; font-weight:500; transition:background 0.2s,color 0.2s; white-space:nowrap; }
@@ -223,9 +512,9 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .nav-item.nav-logout { color:#ef4444; }
 .nav-item.nav-logout:hover { background:#2a1010; color:#f87171; }
 .sidebar-bottom { display:flex; flex-direction:column; gap:2px; padding:0 10px 16px; }
-.main-content { margin-left:200px; flex:1; display:flex; flex-direction:column; }
+.main-content { margin-left:200px; flex:1; display:flex; flex-direction:column; min-height:100vh; }
 .topbar { background:white; height:56px; display:flex; align-items:center; padding:0 24px; gap:16px; border-bottom:1px solid #eee; position:sticky; top:0; z-index:50; }
-.topbar-left { min-width:160px; }
+.topbar-left { min-width:200px; }
 .breadcrumb { font-size:13px; color:#999; }
 .breadcrumb strong { color:#333; }
 .topbar-center { flex:1; display:flex; justify-content:center; }
@@ -243,15 +532,19 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
-.card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
-
-/* KPI */
+.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
 .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
 .kpi-card { background:white; border-radius:12px; padding:18px 20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); border:1.5px solid #e2e8f0; display:flex; flex-direction:column; gap:4px; }
-.kpi-card.kpi-warn  { border-color:#fde68a; }
+.kpi-card.kpi-warn   { border-color:#fde68a; }
 .kpi-card.kpi-danger { border-color:#fca5a5; }
 .kpi-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
-.kpi-val { font-size:28px; font-weight:700; color:#1a1a1a; }
+.kpi-val { font-size:28px; font-weight:700; }
+.kpi-blue-txt   { color:#2563eb; }
+.kpi-teal-txt   { color:#059669; }
+.kpi-orange-txt { color:#d97706; }
+.kpi-red-txt    { color:#dc2626; }
 .kpi-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
 .kpi-icon.blue   { background:#dbeafe; color:#2563eb; }
 .kpi-icon.teal   { background:#d1fae5; color:#059669; }
@@ -259,12 +552,14 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .kpi-icon.red    { background:#fee2e2; color:#dc2626; }
 .kpi-label { font-size:13px; font-weight:600; color:#333; }
 .kpi-sub   { font-size:11px; color:#999; }
-
-/* Stock por Kit */
+.card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .section-title { font-size:15px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .section-sub   { font-size:12px; color:#999; margin:0 0 16px; }
+.section-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.stock-section { background:#0f1b2d !important; }
+.stock-section .section-title { color:white; }
 .stock-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
-.stock-item { background:#0f1b2d; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:4px; }
+.stock-item { background:#162236; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:4px; }
 .stock-item.stock-low { background:#1a0a0a; border:1px solid #ef4444; }
 .stock-kit-name { font-size:11px; color:#7eb8e8; font-weight:600; }
 .stock-val  { font-size:26px; font-weight:700; color:white; }
@@ -272,39 +567,75 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .stock-unit { font-size:10px; color:#4a6080; margin-bottom:6px; }
 .stock-bar  { height:4px; background:#1a2d45; border-radius:4px; overflow:hidden; }
 .stock-fill { height:100%; border-radius:4px; }
-
-/* Filtros tabla */
-.table-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tabs-bar { display:flex; gap:4px; border-bottom:2px solid #e2e8f0; }
+.tab-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border:none; background:none; font-size:13px; font-weight:500; color:#888; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:color 0.2s,border-color 0.2s; }
+.tab-btn.active { color:#1a6ab5; border-bottom-color:#1a6ab5; font-weight:600; }
+.tab-badge { background:#ef4444; color:white; font-size:10px; padding:1px 6px; border-radius:10px; font-weight:700; }
+.table-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
 .search-wide { width:240px; }
-.filter-label-inline { font-size:13px; color:#888; font-weight:600; white-space:nowrap; }
 .select-filter { border:1px solid #e2e8f0; border-radius:8px; padding:6px 12px; font-size:13px; color:#444; outline:none; background:white; cursor:pointer; }
 .date-input-sm { border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; font-size:12px; color:#444; outline:none; }
-
-/* Tabla */
+.loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
+.spinner { width:20px; height:20px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
 .table-wrap { overflow-x:auto; }
 .data-table { width:100%; border-collapse:collapse; font-size:13px; }
 .data-table thead tr { background:#1a1a2e; color:white; }
-.data-table th { padding:10px 14px; text-align:left; font-weight:600; font-size:12px; }
-.data-table tbody tr { border-bottom:1px solid #f0f0f0; }
+.data-table th { padding:10px 14px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap; }
+.data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
 .data-table td { padding:10px 14px; vertical-align:middle; }
-.td-fecha { color:#888; font-size:12px; white-space:nowrap; }
+.td-fecha { color:#888; font-size:11px; white-space:nowrap; }
 .td-kit   { font-weight:600; color:#333; }
-.td-pos   { color:#22c55e; font-weight:700; }
-.td-neg   { color:#ef4444; font-weight:700; }
-.td-lider { color:#555; }
+.td-center { text-align:center; font-weight:600; color:#333; }
+.td-monto { font-weight:700; color:#1a1a1a; }
+.td-pos   { color:#22c55e; font-weight:700; text-align:center; }
+.td-neg   { color:#ef4444; font-weight:700; text-align:center; }
+.td-lider { color:#555; font-size:12px; }
 .td-admin { color:#666; font-size:12px; }
 .td-stock { font-weight:600; color:#1a1a1a; }
+.lider-info { display:flex; align-items:center; gap:8px; }
+.lider-avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); color:white; font-weight:700; font-size:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.lider-name { font-weight:600; color:#1a1a1a; font-size:12px; }
 .tipo-cell { display:flex; align-items:center; gap:6px; }
 .dot-tipo  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
-.tipo-entradas  { background:#dcfce7; color:#166534; }
-.tipo-asignación{ background:#dbeafe; color:#1e40af; }
-.tipo-salida    { background:#fee2e2; color:#991b1b; }
-.tipo-merma     { background:#fef3c7; color:#b45309; }
+.sol-pendiente  { background:#fef3c7; color:#b45309; }
+.sol-aprobada   { background:#dcfce7; color:#166534; }
+.sol-rechazada  { background:#fee2e2; color:#991b1b; }
+.tipo-entradas   { background:#dcfce7; color:#166534; }
+.tipo-asignación { background:#dbeafe; color:#1e40af; }
+.tipo-salida     { background:#fee2e2; color:#991b1b; }
+.tipo-merma      { background:#fef3c7; color:#b45309; }
+.text-muted { color:#999; font-size:12px; }
+.acciones { display:flex; gap:6px; }
+.btn-aprobar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; cursor:pointer; }
+.btn-aprobar:hover { background:#bbf7d0; }
+.btn-aprobar:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-rechazar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:12px; font-weight:600; cursor:pointer; }
+.btn-rechazar:hover { background:#fecaca; }
+.empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
 .table-count { font-size:12px; color:#999; }
 .pagination { display:flex; gap:6px; }
 .page-btn { padding:5px 12px; border:1px solid #ddd; border-radius:6px; background:white; font-size:12px; cursor:pointer; color:#555; }
+.page-btn:disabled { opacity:0.4; cursor:not-allowed; }
 .page-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal-sm { width:420px; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
+.modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
+.modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
+.modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:10px; }
+.modal-body p { font-size:13px; color:#555; margin:0; }
+.modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group label { font-size:12px; font-weight:600; color:#555; }
+.form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
+.form-textarea { resize:vertical; min-height:80px; }
+.form-error { font-size:11px; color:#ef4444; }
 </style>
