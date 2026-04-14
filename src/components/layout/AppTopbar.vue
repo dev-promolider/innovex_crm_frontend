@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { shallowRef } from 'vue'
 import AppIcon from './AppIcon.vue'
+import AppSearchInput from '../shared/AppSearchInput.vue'
 
 withDefaults(
   defineProps<{
@@ -24,51 +26,56 @@ withDefaults(
 defineEmits<{
   toggleMenu: []
 }>()
+
+const searchQuery = shallowRef('')
 </script>
 
 <template>
   <header class="app-topbar">
     <div class="app-topbar__left">
-      <button type="button" class="app-topbar__menu" @click="$emit('toggleMenu')">
+      <button type="button" class="app-topbar__menu" aria-label="Abrir navegacion" @click="$emit('toggleMenu')">
         <AppIcon name="menu" :size="20" />
       </button>
+
       <div class="app-topbar__heading">
-        <div class="app-topbar__section">
-          <span class="app-topbar__eyebrow">Panel actual</span>
-          <strong class="app-topbar__title">{{ sectionLabel }}</strong>
-          <span v-if="sectionDescription" class="app-topbar__description">{{ sectionDescription }}</span>
-        </div>
         <div class="app-topbar__breadcrumb">
           <slot name="breadcrumb">
             <span>Inicio</span>
           </slot>
         </div>
+
+        <div class="app-topbar__section">
+          <strong class="app-topbar__title">{{ sectionLabel }}</strong>
+          <span v-if="sectionDescription" class="app-topbar__description">{{ sectionDescription }}</span>
+        </div>
       </div>
     </div>
 
     <div v-if="showSearch" class="app-topbar__center">
-      <label class="app-topbar__search">
-        <AppIcon name="search" :size="15" />
-        <input :placeholder="searchPlaceholder" type="text" class="app-topbar__search-input" />
-      </label>
+      <AppSearchInput
+        v-model="searchQuery"
+        :placeholder="searchPlaceholder"
+        class="app-topbar__search-control"
+      />
     </div>
 
     <div class="app-topbar__right">
-      <div class="app-topbar__user">
-        <div class="app-topbar__avatar">
+      <button type="button" class="app-topbar__notifications" aria-label="Ver notificaciones">
+        <AppIcon name="notification" :size="18" />
+        <span class="app-topbar__badge">{{ notificationCount }}</span>
+      </button>
+
+      <div class="app-topbar__user" aria-label="Informacion de usuario">
+        <div class="app-topbar__avatar" aria-hidden="true">
           <img v-if="avatarImageSrc" :src="avatarImageSrc" :alt="userName" class="app-topbar__avatar-image" />
           <span v-else>{{ userInitial }}</span>
         </div>
+
         <div class="app-topbar__meta">
           <span class="app-topbar__name">{{ userName }}</span>
           <span class="app-topbar__email">{{ userEmail }}</span>
         </div>
       </div>
-
-      <button type="button" class="app-topbar__notifications">
-        <AppIcon name="notification" :size="18" />
-        <span class="app-topbar__badge">{{ notificationCount }}</span>
-      </button>
     </div>
   </header>
 </template>
@@ -79,81 +86,91 @@ defineEmits<{
   top: 0;
   z-index: 160;
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(200px, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  min-height: 92px;
-  margin: 18px var(--shell-content-gutter) 0;
-  padding: 18px 22px;
-  background: linear-gradient(135deg, rgba(18, 31, 49, 0.96), rgba(25, 43, 67, 0.94));
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(93, 126, 168, 0.22);
-  border-radius: 22px;
-  box-shadow: 0 18px 42px rgba(10, 19, 34, 0.12);
+   grid-template-columns: minmax(240px, 1.2fr) minmax(220px, 0.9fr) auto;
+   align-items: center;
+   gap: 16px;
+   min-height: 84px;
+   margin: 16px var(--shell-content-gutter) 0;
+   padding: 16px 18px;
+   background: rgba(255, 255, 255, 0.78);
+   backdrop-filter: blur(16px);
+   border: 1px solid rgba(203, 213, 225, 0.82);
+   border-radius: 20px;
+   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
 }
 
 .app-topbar__left {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+   align-items: center;
+   gap: 12px;
+   min-width: 0;
 }
 
 .app-topbar__heading {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+   gap: 6px;
+   min-width: 0;
 }
 
 .app-topbar__section {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+   gap: 2px;
 }
 
 .app-topbar__menu {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f1f7ff;
-  cursor: pointer;
-}
-
-.app-topbar__eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #8db0da;
+   display: none;
+   align-items: center;
+   justify-content: center;
+   width: 40px;
+   height: 40px;
+   border: 0;
+   border-radius: 12px;
+   background: #eff4fa;
+   color: #274a6d;
+   cursor: pointer;
+   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
 }
 
 .app-topbar__title {
-  font-size: 20px;
-  line-height: 1.1;
-  color: #ffffff;
+   font-size: 22px;
+   line-height: 1.1;
+   color: #0f172a;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
 .app-topbar__description {
-  font-size: 12px;
-  color: #9bb4d4;
+   font-size: 12px;
+   color: #64748b;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
 .app-topbar__breadcrumb {
-  font-size: 12px;
-  color: #7d94b3;
+   width: fit-content;
+   max-width: 100%;
+   padding: 6px 10px;
+   border-radius: 999px;
+   font-size: 12px;
+   color: #47627f;
+   background: #f3f7fb;
+   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
 .app-topbar__breadcrumb :deep(strong) {
-  color: #ffffff;
+   color: #0f172a;
 }
 
 .app-topbar__breadcrumb :deep(a) {
-  color: #7ec1ff;
-  text-decoration: none;
+   color: #2563eb;
+   text-decoration: none;
 }
 
 .app-topbar__breadcrumb :deep(a:hover) {
@@ -161,100 +178,92 @@ defineEmits<{
 }
 
 .app-topbar__center {
-  display: flex;
-  justify-content: center;
+   display: flex;
+   justify-content: center;
+   min-width: 0;
 }
 
-.app-topbar__search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: min(100%, 360px);
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #91aac9;
-  box-shadow: inset 0 0 0 1px rgba(116, 145, 182, 0.16);
-}
-
-.app-topbar__search-input {
-  width: 100%;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: #f4f8fd;
-  font: inherit;
-  font-size: 13px;
-}
-
-.app-topbar__search-input::placeholder {
-  color: #91aac9;
+.app-topbar__search-control {
+   width: min(100%, 360px);
 }
 
 .app-topbar__right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   gap: 12px;
 }
 
 .app-topbar__user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   min-width: 0;
+   padding: 8px 10px 8px 8px;
+   border-radius: 16px;
+   background: #f8fbff;
+   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
 }
 
 .app-topbar__avatar {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #4ab8f5, #1a6ab5);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 8px 20px rgba(10, 42, 82, 0.24);
+   width: 42px;
+   height: 42px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border-radius: 50%;
+   overflow: hidden;
+   background: linear-gradient(135deg, #4ab8f5, #1a6ab5);
+   color: #ffffff;
+   font-weight: 700;
+   box-shadow: 0 8px 18px rgba(10, 42, 82, 0.14);
 }
 
 .app-topbar__avatar-image {
-  width: 100%;
+   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .app-topbar__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+   min-width: 0;
 }
 
 .app-topbar__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffffff;
+   font-size: 13px;
+   font-weight: 700;
+   color: #0f172a;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
 .app-topbar__email {
-  font-size: 11px;
-  color: #9eb4d0;
+   font-size: 11px;
+   color: #64748b;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
 .app-topbar__notifications {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f1f7ff;
-  cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(116, 145, 182, 0.16);
+   position: relative;
+   width: 40px;
+   height: 40px;
+   border: 0;
+   border-radius: 14px;
+   background: #f3f7fb;
+   color: #294765;
+   cursor: pointer;
+   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
 }
 
 .app-topbar__badge {
-  position: absolute;
-  top: -4px;
+   position: absolute;
+   top: -4px;
   right: -4px;
   min-width: 18px;
   height: 18px;
@@ -266,30 +275,51 @@ defineEmits<{
   background: #ff7a59;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+   font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+   .app-topbar {
+     grid-template-columns: minmax(0, 1fr) auto;
+   }
+
+   .app-topbar__center {
+     display: none;
+   }
 }
 
 @media (max-width: 768px) {
-  .app-topbar {
-    grid-template-columns: 1fr auto;
-    min-height: 76px;
-    margin: 12px 12px 0;
-    padding: 14px 16px;
-  }
+   .app-topbar {
+     grid-template-columns: 1fr auto;
+     min-height: 74px;
+     margin: 12px 12px 0;
+     padding: 14px 14px;
+     border-radius: 18px;
+   }
 
-  .app-topbar__menu {
-    display: inline-flex;
-  }
+   .app-topbar__menu {
+     display: inline-flex;
+   }
 
-  .app-topbar__center,
-  .app-topbar__meta,
-  .app-topbar__description,
-  .app-topbar__breadcrumb {
-    display: none;
-  }
+   .app-topbar__meta,
+   .app-topbar__description {
+     display: none;
+   }
 
-  .app-topbar__title {
-    font-size: 17px;
-  }
+   .app-topbar__title {
+     font-size: 17px;
+   }
+
+   .app-topbar__breadcrumb {
+     max-width: 100%;
+     font-size: 11px;
+     padding: 5px 8px;
+   }
+
+   .app-topbar__user {
+     padding: 4px;
+     background: transparent;
+     box-shadow: none;
+   }
 }
 </style>

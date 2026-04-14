@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import logoBlanco from '../assets/logo-blanco.png'
+import logo from '../assets/logo.png'
 import { computed } from 'vue'
 import { primaryNavigation, secondaryNavigation } from '../app/navigation'
 import { useAuthenticatedSession } from '../composables/useAuthenticatedSession'
@@ -31,17 +31,7 @@ const handleLogout = () => emit('logout')
 <template>
 	<aside class="app-sidebar" :class="{ 'app-sidebar--open': isOpen }">
 		<div class="app-sidebar__brand">
-			<img :src="logoBlanco" alt="Innovex" class="app-sidebar__logo" />
-			<div class="app-sidebar__brand-copy">
-				<span class="app-sidebar__eyebrow">CRM operativo</span>
-				<span class="app-sidebar__name">Innovex</span>
-			</div>
-		</div>
-
-		<div class="app-sidebar__meta">
-			<span class="app-sidebar__meta-label">Workspace</span>
-			<strong>Operacion comercial</strong>
-			<small>{{ visiblePrimaryNavigation.length + visibleSecondaryNavigation.length }} modulos disponibles</small>
+			<img :src="logo" alt="Logo de Innovex" class="app-sidebar__logo" />
 		</div>
 
 		<div class="app-sidebar__section">General</div>
@@ -91,89 +81,48 @@ const handleLogout = () => emit('logout')
 .app-sidebar {
 	width: 248px;
 	height: 100vh;
+	max-width: calc(100vw - 20px);
 	position: fixed;
 	top: 0;
 	left: 0;
 	z-index: 220;
 	display: flex;
 	flex-direction: column;
-	padding: 18px 14px 14px;
+	padding: 16px 12px 14px;
 	color: #d4e5fb;
 	background:
-		radial-gradient(circle at top, rgba(69, 148, 255, 0.16), transparent 34%),
-		linear-gradient(180deg, #0c1727 0%, #0e1b2d 100%);
-	border-right: 1px solid rgba(132, 169, 214, 0.16);
-	box-shadow: 16px 0 40px rgba(6, 16, 32, 0.14);
+		radial-gradient(circle at top, rgba(69, 148, 255, 0.14), transparent 32%),
+		linear-gradient(180deg, #0b1624 0%, #0f1d30 100%);
+	border-right: 1px solid rgba(132, 169, 214, 0.14);
+	box-shadow: 16px 0 40px rgba(6, 16, 32, 0.16);
 	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: none;
+}
+
+.app-sidebar::-webkit-scrollbar {
+	display: none;
 }
 
 .app-sidebar__brand {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	padding: 10px 10px 20px;
-	margin-bottom: 2px;
+	justify-content: center;
+	padding: 8px 10px 18px;
+	margin-bottom: 8px;
 	border-bottom: 1px solid rgba(132, 169, 214, 0.12);
 }
 
 .app-sidebar__logo {
-	width: 52px;
-	height: 52px;
+	width: 138px;
+	height: auto;
 	object-fit: contain;
+	max-width: 100%;
 	flex-shrink: 0;
 }
 
-.app-sidebar__brand-copy {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.app-sidebar__eyebrow {
-	font-size: 10px;
-	text-transform: uppercase;
-	letter-spacing: 0.18em;
-	color: #7da2ce;
-}
-
-.app-sidebar__name {
-	font-size: 20px;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	color: #ffffff;
-}
-
-.app-sidebar__meta {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin: 8px 8px 10px;
-	padding: 12px 14px;
-	border-radius: 14px;
-	background: rgba(255, 255, 255, 0.04);
-	box-shadow: inset 0 0 0 1px rgba(132, 169, 214, 0.08);
-}
-
-.app-sidebar__meta-label {
-	font-size: 10px;
-	font-weight: 700;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: #7e9fc6;
-}
-
-.app-sidebar__meta strong {
-	font-size: 14px;
-	color: #f4f9ff;
-}
-
-.app-sidebar__meta small {
-	font-size: 11px;
-	color: #89a6ca;
-}
-
 .app-sidebar__section {
-	padding: 14px 10px 8px;
+	padding: 12px 10px 8px;
 	font-size: 10px;
 	font-weight: 700;
 	letter-spacing: 0.18em;
@@ -182,14 +131,20 @@ const handleLogout = () => emit('logout')
 }
 
 .app-sidebar__section--secondary {
-	margin-top: auto;
+	margin-top: 18px;
 }
 
 .app-sidebar__nav,
 .app-sidebar__footer {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
+}
+
+.app-sidebar__footer {
+	margin-top: auto;
+	padding-top: 6px;
+	padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
 .app-sidebar__link {
@@ -198,10 +153,10 @@ const handleLogout = () => emit('logout')
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	padding: 11px 12px;
-	border-radius: 12px;
-	background: transparent;
-	color: #8eb0d7;
+	padding: 10px 12px;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.02);
+	color: #9bb9db;
 	font: inherit;
 	font-size: 13px;
 	font-weight: 500;
@@ -217,10 +172,11 @@ const handleLogout = () => emit('logout')
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 10px;
-	background: rgba(109, 151, 202, 0.08);
+	border-radius: 11px;
+	background: rgba(109, 151, 202, 0.1);
 	color: currentColor;
 	flex-shrink: 0;
+	transition: background-color 0.2s ease;
 }
 
 .app-sidebar__link-label {
@@ -233,20 +189,23 @@ const handleLogout = () => emit('logout')
 	background: rgba(28, 58, 92, 0.76);
 	color: #edf5ff;
 	transform: translateX(2px);
+	box-shadow: inset 0 0 0 1px rgba(92, 147, 214, 0.12);
 }
 
 .app-sidebar__link:hover .app-sidebar__link-icon {
-	background: rgba(74, 184, 245, 0.14);
+	background: rgba(74, 184, 245, 0.16);
 }
 
 .app-sidebar__link--active {
 	background: linear-gradient(135deg, rgba(64, 144, 255, 0.22), rgba(32, 87, 152, 0.42));
 	color: #ffffff;
-	box-shadow: inset 0 0 0 1px rgba(103, 173, 255, 0.24);
+	box-shadow:
+		inset 0 0 0 1px rgba(103, 173, 255, 0.24),
+		0 8px 24px rgba(7, 24, 49, 0.18);
 }
 
 .app-sidebar__link--active .app-sidebar__link-icon {
-	background: rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.14);
 }
 
 .app-sidebar__logout {
@@ -260,12 +219,22 @@ const handleLogout = () => emit('logout')
 
 @media (max-width: 768px) {
 	.app-sidebar {
+		width: min(248px, calc(100vw - 24px));
+		height: calc(100vh - 16px);
+		top: 8px;
+		left: 8px;
+		border-radius: 20px;
+		border: 1px solid rgba(132, 169, 214, 0.14);
 		transform: translateX(-100%);
 		transition: transform 0.24s ease;
 	}
 
 	.app-sidebar--open {
 		transform: translateX(0);
+	}
+
+	.app-sidebar__logo {
+		width: 126px;
 	}
 }
 </style>
