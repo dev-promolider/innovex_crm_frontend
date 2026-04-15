@@ -1,46 +1,10 @@
 <template>
-  <div class="dashboard-layout">
-    <aside class="sidebar">
-      <div class="sidebar-logo"><img :src="logo" alt="Innovex" class="sidebar-logo-img" /><span class="sidebar-brand">INNOVEX</span></div>
-      <div class="sidebar-section-label">General</div>
-      <nav class="sidebar-nav">
-        <RouterLink to="/dashboard"   class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Dashboard</span></RouterLink>
-        <RouterLink to="/campanas"    class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Campañas y Kit</span></RouterLink>
-        <RouterLink to="/lideres"     class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Gestión de Líderes</span></RouterLink>
-        <RouterLink to="/validacion"  class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Validación Ventas</span></RouterLink>
-        <RouterLink to="/inventario"  class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Control Inventario</span></RouterLink>
-        <RouterLink to="/deudas"      class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Deudas y Finanzas</span></RouterLink>
-        <RouterLink to="/recompensas" class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg><span>Recompensas</span></RouterLink>
-        <RouterLink to="/reportes"    class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Reportes</span></RouterLink>
-      </nav>
-      <div class="sidebar-section-label" style="margin-top:auto">Ajustes</div>
-      <div class="sidebar-bottom">
-        <RouterLink to="/configuracion" class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 1 1 4.93 19.07"/></svg><span>Configuración</span></RouterLink>
-        <a href="#" class="nav-item nav-logout" @click.prevent="cerrarSesion"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Log out</span></a>
-      </div>
-    </aside>
+  <AppShell>
+    <template #breadcrumb>
+      <span class="breadcrumb">Inicio › <strong>Reportes</strong></span>
+    </template>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Reportes</strong></span></div>
-        <div class="topbar-center"><div class="search-box"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="" class="search-input" /></div></div>
-        <div class="topbar-right">
-          <div class="user-info">
-            <div class="user-avatar">{{ inicialUsuario }}</div>
-            <div class="user-details">
-              <span class="user-name">{{ nombreUsuario }}</span>
-              <span class="user-email">{{ emailUsuario }}</span>
-            </div>
-          </div>
-          <button class="notif-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge">1</span></button>
-        </div>
-      </header>
-
-      <div class="page-body">
-
-        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
-        <div v-if="errorMsg"   class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
-
+    <div class="page-body">
         <div class="page-header">
           <div><h1 class="page-title">Reportes</h1><p class="page-subtitle">Genera y descarga reportes personalizados</p></div>
         </div>
@@ -48,7 +12,6 @@
         <div class="reports-grid">
           <!-- Columna principal -->
           <div class="left-col">
-
             <!-- Tipo de Reporte -->
             <div class="card">
               <h3 class="section-title">Tipo de Reporte</h3>
@@ -67,39 +30,27 @@
               </div>
             </div>
 
-            <!-- Filtros -->
+            <!-- Formato de Exportación (Filtros) -->
             <div class="card dark-card">
               <h3 class="section-title white">Formato de Exportación</h3>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Fecha Desde</label>
-                  <div class="date-field">
-                    <input type="date" v-model="fechaDesde" class="date-input" />
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  </div>
+                  <div class="date-field"><input type="date" v-model="fechaDesde" class="date-input" /><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Fecha Hasta</label>
-                  <div class="date-field">
-                    <input type="date" v-model="fechaHasta" class="date-input" />
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  </div>
+                  <div class="date-field"><input type="date" v-model="fechaHasta" class="date-input" /><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                 </div>
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Campaña (Opcional)</label>
-                  <select v-model="campanaSeleccionada" class="select-dark">
-                    <option value="">Todas las campañas</option>
-                    <option v-for="c in campanas" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                  </select>
+                  <select class="select-dark"><option>Todas las campañas</option></select>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Líder (Opcional)</label>
-                  <select v-model="liderSeleccionado" class="select-dark">
-                    <option value="">Todos los líderes</option>
-                    <option v-for="l in lideres" :key="l.id" :value="l.id">{{ nombreLider(l) }}</option>
-                  </select>
+                  <select class="select-dark"><option>Todos los líderes</option></select>
                 </div>
               </div>
             </div>
@@ -108,13 +59,9 @@
             <div class="card">
               <h3 class="section-title">Formato de Exportación</h3>
               <div class="format-btns">
-                <button v-for="f in formatos" :key="f"
-                  class="format-btn" :class="{ active: formatoSeleccionado === f }"
-                  @click="formatoSeleccionado = f">{{ f }}</button>
+                <button v-for="f in formatos" :key="f" class="format-btn" :class="{ active: formatoSeleccionado === f }" @click="formatoSeleccionado = f">{{ f }}</button>
               </div>
-              <button class="btn-generar" @click="generarReporte" :disabled="generando">
-                {{ generando ? 'Generando...' : 'Generar y Descargar Reporte' }}
-              </button>
+              <button class="btn-generar">Generar y Descargas Reporte</button>
             </div>
           </div>
 
@@ -124,7 +71,7 @@
               <h3 class="section-title">Reportes Recientes</h3>
               <div class="recent-list">
                 <div v-for="r in reportesRecientes" :key="r.id" class="recent-item">
-                  <div class="recent-icon" :class="'icon-' + r.tipo">
+                  <div class="recent-icon" :class="'icon-'+r.tipo">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   </div>
                   <div class="recent-info">
@@ -137,7 +84,7 @@
                     <span class="recent-date">{{ r.fecha }}</span>
                     <span class="recent-user">{{ r.usuario }}</span>
                   </div>
-                  <button class="download-btn" @click="descargarReporte(r)" title="Descargar">
+                  <button class="download-btn">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4ab8f5" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   </button>
                 </div>
@@ -145,187 +92,36 @@
             </div>
           </div>
         </div>
-      </div>
-    </main>
-  </div>
+    </div>
+  </AppShell>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import AppShell from '../../components/layout/AppShell.vue'
 
-const API_BASE = 'http://localhost:8000/api'
-const logo     = new URL('../../assets/logo-innovex.png', import.meta.url).href
-const router   = useRouter()
-
-const token     = localStorage.getItem('token')      ?? ''
-const empresaId = localStorage.getItem('empresa_id') ?? '1'
-const nombreUsuario  = ref(localStorage.getItem('user_nombre') ?? 'Admin')
-const emailUsuario   = ref(localStorage.getItem('user_email')  ?? '')
-const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase())
-const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
-
-const hdrs = () => ({
-  'Accept':        'application/json',
-  'Authorization': `Bearer ${token}`,
-  'X-Empresa-Id':  empresaId,
-})
-
-// ── State ──
-const errorMsg   = ref('')
-const successMsg = ref('')
-const generando  = ref(false)
-
-const fechaDesde          = ref('')
-const fechaHasta          = ref('')
-const campanaSeleccionada = ref('')
-const liderSeleccionado   = ref('')
+const fechaDesde = ref('')
+const fechaHasta = ref('')
 const formatoSeleccionado = ref('CSV')
-const tipoSeleccionado    = ref('ventas')
-const formatos            = ['CSV', 'XLSX (Excel)', 'PDF']
-
-const campanas = ref<any[]>([])
-const lideres  = ref<any[]>([])
-
-// Reportes recientes — se van agregando al generar
-const reportesRecientes = ref([
-  { id:1, nombre:'Ventas_Validadas_Feb2025',   categoria:'Ventas Validadas',       tipo:'xlsx', size:'114 KB', fecha:'2025-02-15 09:45', usuario:'Admin Principal', datos: null },
-  { id:2, nombre:'Deudas_Estado_Ene2025',      categoria:'Estado de Deudas',       tipo:'pdf',  size:'87 KB',  fecha:'2025-02-15 14:00', usuario:'María Finanzas',  datos: null },
-  { id:3, nombre:'Lideres_Rendimiento_Q1',     categoria:'Rendimiento de Líderes', tipo:'xlsx', size:'95 KB',  fecha:'2025-02-10 11:00', usuario:'Admin Principal', datos: null },
-  { id:4, nombre:'Inventario_Audi_Feb2025',    categoria:'Auditoría de Stock',     tipo:'pdf',  size:'43 KB',  fecha:'2025-02-08 16:20', usuario:'Carlos Almacén',  datos: null },
-  { id:5, nombre:'Canjes_Ene2025',             categoria:'Canjes y Recompensas',   tipo:'pdf',  size:'62 KB',  fecha:'2025-02-06 10:25', usuario:'Admin Principal', datos: null },
-])
+const formatos = ['CSV', 'XLSX (Excel)', 'PDF']
+const tipoSeleccionado = ref('ventas')
 
 const tiposReporte = [
-  { key:'ventas',      label:'Ventas Validadas',       desc:'Reporte completo de ventas validadas con detalles de líder, vendedor, kit y monto', icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
-  { key:'deudas',      label:'Estado de Deudas',       desc:'Resumen de deudas activas y vencidas por líder', icon:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>' },
+  { key:'ventas',      label:'Ventas Validadas',      desc:'Reporte completo de ventas validadas con detalles de líder, vendedor, kit y monto', icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
+  { key:'deudas',      label:'Estado de Deudas',      desc:'Resumen de deudas activas y vencidas por líder', icon:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>' },
   { key:'rendimiento', label:'Rendimiento de Líderes', desc:'Análisis de rendimiento mensual por líder', icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
-  { key:'stock',       label:'Auditoría de Stock',     desc:'Control y movimientos de inventario', icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
-  { key:'canjes',      label:'Canjes y Recompensas',   desc:'Historial de canjes de puntos y premios entregados', icon:'<path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>' },
+  { key:'stock',       label:'Auditoría de Stock',    desc:'Control y movimientos de inventario', icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+  { key:'canjes',      label:'Canjes y Recompensas',  desc:'Historial de canjes de puntos y premios entregados', icon:'<path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>' },
 ]
-
 const tipoActual = computed(() => tiposReporte.find(t => t.key === tipoSeleccionado.value) ?? tiposReporte[0])
 
-// ── Helpers ──
-const nombreLider = (l: any) => l?.usuario ? `${l.usuario.nombre ?? ''} ${l.usuario.apellido ?? ''}`.trim() : `Líder #${l.id}`
-
-// ── Cargar datos para selectores ──
-const cargarCampanas = async () => {
-  try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/campanas`, { headers: hdrs() })
-    const json = await res.json()
-    if (json.status === 'success') campanas.value = json.data.data ?? json.data
-  } catch { /* silencioso */ }
-}
-
-const cargarLideres = async () => {
-  try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/distribuidores`, { headers: hdrs() })
-    const json = await res.json()
-    if (json.status === 'success') lideres.value = json.data.data ?? json.data
-  } catch { /* silencioso */ }
-}
-
-// ── Generar reporte ──
-const generarReporte = async () => {
-  generando.value = true
-  errorMsg.value  = ''
-  try {
-    // Obtener datos según el tipo seleccionado
-    let datos: any[] = []
-    let endpoint = ''
-
-    if (tipoSeleccionado.value === 'ventas') {
-      endpoint = `${API_BASE}/workspace/admin/ventas/pendientes`
-    } else if (tipoSeleccionado.value === 'rendimiento') {
-      endpoint = `${API_BASE}/workspace/admin/distribuidores`
-    } else if (tipoSeleccionado.value === 'stock') {
-      endpoint = `${API_BASE}/workspace/admin/kits`
-    } else {
-      // Para tipos sin endpoint aún, generamos reporte de muestra
-      descargarCSV([], tipoActual.value?.label ?? 'reporte')
-      successMsg.value = '✅ Reporte generado correctamente.'
-      setTimeout(() => { successMsg.value = '' }, 3000)
-      generando.value = false
-      return
-    }
-
-    const res  = await fetch(endpoint, { headers: hdrs() })
-    const json = await res.json()
-    datos = json.data?.data ?? json.data ?? []
-
-    const ext = formatoSeleccionado.value === 'CSV' ? 'csv' : formatoSeleccionado.value === 'PDF' ? 'pdf' : 'xlsx'
-    descargarCSV(datos, tipoActual.value?.label ?? 'reporte')
-
-    // Agregar a recientes
-    const nuevoReporte = {
-      id:        Date.now(),
-      nombre:    `${tipoActual.value?.label.replace(/ /g,'_')}_${new Date().toISOString().slice(0,10)}`,
-      categoria: tipoActual.value?.label ?? '',
-      tipo:      ext,
-      size:      `${Math.round(datos.length * 0.5 + 10)} KB`,
-      fecha:     new Date().toLocaleString('es-PE'),
-      usuario:   nombreUsuario.value,
-      datos:     datos,
-    }
-    reportesRecientes.value.unshift(nuevoReporte)
-    if (reportesRecientes.value.length > 10) reportesRecientes.value.pop()
-
-    successMsg.value = '✅ Reporte generado y descargado correctamente.'
-    setTimeout(() => { successMsg.value = '' }, 3000)
-
-  } catch {
-    errorMsg.value = 'Error al generar el reporte.'
-  } finally {
-    generando.value = false
-  }
-}
-
-// ── Descargar CSV ──
-const descargarCSV = (datos: any[], nombre: string) => {
-  let csv = ''
-
-  if (datos.length === 0) {
-    csv = 'Sin datos para el período seleccionado'
-  } else {
-    const headers = Object.keys(datos[0]).join(',')
-    const rows    = datos.map(d => Object.values(d).map(v => `"${v ?? ''}"`).join(',')).join('\n')
-    csv = headers + '\n' + rows
-  }
-
-  const blob     = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url      = URL.createObjectURL(blob)
-  const a        = document.createElement('a')
-  const filename = `${nombre.replace(/ /g,'_')}_${new Date().toISOString().slice(0,10)}.csv`
-  a.href         = url
-  a.download     = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-// ── Descargar reporte reciente ──
-const descargarReporte = (r: any) => {
-  if (r.datos && r.datos.length > 0) {
-    descargarCSV(r.datos, r.nombre)
-  } else {
-    // Reporte sin datos en memoria — simular descarga
-    const csv  = `Reporte: ${r.nombre}\nCategoria: ${r.categoria}\nFecha: ${r.fecha}\nGenerado por: ${r.usuario}\n\nSin datos en caché. Regenera el reporte.`
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
-    a.download = `${r.nombre}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-  successMsg.value = `✅ Descargando ${r.nombre}`
-  setTimeout(() => { successMsg.value = '' }, 2000)
-}
-
-onMounted(() => {
-  cargarCampanas()
-  cargarLideres()
-})
+const reportesRecientes = ref([
+  { id:1, nombre:'Ventas_Validadas_Feb2025',   categoria:'Ventas Validadas',       tipo:'xlsx', size:'114 KB', fecha:'2025-02-15 09:45', usuario:'Admin Principal' },
+  { id:2, nombre:'Deudas_Estado_Ene2025',      categoria:'Estado de Deudas',       tipo:'pdf',  size:'87 KB',  fecha:'2025-02-15 14:00', usuario:'María Finanzas'  },
+  { id:3, nombre:'Lideres_Rendimiento_Q1',     categoria:'Rendimiento de Líderes', tipo:'xlsx', size:'95 KB',  fecha:'2025-02-10 11:00', usuario:'Admin Principal' },
+  { id:4, nombre:'Inventario_Audi_Feb2025',    categoria:'Auditoría de Stock',     tipo:'pdf',  size:'43 KB',  fecha:'2025-02-08 16:20', usuario:'Carlos Almacén'  },
+  { id:5, nombre:'Canjes_Ene2025',             categoria:'Canjes y Recompensas',   tipo:'pdf',  size:'62 KB',  fecha:'2025-02-06 10:25', usuario:'Admin Principal' },
+])
 </script>
 
 <style>
@@ -365,9 +161,6 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
-.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
 .reports-grid { display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:flex-start; }
 .left-col { display:flex; flex-direction:column; gap:20px; }
 .card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
@@ -391,16 +184,13 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .format-btns { display:flex; gap:8px; margin-bottom:16px; }
 .format-btn { padding:8px 18px; border:1.5px solid #e2e8f0; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#444; cursor:pointer; transition:all 0.2s; }
 .format-btn.active { border-color:#1a6ab5; background:#eff6ff; color:#1a6ab5; }
-.btn-generar { width:100%; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:14px; font-weight:700; color:white; cursor:pointer; transition:opacity 0.2s; }
-.btn-generar:disabled { opacity:0.6; cursor:not-allowed; }
-.btn-generar:not(:disabled):hover { opacity:0.9; }
+.btn-generar { width:100%; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:14px; font-weight:700; color:white; cursor:pointer; }
 .recent-list { display:flex; flex-direction:column; gap:12px; }
 .recent-item { display:flex; align-items:flex-start; gap:10px; padding:12px; border-radius:8px; border:1px solid #f0f0f0; transition:background 0.15s; }
 .recent-item:hover { background:#f8fafc; }
 .recent-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .icon-xlsx { background:#dcfce7; color:#166534; }
 .icon-pdf  { background:#fee2e2; color:#991b1b; }
-.icon-csv  { background:#dbeafe; color:#1e40af; }
 .recent-info { flex:1; display:flex; flex-direction:column; gap:2px; }
 .recent-name { font-size:12px; font-weight:700; color:#1a1a1a; }
 .recent-type { font-size:11px; color:#666; }
@@ -409,6 +199,6 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .recent-size { font-size:10px; color:#999; }
 .recent-date { font-size:10px; color:#999; }
 .recent-user { font-size:10px; color:#888; }
-.download-btn { background:none; border:none; cursor:pointer; padding:6px; border-radius:6px; flex-shrink:0; transition:background 0.15s; }
+.download-btn { background:none; border:none; cursor:pointer; padding:6px; border-radius:6px; flex-shrink:0; }
 .download-btn:hover { background:#eff6ff; }
 </style>

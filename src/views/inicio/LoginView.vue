@@ -175,7 +175,12 @@ const handleLogin = async () => {
     localStorage.setItem("token", data.data.token);
     localStorage.setItem("user_nombre", data.data.user.nombre);
     localStorage.setItem("user_apellido", data.data.user.apellido);
+    localStorage.setItem("user_email", username.value.trim());
     localStorage.setItem("user_uuid", data.data.user.uuid);
+    localStorage.setItem(
+      "user_es_superadmin",
+      String(Boolean(data.data.user.es_superadmin)),
+    );
 
     if (data.data.lobby && data.data.lobby.length > 0) {
       localStorage.setItem("empresa_id", String(data.data.lobby[0].empresa_id));

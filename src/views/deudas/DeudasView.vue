@@ -1,210 +1,161 @@
 <template>
-  <div class="dashboard-layout">
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <img :src="logo" alt="Innovex" class="sidebar-logo-img" />
-        <span class="sidebar-brand">INNOVEX</span>
+  <AppShell>
+    <template #breadcrumb>
+      <span class="breadcrumb">Inicio › <strong>Deudas</strong></span>
+    </template>
+
+    <div class="page-body">
+      <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
+      <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Deudas y Cobranzas</h1>
+          <p class="page-subtitle">Vista general del sistema y métricas consolidadas</p>
+        </div>
       </div>
-      <div class="sidebar-section-label">General</div>
-      <nav class="sidebar-nav">
-        <RouterLink to="/dashboard"   class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Dashboard</span></RouterLink>
-        <RouterLink to="/campanas"    class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Campañas y Kit</span></RouterLink>
-        <RouterLink to="/lideres"     class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Gestión de Líderes</span></RouterLink>
-        <RouterLink to="/validacion"  class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Validación Ventas</span></RouterLink>
-        <RouterLink to="/inventario"  class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Control Inventario</span></RouterLink>
-        <RouterLink to="/deudas"      class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Deudas y Finanzas</span></RouterLink>
-        <RouterLink to="/recompensas" class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg><span>Recompensas</span></RouterLink>
-        <RouterLink to="/reportes"    class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Reportes</span></RouterLink>
-      </nav>
-      <div class="sidebar-section-label" style="margin-top:auto">Ajustes</div>
-      <div class="sidebar-bottom">
-        <RouterLink to="/configuracion" class="nav-item" active-class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 1 1 4.93 19.07"/></svg><span>Configuración</span></RouterLink>
-        <a href="#" class="nav-item nav-logout" @click.prevent="cerrarSesion"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Log out</span></a>
-      </div>
-    </aside>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-left"><span class="breadcrumb">Inicio › <strong>Deudas</strong></span></div>
-        <div class="topbar-center">
-          <div class="search-box">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="" class="search-input" />
+      <div class="main-grid">
+        <div class="left-col">
+          <div class="kpi-row">
+            <div class="kpi-dark kpi-card-d">
+              <div class="kpi-d-icon red"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+              <span class="kpi-d-val">S/ {{ totalPendiente }}</span>
+              <span class="kpi-d-label">Total Pendiente</span>
+              <span class="kpi-d-sub">{{ deudas.length }} líderes con deuda</span>
+            </div>
+            <div class="kpi-dark kpi-card-d">
+              <div class="kpi-d-icon orange"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
+              <span class="kpi-d-val">S/ {{ totalVencido }}</span>
+              <span class="kpi-d-label">Deuda Vencida</span>
+              <span class="kpi-d-sub">Supera el 80% del límite</span>
+            </div>
+            <div class="kpi-dark kpi-card-d">
+              <div class="kpi-d-icon green"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+              <span class="kpi-d-val">S/ {{ totalPagosMes }}</span>
+              <span class="kpi-d-label">Pagos del Mes</span>
+              <span class="kpi-d-sub">{{ pagos.filter(p => p.estado === 'Confirmado').length }} pagos confirmados</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="section-title">Evolución Deuda vs. Recaudación</h3>
+            <p class="section-sub">Últimos 12 meses</p>
+            <svg viewBox="0 0 480 160" width="100%" height="160">
+              <line x1="40" y1="20"  x2="460" y2="20"  stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="40" y1="60"  x2="460" y2="60"  stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="40" y1="100" x2="460" y2="100" stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="40" y1="140" x2="460" y2="140" stroke="#f0f0f0" stroke-width="1"/>
+              <text x="35" y="23" text-anchor="end" font-size="9" fill="#bbb">40,000</text>
+              <text x="35" y="63" text-anchor="end" font-size="9" fill="#bbb">30,000</text>
+              <text x="35" y="103" text-anchor="end" font-size="9" fill="#bbb">20,000</text>
+              <text x="35" y="143" text-anchor="end" font-size="9" fill="#bbb">10,000</text>
+              <polygon points="50,100 100,80 150,60 200,50 250,70 300,90 350,85 400,75 450,100 450,140 50,140" fill="rgba(239,68,68,0.1)"/>
+              <polyline points="50,100 100,80 150,60 200,50 250,70 300,90 350,85 400,75 450,100" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round"/>
+              <polygon points="50,120 100,100 150,85 200,70 250,90 300,110 350,100 400,90 450,120 450,140 50,140" fill="rgba(59,130,246,0.1)"/>
+              <polyline points="50,120 100,100 150,85 200,70 250,90 300,110 350,100 400,90 450,120" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+              <text x="50" y="158" text-anchor="middle" font-size="9" fill="#bbb">Mar</text>
+              <text x="100" y="158" text-anchor="middle" font-size="9" fill="#bbb">Abr</text>
+              <text x="150" y="158" text-anchor="middle" font-size="9" fill="#bbb">May</text>
+              <text x="200" y="158" text-anchor="middle" font-size="9" fill="#bbb">Jun</text>
+              <text x="250" y="158" text-anchor="middle" font-size="9" fill="#bbb">Ago</text>
+              <text x="300" y="158" text-anchor="middle" font-size="9" fill="#bbb">Sep</text>
+              <text x="350" y="158" text-anchor="middle" font-size="9" fill="#bbb">Nov</text>
+              <text x="400" y="158" text-anchor="middle" font-size="9" fill="#bbb">Ene</text>
+              <text x="450" y="158" text-anchor="middle" font-size="9" fill="#bbb">Feb</text>
+            </svg>
+            <div class="chart-legend">
+              <span class="legend-dot-line red"></span><span class="legend-txt">Deuda</span>
+              <span class="legend-dot-line blue" style="margin-left:16px"></span><span class="legend-txt">Recaudación</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-header-row">
+              <h3 class="section-title">Pagos Recientes de Líderes</h3>
+              <button class="btn-primary" @click="modalPago = true">+ Registro Pago Manual</button>
+            </div>
+            <div v-if="cargandoPagos" class="loading-state">
+              <div class="spinner"></div><span>Cargando pagos...</span>
+            </div>
+            <div v-else class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr><th>Líder</th><th>Fecha pago</th><th>Monto</th><th>Referencia</th><th>Banco</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-if="pagos.length === 0">
+                    <td colspan="6" class="empty-state">No hay pagos registrados.</td>
+                  </tr>
+                  <tr v-for="p in pagos" :key="p.id">
+                    <td class="td-lider">{{ p.lider }}</td>
+                    <td class="td-fecha">{{ p.fecha }}</td>
+                    <td class="td-monto">S/ {{ Number(p.monto).toLocaleString() }}</td>
+                    <td class="td-ref">{{ p.referencia }}</td>
+                    <td class="td-banco">{{ p.banco }}</td>
+                    <td><span class="badge" :class="'est-' + p.estado.toLowerCase()">{{ p.estado }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div class="topbar-right">
-          <div class="user-info">
-            <div class="user-avatar">{{ inicialUsuario }}</div>
-            <div class="user-details">
-              <span class="user-name">{{ nombreUsuario }}</span>
-              <span class="user-email">{{ emailUsuario }}</span>
-            </div>
-          </div>
-          <button class="notif-btn">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="notif-badge">1</span>
-          </button>
-        </div>
-      </header>
 
-      <div class="page-body">
-
-        <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
-        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
-
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Deudas y Cobranzas</h1>
-            <p class="page-subtitle">Vista general del sistema y métricas consolidadas</p>
-          </div>
-        </div>
-
-        <div class="main-grid">
-          <!-- Columna izquierda -->
-          <div class="left-col">
-
-            <!-- KPI Cards -->
-            <div class="kpi-row">
-              <div class="kpi-dark kpi-card-d">
-                <div class="kpi-d-icon red"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
-                <span class="kpi-d-val">S/ {{ totalPendiente }}</span>
-                <span class="kpi-d-label">Total Pendiente</span>
-                <span class="kpi-d-sub">{{ deudas.length }} líderes con deuda</span>
-              </div>
-              <div class="kpi-dark kpi-card-d">
-                <div class="kpi-d-icon orange"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
-                <span class="kpi-d-val">S/ {{ totalVencido }}</span>
-                <span class="kpi-d-label">Deuda Vencida</span>
-                <span class="kpi-d-sub">Supera el 80% del límite</span>
-              </div>
-              <div class="kpi-dark kpi-card-d">
-                <div class="kpi-d-icon green"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
-                <span class="kpi-d-val">S/ {{ totalPagosMes }}</span>
-                <span class="kpi-d-label">Pagos del Mes</span>
-                <span class="kpi-d-sub">{{ pagos.filter(p => p.estado === 'Confirmado').length }} pagos confirmados</span>
-              </div>
-            </div>
-
-            <!-- Gráfica -->
-            <div class="card">
-              <h3 class="section-title">Evolución Deuda vs. Recaudación</h3>
-              <p class="section-sub">Últimos 12 meses</p>
-              <svg viewBox="0 0 480 160" width="100%" height="160">
-                <line x1="40" y1="20"  x2="460" y2="20"  stroke="#f0f0f0" stroke-width="1"/>
-                <line x1="40" y1="60"  x2="460" y2="60"  stroke="#f0f0f0" stroke-width="1"/>
-                <line x1="40" y1="100" x2="460" y2="100" stroke="#f0f0f0" stroke-width="1"/>
-                <line x1="40" y1="140" x2="460" y2="140" stroke="#f0f0f0" stroke-width="1"/>
-                <text x="35" y="23"  text-anchor="end" font-size="9" fill="#bbb">40,000</text>
-                <text x="35" y="63"  text-anchor="end" font-size="9" fill="#bbb">30,000</text>
-                <text x="35" y="103" text-anchor="end" font-size="9" fill="#bbb">20,000</text>
-                <text x="35" y="143" text-anchor="end" font-size="9" fill="#bbb">10,000</text>
-                <polygon points="50,100 100,80 150,60 200,50 250,70 300,90 350,85 400,75 450,100 450,140 50,140" fill="rgba(239,68,68,0.1)"/>
-                <polyline points="50,100 100,80 150,60 200,50 250,70 300,90 350,85 400,75 450,100" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round"/>
-                <polygon points="50,120 100,100 150,85 200,70 250,90 300,110 350,100 400,90 450,120 450,140 50,140" fill="rgba(59,130,246,0.1)"/>
-                <polyline points="50,120 100,100 150,85 200,70 250,90 300,110 350,100 400,90 450,120" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
-                <text x="50"  y="158" text-anchor="middle" font-size="9" fill="#bbb">Mar</text>
-                <text x="100" y="158" text-anchor="middle" font-size="9" fill="#bbb">Abr</text>
-                <text x="150" y="158" text-anchor="middle" font-size="9" fill="#bbb">May</text>
-                <text x="200" y="158" text-anchor="middle" font-size="9" fill="#bbb">Jun</text>
-                <text x="250" y="158" text-anchor="middle" font-size="9" fill="#bbb">Ago</text>
-                <text x="300" y="158" text-anchor="middle" font-size="9" fill="#bbb">Sep</text>
-                <text x="350" y="158" text-anchor="middle" font-size="9" fill="#bbb">Nov</text>
-                <text x="400" y="158" text-anchor="middle" font-size="9" fill="#bbb">Ene</text>
-                <text x="450" y="158" text-anchor="middle" font-size="9" fill="#bbb">Feb</text>
-              </svg>
-              <div class="chart-legend">
-                <span class="legend-dot-line red"></span><span class="legend-txt">Deuda</span>
-                <span class="legend-dot-line blue" style="margin-left:16px"></span><span class="legend-txt">Recaudación</span>
-              </div>
-            </div>
-
-            <!-- Tabla Pagos -->
-            <div class="card">
-              <div class="table-header-row">
-                <h3 class="section-title">Pagos Recientes de Líderes</h3>
-                <button class="btn-primary" @click="modalPago = true">+ Registro Pago Manual</button>
-              </div>
-              <div v-if="cargandoPagos" class="loading-state">
-                <div class="spinner"></div><span>Cargando pagos...</span>
-              </div>
-              <div v-else class="table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr><th>Líder</th><th>Fecha pago</th><th>Monto</th><th>Referencia</th><th>Banco</th><th>Estado</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="pagos.length === 0">
-                      <td colspan="6" class="empty-state">No hay pagos registrados.</td>
-                    </tr>
-                    <tr v-for="p in pagos" :key="p.id">
-                      <td class="td-lider">{{ p.lider }}</td>
-                      <td class="td-fecha">{{ p.fecha }}</td>
-                      <td class="td-monto">S/ {{ Number(p.monto).toLocaleString() }}</td>
-                      <td class="td-ref">{{ p.referencia }}</td>
-                      <td class="td-banco">{{ p.banco }}</td>
-                      <td><span class="badge" :class="'est-' + p.estado.toLowerCase()">{{ p.estado }}</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        <div class="ledger-panel card">
+          <h3 class="section-title">Estado de Cuenta — Ledger</h3>
+          <div class="ledger-search">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" v-model="busquedaLedger" placeholder="Buscar líder" class="search-input" />
           </div>
 
-          <!-- Panel Ledger -->
-          <div class="ledger-panel card">
-            <h3 class="section-title">Estado de Cuenta — Ledger</h3>
-            <div class="ledger-search">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" v-model="busquedaLedger" placeholder="Buscar líder" class="search-input" />
-            </div>
+          <div v-if="cargandoDeudas" class="loading-state" style="padding:20px">
+            <div class="spinner"></div>
+          </div>
 
-            <div v-if="cargandoDeudas" class="loading-state" style="padding:20px">
-              <div class="spinner"></div>
-            </div>
-
-            <div v-else class="ledger-list">
-              <div v-if="deudasFiltradas.length === 0" class="ledger-hint">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <p>No hay deudas registradas</p>
-              </div>
-              <div v-for="d in deudasFiltradas" :key="d.id"
-                class="ledger-item" :class="{ 'ledger-selected': ledgerSelected === d.id }"
-                @click="seleccionarLedger(d)">
-                <div class="ledger-avatar" :style="{ background: colorLedger(d) }">{{ inicialesDeuda(d) }}</div>
-                <div class="ledger-info">
-                  <span class="ledger-name">{{ nombreDeuda(d) }}</span>
-                  <span class="ledger-deuda" :class="Number(d.monto_pendiente) > 3000 ? 'deuda-alta' : ''">
-                    S/ {{ Number(d.monto_pendiente).toLocaleString() }}
-                  </span>
-                </div>
-                <span class="badge" :class="'est-' + (d.estado ?? 'pendiente')">{{ labelEstadoDeuda(d.estado) }}</span>
-              </div>
-            </div>
-
-            <!-- Detalle ledger seleccionado -->
-            <div v-if="ledgerSelected" class="ledger-detalle">
-              <h4 class="ledger-detalle-title">Detalle de Deuda</h4>
-              <div class="ledger-detalle-row"><span>Monto Total</span><span class="fw">S/ {{ Number(ledgerData?.monto_total ?? 0).toFixed(2) }}</span></div>
-              <div class="ledger-detalle-row"><span>Monto Pagado</span><span class="fw text-green">S/ {{ Number(ledgerData?.monto_pagado ?? 0).toFixed(2) }}</span></div>
-              <div class="ledger-detalle-row"><span>Monto Pendiente</span><span class="fw text-red">S/ {{ Number(ledgerData?.monto_pendiente ?? 0).toFixed(2) }}</span></div>
-              <div class="ledger-detalle-row"><span>Modelo Pago</span><span class="fw">{{ ledgerData?.modelo_pago ?? '—' }}</span></div>
-              <div class="ledger-detalle-row"><span>Estado</span><span class="badge" :class="'est-' + (ledgerData?.estado ?? 'pendiente')">{{ labelEstadoDeuda(ledgerData?.estado) }}</span></div>
-              <div class="ledger-detalle-row" v-if="ledgerData?.fecha_vencimiento">
-                <span>Vencimiento</span>
-                <span class="fw">{{ formatFecha(ledgerData?.fecha_vencimiento) }}</span>
-              </div>
-            </div>
-
-            <div v-else class="ledger-hint">
+          <div v-else class="ledger-list">
+            <div v-if="deudasFiltradas.length === 0" class="ledger-hint">
               <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <p>Selecciona un líder para ver su ledger</p>
+              <p>No hay deudas registradas</p>
             </div>
+            <div
+              v-for="d in deudasFiltradas"
+              :key="d.id"
+              class="ledger-item"
+              :class="{ 'ledger-selected': ledgerSelected === d.id }"
+              @click="seleccionarLedger(d)"
+            >
+              <div class="ledger-avatar" :style="{ background: colorLedger(d) }">{{ inicialesDeuda(d) }}</div>
+              <div class="ledger-info">
+                <span class="ledger-name">{{ nombreDeuda(d) }}</span>
+                <span class="ledger-deuda" :class="Number(d.monto_pendiente) > 3000 ? 'deuda-alta' : ''">
+                  S/ {{ Number(d.monto_pendiente).toLocaleString() }}
+                </span>
+              </div>
+              <span class="badge" :class="'est-' + (d.estado ?? 'pendiente')">{{ labelEstadoDeuda(d.estado) }}</span>
+            </div>
+          </div>
+
+          <div v-if="ledgerSelected" class="ledger-detalle">
+            <h4 class="ledger-detalle-title">Detalle de Deuda</h4>
+            <div class="ledger-detalle-row"><span>Monto Total</span><span class="fw">S/ {{ Number(ledgerData?.monto_total ?? 0).toFixed(2) }}</span></div>
+            <div class="ledger-detalle-row"><span>Monto Pagado</span><span class="fw text-green">S/ {{ Number(ledgerData?.monto_pagado ?? 0).toFixed(2) }}</span></div>
+            <div class="ledger-detalle-row"><span>Monto Pendiente</span><span class="fw text-red">S/ {{ Number(ledgerData?.monto_pendiente ?? 0).toFixed(2) }}</span></div>
+            <div class="ledger-detalle-row"><span>Modelo Pago</span><span class="fw">{{ ledgerData?.modelo_pago ?? '—' }}</span></div>
+            <div class="ledger-detalle-row"><span>Estado</span><span class="badge" :class="'est-' + (ledgerData?.estado ?? 'pendiente')">{{ labelEstadoDeuda(ledgerData?.estado) }}</span></div>
+            <div class="ledger-detalle-row" v-if="ledgerData?.fecha_vencimiento">
+              <span>Vencimiento</span>
+              <span class="fw">{{ formatFecha(ledgerData?.fecha_vencimiento) }}</span>
+            </div>
+          </div>
+
+          <div v-else class="ledger-hint">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <p>Selecciona un líder para ver su ledger</p>
           </div>
         </div>
       </div>
-    </main>
+    </div>
 
-    <!-- Modal Registro Pago Manual -->
     <div v-if="modalPago" class="modal-overlay" @click.self="modalPago = false">
       <div class="modal">
         <div class="modal-header">
@@ -254,31 +205,18 @@
         </div>
       </div>
     </div>
-
-  </div>
+  </AppShell>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import AppShell from '../../components/layout/AppShell.vue'
+import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
-const logo = new URL('../../assets/logo-innovex.png', import.meta.url).href
-const router = useRouter()
+const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 
-const token     = localStorage.getItem('token')      ?? ''
-const empresaId = localStorage.getItem('empresa_id') ?? '1'
-const nombreUsuario  = ref(localStorage.getItem('user_nombre') ?? 'Admin')
-const emailUsuario   = ref(localStorage.getItem('user_email')  ?? '')
-const inicialUsuario = computed(() => nombreUsuario.value.charAt(0).toUpperCase())
-const cerrarSesion   = () => { localStorage.clear(); router.push({ name: 'login' }) }
-
-const hdrs = () => ({
-  'Content-Type':  'application/json',
-  'Accept':        'application/json',
-  'Authorization': `Bearer ${token}`,
-  'X-Empresa-Id':  empresaId,
-})
+const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
 // ── State ──
 const errorMsg   = ref('')

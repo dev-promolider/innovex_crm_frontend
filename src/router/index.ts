@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/inicio/LoginView.vue'
 import DashboardView from '../views/dashboard/DashboardView.vue'
+import EmpresasView from '../views/empresas/EmpresasView.vue'
 import CampanasView from '../views/campanas/CampanasView.vue'
 import LideresView from '../views/lideres/LideresView.vue'
 import ValidacionView from '../views/validacion/ValidacionView.vue'
@@ -9,6 +10,7 @@ import DeudasView from '../views/deudas/DeudasView.vue'
 import RecompensasView from '../views/recompensas/RecompensasView.vue'
 import ReportesView from '../views/reportes/ReportesView.vue'
 import ConfiguracionView from '../views/configuracion/ConfiguracionView.vue'
+import UsuariosView from '../views/usuarios/UsuariosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,6 +25,12 @@ const router = createRouter({
       name: 'dashboard',
       component: DashboardView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/empresas',
+      name: 'empresas',
+      component: EmpresasView,
+      meta: { requiresAuth: true, requiresSuperadmin: true }
     },
     {
       path: '/campanas',
@@ -42,30 +50,41 @@ const router = createRouter({
       component: ValidacionView,
       meta: { requiresAuth: true }
     },
-    { path: '/inventario',    
-      name: 'inventario',    
-      component: InventarioView,    
-      meta: { requiresAuth: true } 
+    {
+      path: '/inventario',
+      name: 'inventario',
+      component: InventarioView,
+      meta: { requiresAuth: true }
     },
-    { path: '/deudas',        
-      name: 'deudas',        
-      component: DeudasView,        
-      meta: { requiresAuth: true } 
+    {
+      path: '/deudas',
+      name: 'deudas',
+      component: DeudasView,
+      meta: { requiresAuth: true }
     },
-    { path: '/recompensas',   
-      name: 'recompensas',   
-      component: RecompensasView,   
-      meta: { requiresAuth: true } 
+    {
+      path: '/recompensas',
+      name: 'recompensas',
+      component: RecompensasView,
+      meta: { requiresAuth: true }
     },
-    { path: '/reportes',      
-      name: 'reportes',      
-      component: ReportesView,      
-      meta: { requiresAuth: true } 
+    {
+      path: '/reportes',
+      name: 'reportes',
+      component: ReportesView,
+      meta: { requiresAuth: true }
     },
-    { path: '/configuracion', 
-      name: 'configuracion', 
-      component: ConfiguracionView, 
-      meta: { requiresAuth: true } 
+    {
+      path: '/usuarios',
+      name: 'usuarios',
+      component: UsuariosView,
+      meta: { requiresAuth: true, requiresSuperadmin: true }
+    },
+    {
+      path: '/configuracion',
+      name: 'configuracion',
+      component: ConfiguracionView,
+      meta: { requiresAuth: true }
     },
   ]
 })
@@ -73,8 +92,12 @@ const router = createRouter({
 // Guard: si no hay token redirige al login
 router.beforeEach((to, _from, next) => {
   const isAuthenticated = localStorage.getItem('token')
+  const isSuperadmin = localStorage.getItem('user_es_superadmin') === 'true'
+
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.meta.requiresSuperadmin && !isSuperadmin) {
+    next({ name: 'dashboard' })
   } else {
     next()
   }
