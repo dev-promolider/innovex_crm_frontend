@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/inicio/LoginView.vue'
 import DashboardView from '../views/dashboard/DashboardView.vue'
+import EmpresaWorkspaceView from '../views/empresas/EmpresaWorkspaceView.vue'
 import EmpresasView from '../views/empresas/EmpresasView.vue'
 import CampanasView from '../views/campanas/CampanasView.vue'
 import LideresView from '../views/lideres/LideresView.vue'
@@ -30,6 +31,12 @@ const router = createRouter({
       path: '/empresas',
       name: 'empresas',
       component: EmpresasView,
+      meta: { requiresAuth: true, requiresSuperadmin: true }
+    },
+    {
+      path: '/empresas/:empresaId',
+      name: 'empresa-workspace',
+      component: EmpresaWorkspaceView,
       meta: { requiresAuth: true, requiresSuperadmin: true }
     },
     {

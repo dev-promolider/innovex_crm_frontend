@@ -10,7 +10,7 @@ interface Props {
 defineProps<Props>()
 
 const emit = defineEmits<{
-  view: [empresaId: number]
+  configure: [empresaId: number]
   activate: [empresaId: number]
   suspend: [empresaId: number]
 }>()
@@ -87,7 +87,7 @@ const companySecondaryText = (empresa: EmpresaListItem) =>
           <td class="td-lider">{{ empresa.email_contacto ?? 'No registrado' }}</td>
           <td>
             <div class="acciones">
-              <button class="btn-detalle" @click="emit('view', empresa.id)">Ver detalle</button>
+              <button class="btn-detalle" @click="emit('configure', empresa.id)">Configurar</button>
               <button
                 v-if="empresa.estado === 'configuracion' || empresa.estado === 'inactiva'"
                 class="btn-aprobar"

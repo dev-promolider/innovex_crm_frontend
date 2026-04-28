@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, shallowRef } from 'vue'
 import { Plus } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import { useEmpresasApi } from '../composables/useEmpresasApi'
 import type { EmpresaEstado, EmpresaListItem } from '../types'
 import CreateEmpresaDialog from './CreateEmpresaDialog.vue'
-import EmpresaDetailDialog from './EmpresaDetailDialog.vue'
 import EmpresasTable from './EmpresasTable.vue'
 import SuspendEmpresaDialog from './SuspendEmpresaDialog.vue'
 
+const router = useRouter()
+
 const {
   empresas,
-  empresaDetail,
   isLoading,
-  isDetailLoading,
   isCreating,
   mutatingEmpresaId,
   errorMessage,
@@ -20,7 +20,6 @@ const {
   pagination,
   clearMessages,
   fetchEmpresas,
-  fetchEmpresaDetail,
   createEmpresa,
   activateEmpresa,
   suspendEmpresa,
@@ -32,7 +31,6 @@ const filters = reactive({
 })
 
 const createDialogOpen = shallowRef(false)
-const detailDialogOpen = shallowRef(false)
 const suspendDialogOpen = shallowRef(false)
 const selectedEmpresaId = shallowRef<number | null>(null)
 
@@ -75,7 +73,6 @@ const selectedEmpresa = computed<EmpresaListItem | null>(() => {
 
   return (
     empresas.value.find((empresa) => empresa.id === selectedEmpresaId.value)
-    ?? empresaDetail.value
     ?? null
   )
 })
@@ -93,11 +90,9 @@ const openCreateDialog = () => {
   createDialogOpen.value = true
 }
 
-const openDetailDialog = async (empresaId: number) => {
+const openEmpresaWorkspace = async (empresaId: number) => {
   clearMessages()
-  selectedEmpresaId.value = empresaId
-  detailDialogOpen.value = true
-  await fetchEmpresaDetail(empresaId)
+  await router.push({ name: 'empresa-workspace', params: { empresaId } })
 }
 
 const requestSuspend = (empresaId: number) => {
@@ -110,7 +105,7 @@ const handleCreateEmpresa = async (payload: Parameters<typeof createEmpresa>[0])
   try {
     const createdEmpresa = await createEmpresa(payload)
     createDialogOpen.value = false
-    await openDetailDialog(createdEmpresa.id)
+    await openEmpresaWorkspace(createdEmpresa.id)
   } catch {
     return
   }
@@ -249,7 +244,7 @@ onMounted(async () => {
           :empresas="filteredEmpresas"
           :loading="isLoading"
           :pending-empresa-id="mutatingEmpresaId"
-          @view="openDetailDialog"
+          @configure="openEmpresaWorkspace"
           @activate="handleActivateEmpresa"
           @suspend="requestSuspend"
         />
@@ -282,15 +277,6 @@ onMounted(async () => {
         v-model:open="createDialogOpen"
         :submitting="isCreating"
         @submit="handleCreateEmpresa"
-      />
-
-      <EmpresaDetailDialog
-        v-model:open="detailDialogOpen"
-        :empresa="empresaDetail"
-        :loading="isDetailLoading"
-        :mutating="isMutatingSelectedEmpresa"
-        @activate="handleActivateEmpresa"
-        @suspend="requestSuspend"
       />
 
       <SuspendEmpresaDialog
