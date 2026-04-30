@@ -1,5 +1,5 @@
 <template>
-  <AppShell :notification-count="contarEstado('pendiente')">
+  <AppShell :notification-count="contarEstado('pendiente') + pendingBankCount">
     <template #breadcrumb>
       <span class="breadcrumb">Inicio › <strong>Validación</strong></span>
     </template>
@@ -13,13 +13,40 @@
           <div>
             <h1 class="page-title">Validación de Ventas</h1>
             <p class="page-subtitle">
-              <span v-if="cargando">Cargando...</span>
-              <span v-else>{{ ventasFiltradas.length }} campañas encontradas</span>
+              <span v-if="activeTab === 'ventas' && cargando">Cargando...</span>
+              <span v-else-if="activeTab === 'ventas'">{{ ventasFiltradas.length }} ventas visibles en la cola administrativa</span>
+              <span v-else>{{ pendingBankCount }} ventas aprobadas esperan confirmacion bancaria</span>
             </p>
           </div>
         </div>
 
-        <div class="content-layout">
+        <div class="view-switcher">
+          <button
+            type="button"
+            class="view-switcher__tab"
+            :class="{ 'view-switcher__tab--active': activeTab === 'ventas' }"
+            @click="activeTab = 'ventas'"
+          >
+            Validacion administrativa
+            <span class="view-switcher__count">{{ contarEstado('pendiente') }}</span>
+          </button>
+          <button
+            type="button"
+            class="view-switcher__tab"
+            :class="{ 'view-switcher__tab--active': activeTab === 'banco' }"
+            @click="activeTab = 'banco'"
+          >
+            Confirmacion bancaria
+            <span class="view-switcher__count">{{ pendingBankCount }}</span>
+          </button>
+        </div>
+
+        <BankValidationPanel
+          v-if="activeTab === 'banco'"
+          @pending-count-change="pendingBankCount = $event"
+        />
+
+        <div v-else class="content-layout">
           <!-- Panel Filtros -->
           <aside class="filters-panel">
             <h3 class="filters-title">Filtros</h3>
@@ -187,8 +214,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { shallowRef, computed, onMounted } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import BankValidationPanel from '@/features/validacion/components/BankValidationPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
@@ -197,22 +225,24 @@ const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
 // ── State ──
-const todasVentas = ref<any[]>([])
-const ventas      = ref<any[]>([])
-const cargando    = ref(false)
-const procesando  = ref<number | null>(null)
-const errorMsg    = ref('')
-const successMsg  = ref('')
-const busqueda    = ref('')
-const filtroEstado   = ref('todos')
-const fechaInicio    = ref('')
-const fechaFin       = ref('')
-const meta = ref({ total: 0, current_page: 1, last_page: 1 })
+const activeTab = shallowRef<'ventas' | 'banco'>('ventas')
+const pendingBankCount = shallowRef(0)
+const todasVentas = shallowRef<any[]>([])
+const ventas      = shallowRef<any[]>([])
+const cargando    = shallowRef(false)
+const procesando  = shallowRef<number | null>(null)
+const errorMsg    = shallowRef('')
+const successMsg  = shallowRef('')
+const busqueda    = shallowRef('')
+const filtroEstado   = shallowRef('todos')
+const fechaInicio    = shallowRef('')
+const fechaFin       = shallowRef('')
+const meta = shallowRef({ total: 0, current_page: 1, last_page: 1 })
 
-const modalRechazar     = ref(false)
-const ventaSeleccionada = ref<any>(null)
-const motivoRechazo     = ref('')
-const errorMotivo       = ref('')
+const modalRechazar     = shallowRef(false)
+const ventaSeleccionada = shallowRef<any>(null)
+const motivoRechazo     = shallowRef('')
+const errorMotivo       = shallowRef('')
 
 const opcionesEstado = [
   { value: 'todos',     label: 'Todos',      color: '#4ab8f5' },
@@ -383,6 +413,10 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
+.view-switcher { display:flex; gap:10px; flex-wrap:wrap; }
+.view-switcher__tab { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; border:1px solid #dbe4f0; background:white; color:#516072; font-size:12px; font-weight:700; cursor:pointer; }
+.view-switcher__tab--active { background:#1a3a5c; color:white; border-color:#1a3a5c; box-shadow:0 10px 22px rgba(26,58,92,0.18); }
+.view-switcher__count { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 8px; border-radius:999px; background:rgba(74,184,245,0.12); color:inherit; font-size:11px; }
 .alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
