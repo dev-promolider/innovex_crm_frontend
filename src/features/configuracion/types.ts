@@ -120,3 +120,35 @@ export interface WorkspaceCommissionSimulation {
         monto_a_recibir: number
     }>
 }
+
+export type WorkspacePaymentModel = 'bullet' | 'fraccionado'
+
+export interface WorkspacePaymentPolicy {
+    id: number
+    modelo_pago: WorkspacePaymentModel
+    dias_plazo_bullet: number | null
+    numero_cuotas: number | null
+    periodicidad_dias: number | null
+    dias_gracia_recepcion: number | null
+    tolerancia_pago_horas: number | null
+    vigente_desde: string | null
+}
+
+export interface WorkspacePaymentPolicyPayload {
+    modelo_pago: WorkspacePaymentModel
+    dias_plazo_bullet?: number | null
+    numero_cuotas?: number | null
+    periodicidad_dias?: number | null
+    dias_gracia_recepcion?: number | null
+    tolerancia_pago_horas?: number | null
+    motivo_cambio?: string | null
+}
+
+export interface WorkspacePaymentPolicyHistoryEntry {
+    id: number
+    motivo_cambio: string | null
+    snapshot: WorkspacePaymentPolicyPayload | null
+    vigente_desde: string | null
+    vigente_hasta: string | null
+    cambiado_por: string | null
+}

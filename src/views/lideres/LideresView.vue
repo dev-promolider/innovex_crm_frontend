@@ -14,7 +14,7 @@
             <h1 class="page-title">Gestión de Líderes</h1>
             <p class="page-subtitle">
               <span v-if="cargando">Cargando...</span>
-              <span v-else>{{ meta.total }} líderes registrados</span>
+              <span v-else>{{ meta.total }} distribuidores en la red activa</span>
             </p>
           </div>
           <button class="btn-primary" @click="modalPin = true">Invitar Líder (Generar PIN)</button>
@@ -24,7 +24,7 @@
         <div class="filters-bar">
           <div class="search-box search-wide">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" v-model="busqueda" placeholder="Buscar líder, DNI..." class="search-input" />
+            <input type="text" v-model="busqueda" placeholder="Buscar distribuidor, DNI o correo..." class="search-input" />
           </div>
           <span class="filter-label-inline">Filtros:</span>
           <select v-model="filtroEstado" class="select-filter">
@@ -32,17 +32,8 @@
             <option value="activa">Activo</option>
             <option value="suspendida">Suspendida</option>
             <option value="pre_registro">Pre-registro</option>
-          </select>
-          <select v-model="filtroConfianza" class="select-filter">
-            <option value="todos">Confianza: Todos</option>
-            <option value="alto">Alto</option>
-            <option value="medio">Medio</option>
-            <option value="bajo">Bajo</option>
-          </select>
-          <select v-model="filtroDeuda" class="select-filter">
-            <option value="todos">Toda deuda</option>
-            <option value="con">Con deuda</option>
-            <option value="sin">Sin deuda</option>
+            <option value="revision_admin">Revision admin</option>
+            <option value="pendiente_activacion">Pendiente activacion</option>
           </select>
           <span class="result-count">{{ lideresFiltrados.length }} resultados</span>
         </div>
@@ -58,20 +49,19 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Líder</th>
+                  <th>Distribuidor</th>
                   <th>DNI</th>
-                  <th>Nivel Confianza</th>
-                  <th>Biometría</th>
-                  <th>Kits</th>
-                  <th>Ventas/Mes</th>
-                  <th>Deuda Pendiente</th>
+                  <th>Rango</th>
+                  <th>Patrocinador</th>
+                  <th>Correo</th>
+                  <th>Ingreso</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="lideresFiltrados.length === 0">
-                  <td colspan="9" class="empty-state">No se encontraron líderes.</td>
+                  <td colspan="8" class="empty-state">No se encontraron distribuidores.</td>
                 </tr>
                 <tr v-for="m in lideresFiltrados" :key="m.id">
                   <td>
@@ -84,22 +74,10 @@
                     </div>
                   </td>
                   <td class="td-dni">{{ m.usuario?.numero_documento ?? '—' }}</td>
-                  <td>
-                    <div class="confianza">
-                      <span class="dot" :class="colorConfianza(m.nivel_confianza)"></span>
-                      {{ labelConfianza(m.nivel_confianza) }}
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge" :class="'bio-' + (m.insignia ?? 'nuevo').toLowerCase()">
-                      {{ labelBiometria(m.insignia) }}
-                    </span>
-                  </td>
-                  <td class="td-center">{{ m.kits_count ?? '—' }}</td>
-                  <td class="td-ventas">{{ m.ventas_mes ? 'S/ ' + Number(m.ventas_mes).toLocaleString() : '—' }}</td>
-                  <td class="td-deuda" :class="{ 'deuda-alta': (m.deuda_pendiente ?? 0) > 3000 }">
-                    {{ m.deuda_pendiente ? 'S/ ' + Number(m.deuda_pendiente).toLocaleString() : '—' }}
-                  </td>
+                  <td>{{ m.rango?.nombre_rango ?? 'Sin rango' }}</td>
+                  <td>{{ nombreReferente(m) }}</td>
+                  <td class="td-dni">{{ m.usuario?.email ?? '—' }}</td>
+                  <td class="td-dni">{{ formatFecha(m.created_at) }}</td>
                   <td>
                     <span class="badge" :class="'est-' + m.estado_validacion">{{ labelEstado(m.estado_validacion) }}</span>
                   </td>
@@ -112,10 +90,6 @@
                       <!-- Copiar datos -->
                       <button class="acc-btn" title="Copiar datos" @click="copiarDatos(m)">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#64748b" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      </button>
-                      <!-- Bloquear/Suspender -->
-                      <button class="acc-btn" title="Suspender líder" @click="abrirModalBloquear(m)">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
                       </button>
                     </div>
                   </td>
@@ -146,14 +120,38 @@
           <div class="detalle-grid">
             <div class="detalle-item"><span class="detalle-label">Email</span><span>{{ liderSeleccionado.usuario?.email ?? '—' }}</span></div>
             <div class="detalle-item"><span class="detalle-label">DNI</span><span>{{ liderSeleccionado.usuario?.numero_documento ?? '—' }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Rango</span><span>{{ liderSeleccionado.rango?.nombre ?? 'Sin rango' }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Nivel en Red</span><span>Nivel {{ liderSeleccionado.nivel_en_arbol }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Rango</span><span>{{ liderSeleccionado.rango?.nombre_rango ?? 'Sin rango' }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Nivel en Red</span><span>{{ liderSeleccionado.rango?.nivel ? `Nivel ${liderSeleccionado.rango.nivel}` : 'Sin nivel' }}</span></div>
             <div class="detalle-item"><span class="detalle-label">Estado</span><span>{{ labelEstado(liderSeleccionado.estado_validacion) }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Confianza</span><span>{{ labelConfianza(liderSeleccionado.nivel_confianza) }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Insignia</span><span>{{ liderSeleccionado.insignia ?? '—' }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Puntos Marketplace</span><span>{{ liderSeleccionado.puntos_marketplace ?? 0 }}</span></div>
-            <div class="detalle-item"><span class="detalle-label">Perfil Web</span><span>{{ liderSeleccionado.perfil_web_activo ? 'Activo' : 'Inactivo' }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Patrocinador</span><span>{{ nombreReferente(liderSeleccionado) }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Membresía</span><span>#{{ liderSeleccionado.id }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Capacidad hijos</span><span>{{ capacidadesDetalle?.limites?.hijos_directos_disponibles ?? '—' }}</span></div>
+            <div class="detalle-item"><span class="detalle-label">Crédito kits disponible</span><span>{{ capacidadesDetalle?.limites?.kits_credito_disponible ?? '—' }}</span></div>
             <div class="detalle-item"><span class="detalle-label">Miembro desde</span><span>{{ formatFecha(liderSeleccionado.created_at) }}</span></div>
+          </div>
+
+          <div class="detalle-section" v-if="capacidadesDetalle">
+            <h3 class="detalle-section-title">Capacidades efectivas</h3>
+            <div class="detalle-grid detalle-grid--three">
+              <div class="detalle-item"><span class="detalle-label">Solicitar kits empresa</span><span>{{ boolLabel(capacidadesDetalle?.permisos?.solicitar_kits_empresa) }}</span></div>
+              <div class="detalle-item"><span class="detalle-label">Asignar stock equipo</span><span>{{ boolLabel(capacidadesDetalle?.permisos?.asignar_stock_equipo) }}</span></div>
+              <div class="detalle-item"><span class="detalle-label">Registrar ventas</span><span>{{ boolLabel(capacidadesDetalle?.permisos?.registrar_ventas_consumidor_final) }}</span></div>
+            </div>
+          </div>
+
+          <div class="detalle-section">
+            <h3 class="detalle-section-title">Historial de rangos</h3>
+            <div v-if="cargandoDetalleExtra" class="empty-state detail-inline">Cargando historial y capacidades...</div>
+            <div v-else-if="historialRangos.length === 0" class="empty-state detail-inline">No hay cambios de rango registrados.</div>
+            <div v-else class="history-list">
+              <div v-for="item in historialRangos" :key="item.id" class="history-item">
+                <div>
+                  <strong>{{ item.rango_anterior?.nombre ?? 'Inicial' }} → {{ item.rango_nuevo?.nombre ?? 'Sin rango' }}</strong>
+                  <p>{{ item.motivo ?? 'Sin motivo' }}</p>
+                </div>
+                <span>{{ formatFecha(item.created_at) }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -197,26 +195,6 @@
       </div>
     </div>
 
-    <!-- ── Modal Bloquear/Suspender ── -->
-    <div v-if="modalBloquear" class="modal-overlay" @click.self="modalBloquear = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h2>⚠️ Suspender Líder</h2>
-          <button class="modal-close" @click="modalBloquear = false">✕</button>
-        </div>
-        <div class="modal-body">
-          <p>¿Estás seguro de suspender a <strong>{{ nombreCompleto(liderABloquear) }}</strong>?</p>
-          <p style="font-size:12px;color:#888;margin-top:8px">El líder perderá acceso a la plataforma hasta que sea reactivado.</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="modalBloquear = false">Cancelar</button>
-          <button class="btn-danger" @click="suspenderLider" :disabled="procesando">
-            {{ procesando ? 'Procesando...' : 'Sí, Suspender' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
   </AppShell>
 </template>
 
@@ -233,24 +211,22 @@ const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 // ── State ──
 const lideres    = ref<any[]>([])
 const cargando   = ref(false)
-const procesando = ref(false)
 const errorMsg   = ref('')
 const successMsg = ref('')
 const busqueda        = ref('')
 const filtroEstado    = ref('todos')
-const filtroConfianza = ref('todos')
-const filtroDeuda     = ref('todos')
 const meta = ref({ total: 0, current_page: 1, last_page: 1 })
 
 // Modales
 const modalDetalle      = ref(false)
 const liderSeleccionado = ref<any>(null)
+const cargandoDetalleExtra = ref(false)
+const capacidadesDetalle = ref<any>(null)
+const historialRangos = ref<any[]>([])
 const modalPin          = ref(false)
 const pinGenerado       = ref('')
 const emailInvitado     = ref('')
 const generandoPin      = ref(false)
-const modalBloquear     = ref(false)
-const liderABloquear    = ref<any>(null)
 
 // ── Helpers ──
 const colores    = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
@@ -265,40 +241,24 @@ const iniciales = (m: any) => {
   return (n + a).toUpperCase() || '?'
 }
 
-const labelEstado    = (e: string) => ({ activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro' }[e] ?? e)
+const labelEstado    = (e: string) => ({ activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro', revision_admin: 'Revision admin', pendiente_activacion: 'Pendiente activacion', biometra_pendiente: 'Biometria pendiente', documentos_pendientes: 'Documentos pendientes', bloqueada_riesgo: 'Bloqueada por riesgo', retirada: 'Retirada', rechazada: 'Rechazada' }[e] ?? e)
 const formatFecha    = (f: string) => f ? new Date(f).toLocaleDateString('es-PE') : '—'
-const labelBiometria = (i: string) => ({ nuevo: 'Pendiente', verificado: 'Verificado', rechazado: 'Rechazado' }[i?.toLowerCase()] ?? 'Pendiente')
-
-// ── Confianza corregida ──
-const labelConfianza = (n: number) => {
-  if (n >= 2) return 'Alto'
-  if (n === 1) return 'Medio'
-  return 'Bajo'
+const nombreReferente = (m: any) => {
+  const u = m?.referente?.usuario
+  return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : 'Sin patrocinador'
 }
-const colorConfianza = (n: number) => {
-  if (n >= 2) return 'dot-alto'
-  if (n === 1) return 'dot-medio'
-  return 'dot-bajo'
-}
+const boolLabel = (value: boolean | null | undefined) => value ? 'Sí' : 'No'
 
 // ── Filtrado corregido ──
 const lideresFiltrados = computed(() =>
   lideres.value.filter(m => {
     const nombre = nombreCompleto(m).toLowerCase()
     const dni    = m.usuario?.numero_documento ?? ''
-    const matchBusqueda  = nombre.includes(busqueda.value.toLowerCase()) || dni.includes(busqueda.value)
+    const email = m.usuario?.email?.toLowerCase?.() ?? ''
+    const matchBusqueda  = nombre.includes(busqueda.value.toLowerCase()) || dni.includes(busqueda.value) || email.includes(busqueda.value.toLowerCase())
     const matchEstado    = filtroEstado.value === 'todos' || m.estado_validacion === filtroEstado.value
-    const matchDeuda     = filtroDeuda.value === 'todos' ||
-      (filtroDeuda.value === 'con' ? (m.deuda_pendiente ?? 0) > 0 : (m.deuda_pendiente ?? 0) === 0)
 
-    // Filtro confianza corregido — compara por texto
-    let matchConfianza = true
-    if (filtroConfianza.value !== 'todos') {
-      const etiqueta = labelConfianza(m.nivel_confianza).toLowerCase()
-      matchConfianza = etiqueta === filtroConfianza.value
-    }
-
-    return matchBusqueda && matchEstado && matchConfianza && matchDeuda
+    return matchBusqueda && matchEstado
   })
 )
 
@@ -328,7 +288,38 @@ const cargarLideres = async (pagina = 1) => {
 }
 
 const cambiarPagina = (p: number) => cargarLideres(p)
-const verDetalle    = (m: any) => { liderSeleccionado.value = m; modalDetalle.value = true }
+const verDetalle    = async (m: any) => {
+  liderSeleccionado.value = m
+  modalDetalle.value = true
+  cargandoDetalleExtra.value = true
+  capacidadesDetalle.value = null
+  historialRangos.value = []
+
+  try {
+    const [capRes, histRes] = await Promise.all([
+      fetch(`${API_BASE}/workspace/admin/distribuidores/${m.id}/capacidades`, { headers: hdrs() }),
+      fetch(`${API_BASE}/workspace/admin/distribuidores/${m.id}/historial-rangos`, { headers: hdrs() }),
+    ])
+
+    if (capRes.ok) {
+      const capJson = await capRes.json()
+      if (capJson.status === 'success') {
+        capacidadesDetalle.value = capJson.data?.capacidades_efectivas ?? capJson.data
+      }
+    }
+
+    if (histRes.ok) {
+      const histJson = await histRes.json()
+      if (histJson.status === 'success') {
+        historialRangos.value = histJson.data ?? []
+      }
+    }
+  } catch {
+    errorMsg.value = 'No se pudo cargar el detalle extendido del distribuidor.'
+  } finally {
+    cargandoDetalleExtra.value = false
+  }
+}
 
 // ── Copiar datos ──
 const copiarDatos = async (m: any) => {
@@ -337,8 +328,8 @@ Email: ${m.usuario?.email ?? '—'}
 DNI: ${m.usuario?.numero_documento ?? '—'}
 Rango: ${m.rango?.nombre ?? 'Sin rango'}
 Estado: ${labelEstado(m.estado_validacion)}
-Nivel Confianza: ${labelConfianza(m.nivel_confianza)}
-Nivel en Red: ${m.nivel_en_arbol}`
+Patrocinador: ${nombreReferente(m)}
+Nivel en Red: ${m.rango?.nivel ? 'Nivel ' + m.rango.nivel : 'Sin nivel'}`
 
   try {
     await navigator.clipboard.writeText(texto)
@@ -387,39 +378,6 @@ const cerrarModalPin = () => {
   modalPin.value    = false
   pinGenerado.value = ''
   emailInvitado.value = ''
-}
-
-// ── Suspender Líder ──
-const abrirModalBloquear = (m: any) => {
-  if (m.estado_validacion === 'suspendida') {
-    errorMsg.value = 'Este líder ya está suspendido.'
-    return
-  }
-  liderABloquear.value = m
-  modalBloquear.value  = true
-}
-
-const suspenderLider = async () => {
-  if (!liderABloquear.value) return
-  procesando.value = true
-  try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/aprobaciones/${liderABloquear.value.id}/suspender`, {
-      method: 'POST',
-      headers: hdrs(),
-    })
-    const json = await res.json()
-    if (res.ok && json.status === 'success') {
-      successMsg.value   = '✅ Líder suspendido correctamente.'
-      modalBloquear.value = false
-      await cargarLideres(meta.value.current_page)
-    } else {
-      errorMsg.value = json.message ?? 'Error al suspender.'
-    }
-  } catch {
-    errorMsg.value = 'No se pudo conectar con el servidor.'
-  } finally {
-    procesando.value = false
-  }
 }
 
 onMounted(() => cargarLideres())
@@ -491,21 +449,17 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .lider-email { font-size:11px; color:#999; }
 .td-dni { color:#666; font-size:12px; }
 .td-center { text-align:center; font-weight:600; color:#333; }
-.td-ventas { font-weight:600; color:#1a1a1a; }
-.td-deuda { font-weight:600; color:#f59e0b; }
-.deuda-alta { color:#ef4444 !important; }
-.confianza { display:flex; align-items:center; gap:6px; font-size:13px; }
-.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.dot-alto  { background:#22c55e; }
-.dot-medio { background:#f59e0b; }
-.dot-bajo  { background:#ef4444; }
 .badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; }
-.bio-nuevo      { background:#fef3c7; color:#b45309; }
-.bio-verificado { background:#dcfce7; color:#166534; }
-.bio-rechazado  { background:#fee2e2; color:#991b1b; }
 .est-activa       { background:#dcfce7; color:#166534; }
 .est-suspendida   { background:#fee2e2; color:#991b1b; }
 .est-pre_registro { background:#fef3c7; color:#b45309; }
+.est-revision_admin,
+.est-pendiente_activacion,
+.est-biometria_pendiente,
+.est-documentos_pendientes { background:#dbeafe; color:#1d4ed8; }
+.est-bloqueada_riesgo,
+.est-rechazada { background:#fee2e2; color:#991b1b; }
+.est-retirada { background:#e5e7eb; color:#374151; }
 .acciones { display:flex; gap:6px; }
 .acc-btn { background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:background 0.15s; }
 .acc-btn:hover { background:#f1f5f9; }
@@ -530,8 +484,15 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-group label { font-size:12px; font-weight:600; color:#555; }
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
 .detalle-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.detalle-grid--three { grid-template-columns:repeat(3,1fr); }
 .detalle-item { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:#f8fafc; border-radius:8px; }
 .detalle-label { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
+.detalle-section { display:flex; flex-direction:column; gap:10px; }
+.detalle-section-title { margin:0; font-size:14px; font-weight:700; color:#162033; }
+.detail-inline { padding:18px 0; }
+.history-list { display:flex; flex-direction:column; gap:10px; }
+.history-item { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; padding:12px; border-radius:10px; background:#f8fafc; }
+.history-item p { margin:4px 0 0; font-size:12px; color:#64748b; }
 .pin-result { display:flex; flex-direction:column; align-items:center; gap:14px; }
 .pin-box { background:#0f1b2d; border-radius:12px; padding:20px 32px; text-align:center; }
 .pin-label { font-size:11px; color:#4a6080; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
@@ -539,4 +500,14 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .pin-hint { font-size:12px; color:#888; text-align:center; margin:0; }
 .btn-copy-pin { padding:8px 20px; border:1.5px solid #4ab8f5; border-radius:8px; background:white; color:#1a6ab5; font-size:13px; font-weight:600; cursor:pointer; }
 .btn-copy-pin:hover { background:#eff6ff; }
+@media (max-width: 860px) {
+  .detalle-grid,
+  .detalle-grid--three {
+    grid-template-columns:1fr;
+  }
+
+  .history-item {
+    flex-direction:column;
+  }
+}
 </style>

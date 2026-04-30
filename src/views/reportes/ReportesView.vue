@@ -6,7 +6,7 @@
 
     <div class="page-body">
         <div class="page-header">
-          <div><h1 class="page-title">Reportes</h1><p class="page-subtitle">Genera y descarga reportes personalizados</p></div>
+          <div><h1 class="page-title">Reportes</h1><p class="page-subtitle">Mapa operativo de exportaciones administrativas disponibles y pendientes.</p></div>
         </div>
 
         <div class="reports-grid">
@@ -57,36 +57,44 @@
 
             <!-- Formato descarga -->
             <div class="card">
-              <h3 class="section-title">Formato de Exportación</h3>
+              <h3 class="section-title">Estado del módulo</h3>
               <div class="format-btns">
                 <button v-for="f in formatos" :key="f" class="format-btn" :class="{ active: formatoSeleccionado === f }" @click="formatoSeleccionado = f">{{ f }}</button>
               </div>
-              <button class="btn-generar">Generar y Descargas Reporte</button>
+              <div class="status-banner">
+                <strong>Sin backend de exportación aún</strong>
+                <p>
+                  Hoy no existe un endpoint administrativo para generar archivos de reportes. Esta pantalla queda como planeación operativa para la siguiente entrega.
+                </p>
+              </div>
+              <button class="btn-generar" disabled>Generación pendiente de implementación</button>
+            </div>
+
+            <div class="card">
+              <h3 class="section-title">Fuentes reales ya disponibles</h3>
+              <div class="source-list">
+                <div v-for="source in fuentesDisponibles" :key="source.label" class="source-item">
+                  <div>
+                    <strong>{{ source.label }}</strong>
+                    <p>{{ source.desc }}</p>
+                  </div>
+                  <span class="source-badge">{{ source.status }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Reportes Recientes -->
+          <!-- Estado por tipo -->
           <div class="right-col">
             <div class="card">
-              <h3 class="section-title">Reportes Recientes</h3>
-              <div class="recent-list">
-                <div v-for="r in reportesRecientes" :key="r.id" class="recent-item">
-                  <div class="recent-icon" :class="'icon-'+r.tipo">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <h3 class="section-title">Cobertura actual</h3>
+              <div class="coverage-list">
+                <div v-for="coverage in coberturas" :key="coverage.label" class="coverage-item">
+                  <div>
+                    <strong>{{ coverage.label }}</strong>
+                    <p>{{ coverage.desc }}</p>
                   </div>
-                  <div class="recent-info">
-                    <span class="recent-name">{{ r.nombre }}</span>
-                    <span class="recent-type">{{ r.categoria }}</span>
-                    <div class="recent-meta">
-                      <span class="recent-ext">{{ r.tipo.toUpperCase() }}</span>
-                      <span class="recent-size">{{ r.size }}</span>
-                    </div>
-                    <span class="recent-date">{{ r.fecha }}</span>
-                    <span class="recent-user">{{ r.usuario }}</span>
-                  </div>
-                  <button class="download-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4ab8f5" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </button>
+                  <span class="coverage-pill" :class="`coverage-pill-${coverage.tone}`">{{ coverage.level }}</span>
                 </div>
               </div>
             </div>
@@ -115,13 +123,50 @@ const tiposReporte = [
 ]
 const tipoActual = computed(() => tiposReporte.find(t => t.key === tipoSeleccionado.value) ?? tiposReporte[0])
 
-const reportesRecientes = ref([
-  { id:1, nombre:'Ventas_Validadas_Feb2025',   categoria:'Ventas Validadas',       tipo:'xlsx', size:'114 KB', fecha:'2025-02-15 09:45', usuario:'Admin Principal' },
-  { id:2, nombre:'Deudas_Estado_Ene2025',      categoria:'Estado de Deudas',       tipo:'pdf',  size:'87 KB',  fecha:'2025-02-15 14:00', usuario:'María Finanzas'  },
-  { id:3, nombre:'Lideres_Rendimiento_Q1',     categoria:'Rendimiento de Líderes', tipo:'xlsx', size:'95 KB',  fecha:'2025-02-10 11:00', usuario:'Admin Principal' },
-  { id:4, nombre:'Inventario_Audi_Feb2025',    categoria:'Auditoría de Stock',     tipo:'pdf',  size:'43 KB',  fecha:'2025-02-08 16:20', usuario:'Carlos Almacén'  },
-  { id:5, nombre:'Canjes_Ene2025',             categoria:'Canjes y Recompensas',   tipo:'pdf',  size:'62 KB',  fecha:'2025-02-06 10:25', usuario:'Admin Principal' },
-])
+const fuentesDisponibles = [
+  {
+    label: 'Validación de ventas',
+    desc: 'La cola administrativa y la confirmación bancaria ya entregan información operativa útil para futuras exportaciones.',
+    status: 'Disponible',
+  },
+  {
+    label: 'Deudas y ledger',
+    desc: 'La cartera, el estado de cuenta y los movimientos financieros ya se consultan desde el panel admin.',
+    status: 'Disponible',
+  },
+  {
+    label: 'Inventario y contratos',
+    desc: 'Las solicitudes de kits y el expediente contractual ya tienen detalle, pero falta consolidar el ledger de inventario.',
+    status: 'Parcial',
+  },
+]
+
+const coberturas = [
+  {
+    label: 'Ventas validadas',
+    desc: 'La data existe en panel, pero todavía no se exporta a archivo.',
+    level: 'Alta',
+    tone: 'good',
+  },
+  {
+    label: 'Estado de deudas',
+    desc: 'La información base ya está conectada y lista para alimentar reportes.',
+    level: 'Alta',
+    tone: 'good',
+  },
+  {
+    label: 'Rendimiento de líderes',
+    desc: 'La vista ya existe, pero no hay agregación/reporting consolidado.',
+    level: 'Media',
+    tone: 'warn',
+  },
+  {
+    label: 'Auditoría de stock',
+    desc: 'Aún falta endpoint administrativo para listar movimientos reales.',
+    level: 'Baja',
+    tone: 'pending',
+  },
+]
 </script>
 
 <style>
@@ -185,20 +230,20 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .format-btn { padding:8px 18px; border:1.5px solid #e2e8f0; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#444; cursor:pointer; transition:all 0.2s; }
 .format-btn.active { border-color:#1a6ab5; background:#eff6ff; color:#1a6ab5; }
 .btn-generar { width:100%; padding:12px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:14px; font-weight:700; color:white; cursor:pointer; }
-.recent-list { display:flex; flex-direction:column; gap:12px; }
-.recent-item { display:flex; align-items:flex-start; gap:10px; padding:12px; border-radius:8px; border:1px solid #f0f0f0; transition:background 0.15s; }
-.recent-item:hover { background:#f8fafc; }
-.recent-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.icon-xlsx { background:#dcfce7; color:#166534; }
-.icon-pdf  { background:#fee2e2; color:#991b1b; }
-.recent-info { flex:1; display:flex; flex-direction:column; gap:2px; }
-.recent-name { font-size:12px; font-weight:700; color:#1a1a1a; }
-.recent-type { font-size:11px; color:#666; }
-.recent-meta { display:flex; gap:6px; margin-top:2px; }
-.recent-ext  { font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; background:#f1f5f9; color:#475569; }
-.recent-size { font-size:10px; color:#999; }
-.recent-date { font-size:10px; color:#999; }
-.recent-user { font-size:10px; color:#888; }
-.download-btn { background:none; border:none; cursor:pointer; padding:6px; border-radius:6px; flex-shrink:0; }
-.download-btn:hover { background:#eff6ff; }
+.btn-generar:disabled { opacity:0.6; cursor:not-allowed; }
+.status-banner { background:#fff8ef; border:1px solid #f1d7a8; border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+.status-banner strong { display:block; color:#8c5f2c; margin-bottom:6px; }
+.status-banner p { margin:0; font-size:12px; color:#6b5b45; line-height:1.5; }
+.source-list,
+.coverage-list { display:flex; flex-direction:column; gap:12px; }
+.source-item,
+.coverage-item { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; padding:12px; border-radius:10px; border:1px solid #eef2f7; }
+.source-item p,
+.coverage-item p { margin:4px 0 0; font-size:12px; color:#64748b; line-height:1.5; }
+.source-badge,
+.coverage-pill { display:inline-flex; align-items:center; justify-content:center; min-width:72px; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+.source-badge { background:#eff6ff; color:#1d4ed8; }
+.coverage-pill-good { background:#dcfce7; color:#166534; }
+.coverage-pill-warn { background:#fef3c7; color:#b45309; }
+.coverage-pill-pending { background:#f1f5f9; color:#475569; }
 </style>

@@ -21,6 +21,11 @@
           <button @click="errorMsg = ''" class="alert-close">✕</button>
         </div>
 
+        <div v-if="successMsg" class="alert-success">
+          {{ successMsg }}
+          <button @click="successMsg = ''" class="alert-close">✕</button>
+        </div>
+
         <div class="page-header">
           <div>
             <h1 class="page-title">Campañas y Kits</h1>
@@ -150,6 +155,11 @@
           <button @click="errorMsg = ''" class="alert-close">✕</button>
         </div>
 
+        <div v-if="successMsg" class="alert-success">
+          {{ successMsg }}
+          <button @click="successMsg = ''" class="alert-close">✕</button>
+        </div>
+
         <div class="detalle-header">
           <button class="btn-back" @click="volverALista">← Volver</button>
           <div class="detalle-info">
@@ -163,7 +173,47 @@
             </div>
           </div>
           <div class="detalle-acciones">
+            <button
+              v-if="campanaSeleccionada.estado === 'borrador'"
+              class="btn-primary"
+              @click="cambiarEstadoCampana('activar')"
+              :disabled="guardando"
+            >
+              {{ guardando ? 'Procesando...' : 'Activar' }}
+            </button>
+            <button
+              v-if="campanaSeleccionada.estado === 'activa'"
+              class="btn-outline"
+              @click="cambiarEstadoCampana('pausar')"
+              :disabled="guardando"
+            >
+              {{ guardando ? 'Procesando...' : 'Pausar' }}
+            </button>
+            <button
+              v-if="campanaSeleccionada.estado === 'pausada'"
+              class="btn-primary"
+              @click="cambiarEstadoCampana('activar')"
+              :disabled="guardando"
+            >
+              {{ guardando ? 'Procesando...' : 'Reactivar' }}
+            </button>
+            <button
+              v-if="campanaSeleccionada.estado === 'activa' || campanaSeleccionada.estado === 'pausada'"
+              class="btn-danger"
+              @click="cambiarEstadoCampana('finalizar')"
+              :disabled="guardando"
+            >
+              {{ guardando ? 'Procesando...' : 'Finalizar' }}
+            </button>
             <button class="btn-outline" @click="abrirModalCampana(campanaSeleccionada)">✏️ Editar</button>
+            <button
+              v-if="campanaSeleccionada.estado === 'borrador'"
+              class="btn-danger"
+              @click="abrirModalEliminar(campanaSeleccionada)"
+              :disabled="guardando"
+            >
+              Eliminar
+            </button>
             <button class="btn-primary" @click="abrirModalKit()">+ Nuevo Kit</button>
           </div>
         </div>
@@ -384,6 +434,7 @@ const campanas     = ref<any[]>([])
 const cargando     = ref(false)
 const guardando    = ref(false)
 const errorMsg     = ref('')
+const successMsg   = ref('')
 const busqueda     = ref('')
 const filtroEstado = ref('todos')
 const fechaInicio  = ref('')
@@ -422,6 +473,10 @@ const formatFecha = (f: string | null) => {
   if (!f) return '—'
   const fecha = new Date(f)
   return isNaN(fecha.getTime()) ? '—' : fecha.toLocaleDateString('es-PE')
+}
+const limpiarMensajes = () => {
+  errorMsg.value = ''
+  successMsg.value = ''
 }
 const contarEstado    = (e: string) => campanas.value.filter(c => c.estado === e).length
 const stockDisponible = (k: any) => k.stock_central - k.stock_comprometido
@@ -469,6 +524,12 @@ const cargarCampanas = async (pagina = 1) => {
       meta.value = { total: json.data.total ?? campanas.value.length, current_page: json.data.current_page ?? 1, last_page: json.data.last_page ?? 1 }
       // cargar metadatos de kits para cada campaña
       campanas.value.forEach((c: any) => cargarKitsMeta(c.id))
+      if (campanaSeleccionada.value) {
+        const refreshedCampaign = campanas.value.find((item: any) => item.id === campanaSeleccionada.value.id)
+        if (refreshedCampaign) {
+          campanaSeleccionada.value = { ...campanaSeleccionada.value, ...refreshedCampaign }
+        }
+      }
     } else { errorMsg.value = json.message ?? 'Error al cargar campañas.' }
   } catch { errorMsg.value = 'No se pudo conectar con el servidor.' }
   finally { cargando.value = false }
@@ -492,6 +553,7 @@ const guardarCampana = async () => {
   formErrors.value = {}
   if (!formCampana.value.nombre.trim()) { formErrors.value.nombre = 'El nombre es obligatorio.'; return }
   guardando.value = true
+  limpiarMensajes()
   try {
     const url    = modoEdicion.value ? `${API_BASE}/workspace/admin/campanas/${campanaEditando.value.id}` : `${API_BASE}/workspace/admin/campanas`
     const method = modoEdicion.value ? 'PUT' : 'POST'
@@ -499,6 +561,7 @@ const guardarCampana = async () => {
     const json   = await res.json()
     if (res.ok && json.status === 'success') {
       modalCampana.value = false
+      successMsg.value = json.message ?? 'Campaña guardada correctamente.'
       if (campanaSeleccionada.value) campanaSeleccionada.value = json.data
       await cargarCampanas(meta.value.current_page)
     }
@@ -511,18 +574,47 @@ const guardarCampana = async () => {
 const eliminarCampana = async () => {
   if (!campanaAEliminar.value) return
   guardando.value = true
+  limpiarMensajes()
   try {
     const res  = await fetch(`${API_BASE}/workspace/admin/campanas/${campanaAEliminar.value.id}`, { method: 'DELETE', headers: hdrsGet() })
     const json = await res.json()
-    if (res.ok && json.status === 'success') { modalEliminar.value = false; await cargarCampanas(meta.value.current_page) }
+    if (res.ok && json.status === 'success') {
+      successMsg.value = json.message ?? 'Campaña eliminada.'
+      modalEliminar.value = false
+      if (campanaSeleccionada.value?.id === campanaAEliminar.value.id) {
+        volverALista()
+      }
+      await cargarCampanas(meta.value.current_page)
+    }
     else { errorMsg.value = json.message ?? 'Error al eliminar.' }
   } catch { errorMsg.value = 'No se pudo conectar.' }
   finally { guardando.value = false }
 }
 
+const abrirModalEliminar = (campana: any) => {
+  campanaAEliminar.value = campana
+  modalEliminar.value = true
+}
+
 const verDetalle = async (campana: any) => {
-  campanaSeleccionada.value = campana
-  await cargarKits(campana.id)
+  cargandoKits.value = true
+  limpiarMensajes()
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/campanas/${campana.id}`, { headers: hdrsGet() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (json.status === 'success') {
+      campanaSeleccionada.value = json.data
+      kits.value = json.data.kits ?? []
+      await cargarKitsMeta(campana.id)
+    } else {
+      errorMsg.value = json.message ?? 'Error al cargar el detalle de la campaña.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo cargar el detalle de la campaña.'
+  } finally {
+    cargandoKits.value = false
+  }
 }
 
 const volverALista = () => { campanaSeleccionada.value = null; kits.value = [] }
@@ -536,6 +628,33 @@ const cargarKits = async (campanaId: number) => {
     else { errorMsg.value = json.message ?? 'Error al cargar kits.' }
   } catch { errorMsg.value = 'No se pudo conectar.' }
   finally { cargandoKits.value = false }
+}
+
+const cambiarEstadoCampana = async (accion: 'activar' | 'pausar' | 'finalizar') => {
+  if (!campanaSeleccionada.value) return
+
+  guardando.value = true
+  limpiarMensajes()
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/campanas/${campanaSeleccionada.value.id}/${accion}`, {
+      method: 'POST',
+      headers: hdrsGet(),
+    })
+    const json = await res.json()
+
+    if (res.ok && json.status === 'success') {
+      successMsg.value = json.message ?? 'Estado de campaña actualizado.'
+      await cargarCampanas(meta.value.current_page)
+      await verDetalle({ id: campanaSeleccionada.value.id })
+    } else {
+      errorMsg.value = json.message ?? 'No se pudo cambiar el estado de la campaña.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar para cambiar el estado de la campaña.'
+  } finally {
+    guardando.value = false
+  }
 }
 
 const abrirModalKit = () => {
@@ -638,6 +757,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
 .btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
 .alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-close { background:none; border:none; cursor:pointer; color:#b91c1c; font-size:16px; }
 .content-layout { display:flex; gap:20px; align-items:flex-start; }
 .filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef } from 'vue'
-import { Building2, Landmark, RefreshCw, Waypoints } from 'lucide-vue-next'
+import { Building2, Landmark, RefreshCw, Wallet, Waypoints } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
 import { useWorkspaceConfiguracionApi } from '../composables/useWorkspaceConfiguracionApi'
 import type { UpdateWorkspaceProfilePayload } from '../types'
 import WorkspaceBankAccountsSection from './WorkspaceBankAccountsSection.vue'
 import WorkspaceBrandingPanel from './WorkspaceBrandingPanel.vue'
 import WorkspaceNetworkSection from './WorkspaceNetworkSection.vue'
+import WorkspacePaymentPoliciesSection from './WorkspacePaymentPoliciesSection.vue'
 import WorkspaceProfileForm from './WorkspaceProfileForm.vue'
 
 const props = withDefaults(defineProps<{
@@ -40,28 +41,50 @@ const {
   confirmLogo,
 } = useWorkspaceConfiguracionApi({ empresaId: props.empresaId })
 
-const activeTab = shallowRef<'empresa' | 'bancos' | 'red'>('empresa')
+type WorkspaceConfigTabId = 'empresa' | 'bancos' | 'red' | 'finanzas'
 
-const tabs = [
-  {
-    id: 'empresa',
-    label: 'Empresa',
-    note: 'Perfil, logo y estado operativo',
-    icon: Building2,
-  },
-  {
-    id: 'bancos',
-    label: 'Cuentas bancarias',
-    note: 'Alias, instrucciones y visibilidad movil',
-    icon: Landmark,
-  },
-  {
-    id: 'red',
-    label: 'Rangos y red',
-    note: 'Profundidad, cascada y simulador',
-    icon: Waypoints,
-  },
-] as const
+interface WorkspaceConfigTab {
+  id: WorkspaceConfigTabId
+  label: string
+  note: string
+  icon: typeof Building2
+}
+
+const activeTab = shallowRef<WorkspaceConfigTabId>('empresa')
+
+const tabs = computed(() => {
+  const nextTabs: WorkspaceConfigTab[] = [
+    {
+      id: 'empresa',
+      label: 'Empresa',
+      note: 'Perfil, logo y estado operativo',
+      icon: Building2,
+    },
+    {
+      id: 'bancos',
+      label: 'Cuentas bancarias',
+      note: 'Alias, instrucciones y visibilidad movil',
+      icon: Landmark,
+    },
+    {
+      id: 'red',
+      label: 'Rangos y red',
+      note: 'Profundidad, cascada y simulador',
+      icon: Waypoints,
+    },
+  ]
+
+  if (props.empresaId == null) {
+    nextTabs.push({
+      id: 'finanzas',
+      label: 'Politicas de pago',
+      note: 'Modelo bullet, cuotas e historial',
+      icon: Wallet,
+    })
+  }
+
+  return nextTabs
+})
 
 const currentStatusTone = computed(() => {
   switch (profile.value?.estado_operativo) {
@@ -200,6 +223,8 @@ onMounted(async () => {
     />
 
     <WorkspaceNetworkSection v-else-if="activeTab === 'red'" :empresa-id="props.empresaId" />
+
+    <WorkspacePaymentPoliciesSection v-else-if="activeTab === 'finanzas' && props.empresaId == null" />
 
     <section v-else class="config-placeholder">
       <p class="config-placeholder__eyebrow">Siguiente entrega</p>

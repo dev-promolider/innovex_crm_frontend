@@ -37,7 +37,7 @@
                 <th>Costo (Puntos)</th>
                 <th>Stock</th>
                 <th>Acciones</th>
-                <th>Editar</th>
+                <th>Gestionar</th>
               </tr>
             </thead>
             <tbody>
@@ -76,9 +76,14 @@
                   </button>
                 </td>
                 <td>
-                  <button class="edit-btn" @click="abrirModalEditar(r)" title="Editar">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#666" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
+                  <div class="row-actions">
+                    <button class="edit-btn" @click="abrirModalEditar(r)" title="Editar">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#666" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="delete-btn" @click="abrirModalEliminar(r)" title="Eliminar">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -87,34 +92,47 @@
       </div>
 
       <div v-if="tabActivo === 'Canjes Solicitados'" class="card">
-        <p class="section-sub">Historial de canjes de puntos</p>
-        <div class="empty-state" style="padding:60px">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#ddd" stroke-width="1.5"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-          <p style="margin-top:12px;color:#aaa;font-size:13px">No hay canjes registrados aún.</p>
+        <p class="section-sub">Estado de integración de canjes de puntos</p>
+        <div class="placeholder-panel">
+          <div class="placeholder-copy">
+            <h3>Sin endpoint admin para canjes todavía</h3>
+            <p>
+              El backend actual permite administrar el catálogo de recompensas, pero no expone un historial administrativo de canjes ni acciones de aprobación.
+            </p>
+          </div>
+          <div class="placeholder-list">
+            <div class="placeholder-item">
+              <strong>Cobertura actual</strong>
+              <span>CRUD de premios y activación/desactivación desde admin.</span>
+            </div>
+            <div class="placeholder-item">
+              <strong>Pendiente backend</strong>
+              <span>Listado de canjes, detalle por distribuidor y cambios de estado.</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div v-if="tabActivo === 'Motor Scoring'" class="card">
-        <p class="section-sub">Configuración del motor de puntuación</p>
-        <div class="scoring-grid">
-          <div class="scoring-item">
-            <span class="scoring-label">Puntos por venta validada</span>
-            <span class="scoring-val">+10 pts</span>
+        <p class="section-sub">Parámetros operativos del puntaje</p>
+        <div class="placeholder-panel">
+          <div class="placeholder-copy">
+            <h3>Configuración aún no centralizada</h3>
+            <p>
+              La aplicación no expone una configuración maestra del scoring en el backend. Mantener reglas estáticas aquí induciría a error operativo.
+            </p>
           </div>
-          <div class="scoring-item">
-            <span class="scoring-label">Puntos por pago puntual</span>
-            <span class="scoring-val">+5 pts</span>
-          </div>
-          <div class="scoring-item">
-            <span class="scoring-label">Puntos por referido activo</span>
-            <span class="scoring-val">+20 pts</span>
-          </div>
-          <div class="scoring-item">
-            <span class="scoring-label">Penalización por mora</span>
-            <span class="scoring-val text-red">-15 pts</span>
+          <div class="placeholder-list">
+            <div class="placeholder-item">
+              <strong>Recomendación</strong>
+              <span>Agregar un endpoint de lectura y actualización de reglas antes de habilitar edición en admin.</span>
+            </div>
+            <div class="placeholder-item">
+              <strong>Riesgo evitado</strong>
+              <span>Evitar que operaciones use parámetros fijos que no correspondan a la lógica vigente.</span>
+            </div>
           </div>
         </div>
-        <p style="font-size:12px;color:#999;margin-top:16px">⚙️ La configuración del motor de scoring estará disponible próximamente.</p>
       </div>
     </div>
 
@@ -174,6 +192,26 @@
         </div>
       </div>
     </div>
+
+    <div v-if="modalEliminar" class="modal-overlay" @click.self="modalEliminar = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>Eliminar Premio</h2>
+          <button class="modal-close" @click="modalEliminar = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="confirm-text">
+            ¿Deseas eliminar <strong>{{ premioAEliminar?.nombre }}</strong>? Esta acción no se puede deshacer.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="modalEliminar = false">Cancelar</button>
+          <button class="btn-danger" @click="eliminarPremio" :disabled="guardando">
+            {{ guardando ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </AppShell>
 </template>
 
@@ -200,6 +238,8 @@ const tabActivo    = ref('Market Places de Premios')
 const modalPremio  = ref(false)
 const modoEdicion  = ref(false)
 const premioEditando = ref<any>(null)
+const modalEliminar = ref(false)
+const premioAEliminar = ref<any>(null)
 const formErrors   = ref<Record<string, string>>({})
 const formPremio   = ref({
   nombre: '', descripcion: '', tipo_premio: 'propio',
@@ -269,6 +309,11 @@ const abrirModalEditar = (r: any) => {
   modalPremio.value = true
 }
 
+const abrirModalEliminar = (r: any) => {
+  premioAEliminar.value = r
+  modalEliminar.value = true
+}
+
 const guardarPremio = async () => {
   formErrors.value = {}
   if (!formPremio.value.nombre.trim())  { formErrors.value.nombre = 'El nombre es obligatorio.'; return }
@@ -321,6 +366,35 @@ const toggleActivo = async (r: any) => {
     }
   } catch {
     errorMsg.value = 'No se pudo conectar.'
+  }
+}
+
+const eliminarPremio = async () => {
+  if (!premioAEliminar.value) return
+
+  guardando.value = true
+  errorMsg.value = ''
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/recompensas/${premioAEliminar.value.id}`, {
+      method: 'DELETE',
+      headers: hdrs(),
+    })
+    const json = await res.json()
+
+    if (res.ok && json.status === 'success') {
+      successMsg.value = json.message ?? '✅ Premio eliminado.'
+      modalEliminar.value = false
+      premioAEliminar.value = null
+      setTimeout(() => { successMsg.value = '' }, 3000)
+      await cargarRecompensas()
+    } else {
+      errorMsg.value = json.message ?? 'Error al eliminar.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar.'
+  } finally {
+    guardando.value = false
   }
 }
 
@@ -395,25 +469,33 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .td-costo  { font-weight:700; color:#1a1a1a; }
 .td-stock  { font-weight:600; color:#333; }
 .td-agotado { font-weight:700; color:#ef4444; }
+.row-actions { display:flex; align-items:center; gap:8px; }
 .acc-toggle { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:none; }
 .acc-activo   { background:#dcfce7; color:#166534; }
 .acc-inactivo { background:#f1f5f9; color:#64748b; }
 .edit-btn { background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:background 0.15s; }
 .edit-btn:hover { background:#f1f5f9; }
+.delete-btn { background:#fff1f2; border:none; color:#be123c; cursor:pointer; padding:6px; border-radius:8px; transition:background 0.15s; }
+.delete-btn:hover { background:#ffe4e6; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
-.scoring-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:12px; }
-.scoring-item { background:#f8fafc; border-radius:8px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
-.scoring-label { font-size:13px; color:#555; }
-.scoring-val { font-size:14px; font-weight:700; color:#1a6ab5; }
-.text-red { color:#ef4444 !important; }
+.placeholder-panel { border:1px solid #e2e8f0; border-radius:16px; padding:20px; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:18px; background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%); }
+.placeholder-copy h3 { margin:0 0 10px; font-size:18px; color:#162236; }
+.placeholder-copy p { margin:0; font-size:13px; color:#64748b; line-height:1.6; }
+.placeholder-list { display:flex; flex-direction:column; gap:12px; }
+.placeholder-item { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; }
+.placeholder-item strong { font-size:13px; color:#1e293b; }
+.placeholder-item span { font-size:12px; color:#64748b; line-height:1.5; }
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal { background:white; border-radius:12px; width:500px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal-sm { width:460px; }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
 .modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
 .modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
 .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
 .btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
+.btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#dc2626; font-size:13px; font-weight:600; color:white; cursor:pointer; }
+.btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
 .form-group { display:flex; flex-direction:column; gap:6px; flex:1; }
 .form-group label { font-size:12px; font-weight:600; color:#555; }
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
@@ -421,4 +503,5 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-textarea { resize:vertical; min-height:70px; }
 .form-row { display:flex; gap:12px; }
 .form-error { font-size:11px; color:#ef4444; }
+.confirm-text { margin:0; font-size:14px; color:#475569; line-height:1.6; }
 </style>

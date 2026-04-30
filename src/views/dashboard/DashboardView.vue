@@ -14,7 +14,7 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Dashboard Principal</h1>
-            <p class="page-subtitle">Resumen ejecutivo — {{ fechaHoy }}</p>
+            <p class="page-subtitle">Resumen operativo real — {{ fechaHoy }}</p>
           </div>
           <div class="page-actions">
             <button class="btn-outline" @click="actualizar" :disabled="cargando">
@@ -23,7 +23,7 @@
             </button>
             <button class="btn-primary" @click="exportarCSV">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar
+              Exportar actividad
             </button>
           </div>
         </div>
@@ -32,7 +32,7 @@
         <div class="kpi-grid">
           <div class="kpi-card kpi-blue">
             <div class="kpi-info">
-              <span class="kpi-label">Ventas Validadas del Mes</span>
+              <span class="kpi-label">Monto en cola de validación</span>
               <span class="kpi-value">S/ {{ ventasValidadas }}</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
@@ -46,15 +46,15 @@
           </div>
           <div class="kpi-card kpi-red">
             <div class="kpi-info">
-              <span class="kpi-label">Deuda Total de Líderes</span>
+              <span class="kpi-label">Cartera pendiente registrada</span>
               <span class="kpi-value">S/ {{ deudaTotal }}</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
           </div>
           <div class="kpi-card kpi-dark">
             <div class="kpi-info">
-              <span class="kpi-label">Líderes Activos</span>
-              <span class="kpi-value">{{ lideresActivos }} líderes</span>
+              <span class="kpi-label">Distribuidores activos</span>
+              <span class="kpi-value">{{ lideresActivos }} distribuidores</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           </div>
@@ -65,68 +65,48 @@
           <div class="chart-card chart-main">
             <div class="chart-header">
               <div>
-                <h3 class="chart-title">Evolución de Ventas</h3>
-                <p class="chart-subtitle">Validadas vs Pendientes — últimos 6 meses</p>
-              </div>
-              <div class="chart-filters">
-                <button class="filter-btn">3m</button>
-                <button class="filter-btn">6m</button>
-                <button class="filter-btn active">12m</button>
+                <h3 class="chart-title">Cobertura analítica actual</h3>
+                <p class="chart-subtitle">Señales reales que hoy sí entrega el backend administrativo.</p>
               </div>
             </div>
-            <svg viewBox="0 0 520 180" width="100%" height="180" preserveAspectRatio="none">
-              <line x1="40" y1="10"  x2="510" y2="10"  stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="40" y1="46"  x2="510" y2="46"  stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="40" y1="82"  x2="510" y2="82"  stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="40" y1="118" x2="510" y2="118" stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="40" y1="154" x2="510" y2="154" stroke="#f0f0f0" stroke-width="1"/>
-              <text x="35" y="14"  text-anchor="end" font-size="9" fill="#bbb">80,000</text>
-              <text x="35" y="50"  text-anchor="end" font-size="9" fill="#bbb">60,000</text>
-              <text x="35" y="86"  text-anchor="end" font-size="9" fill="#bbb">40,000</text>
-              <text x="35" y="122" text-anchor="end" font-size="9" fill="#bbb">20,000</text>
-              <text x="35" y="158" text-anchor="end" font-size="9" fill="#bbb">0</text>
-              <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
-              <polygon points="60,130 135,110 210,118 285,95 360,78 435,60 510,20 510,154 60,154" fill="url(#chartGrad)"/>
-              <polyline points="60,130 135,110 210,118 285,95 360,78 435,60 510,20" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
-              <circle cx="60"  cy="130" r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="135" cy="110" r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="210" cy="118" r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="285" cy="95"  r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="360" cy="78"  r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="435" cy="60"  r="3.5" fill="white" stroke="#3b82f6" stroke-width="2"/>
-              <circle cx="510" cy="20"  r="3.5" fill="#3b82f6" stroke="#3b82f6" stroke-width="2"/>
-              <text x="60"  y="172" text-anchor="middle" font-size="9" fill="#bbb">Sep</text>
-              <text x="135" y="172" text-anchor="middle" font-size="9" fill="#bbb">Oct</text>
-              <text x="210" y="172" text-anchor="middle" font-size="9" fill="#bbb">Nov</text>
-              <text x="285" y="172" text-anchor="middle" font-size="9" fill="#bbb">Dic</text>
-              <text x="360" y="172" text-anchor="middle" font-size="9" fill="#bbb">Ene</text>
-              <text x="435" y="172" text-anchor="middle" font-size="9" fill="#bbb">Feb</text>
-            </svg>
+            <div class="insight-grid">
+              <div class="insight-item">
+                <span class="insight-kicker">Validación</span>
+                <strong>{{ ventasPendientes }} ventas pendientes</strong>
+                <p>La cola operativa y la tabla de actividad salen del backend real de ventas pendientes.</p>
+              </div>
+              <div class="insight-item">
+                <span class="insight-kicker">Finanzas</span>
+                <strong>S/ {{ deudaTotal }} en cartera</strong>
+                <p>El total se consolida desde la cartera administrativa registrada en deudas.</p>
+              </div>
+              <div class="insight-item">
+                <span class="insight-kicker">Red</span>
+                <strong>{{ lideresActivos }} distribuidores activos</strong>
+                <p>La cifra se calcula recorriendo toda la paginación del listado administrativo.</p>
+              </div>
+            </div>
           </div>
           <div class="chart-card chart-side">
             <div class="chart-header">
               <div>
-                <h3 class="chart-title">Por Campaña</h3>
-                <p class="chart-subtitle">Top 5 campañas activas</p>
+                <h3 class="chart-title">Pendientes analíticos</h3>
+                <p class="chart-subtitle">Lo que aún no debe mostrarse como métrica consolidada.</p>
               </div>
             </div>
-            <div class="donut-wrap">
-              <svg viewBox="0 0 140 140" width="120" height="120">
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#e8f0fe" stroke-width="20"/>
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#93c5fd" stroke-width="20" stroke-dasharray="94.2 220" stroke-dashoffset="0" transform="rotate(-90 70 70)"/>
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#60a5fa" stroke-width="20" stroke-dasharray="34.6 220" stroke-dashoffset="-94.2" transform="rotate(-90 70 70)"/>
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#3b82f6" stroke-width="20" stroke-dasharray="59.7 220" stroke-dashoffset="-128.8" transform="rotate(-90 70 70)"/>
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#1d4ed8" stroke-width="20" stroke-dasharray="44.0 220" stroke-dashoffset="-188.5" transform="rotate(-90 70 70)"/>
-                <circle cx="70" cy="70" r="50" fill="none" stroke="#1e3a8a" stroke-width="20" stroke-dasharray="78.5 220" stroke-dashoffset="-232.5" transform="rotate(-90 70 70)"/>
-                <text x="70" y="74" text-anchor="middle" font-size="11" font-weight="700" fill="#333">100%</text>
-              </svg>
-            </div>
-            <div class="legend">
-              <div class="legend-item"><span class="legend-dot" style="background:#93c5fd"></span><span class="legend-label">Bienestar Total</span><span class="legend-pct">30%</span></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span><span class="legend-label">Belleza Esencial</span><span class="legend-pct">11%</span></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span><span class="legend-label">Verano Premium</span><span class="legend-pct">19%</span></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#1d4ed8"></span><span class="legend-label">Fuerza Natural</span><span class="legend-pct">14%</span></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#1e3a8a"></span><span class="legend-label">Primavera 2024</span><span class="legend-pct">25%</span></div>
+            <div class="pending-list">
+              <div class="pending-item">
+                <strong>Series históricas</strong>
+                <span>Falta endpoint para tendencias de ventas validadas por período.</span>
+              </div>
+              <div class="pending-item">
+                <strong>Rendimiento por campaña</strong>
+                <span>No existe agregado confiable para participación comercial por campaña.</span>
+              </div>
+              <div class="pending-item">
+                <strong>Exportación consolidada</strong>
+                <span>Hoy solo se exporta la actividad visible en tabla, no un reporte ejecutivo.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -251,12 +231,24 @@ const porPagina       = 10
 // ── Fecha ──
 const fechaHoy = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long' })
 
+type PaginatedResponse<T> = {
+  data?: T[]
+  current_page?: number
+  last_page?: number
+  total?: number
+}
+
 // ── Filtrado tabla ──
 const tablaFiltrada = computed(() =>
   tableData.value.filter(row => {
     const matchAccion = filtroAccion.value === 'todos' || row.actionType === filtroAccion.value
     const matchLider  = !filtroLider.value || row.leader.toLowerCase().includes(filtroLider.value.toLowerCase())
-    return matchAccion && matchLider
+    const rowDate = row.rawDate ? new Date(row.rawDate) : null
+    const fromDate = filtroFechaDesde.value ? new Date(`${filtroFechaDesde.value}T00:00:00`) : null
+    const toDate = filtroFechaHasta.value ? new Date(`${filtroFechaHasta.value}T23:59:59`) : null
+    const matchDesde = !fromDate || !rowDate || rowDate >= fromDate
+    const matchHasta = !toDate || !rowDate || rowDate <= toDate
+    return matchAccion && matchLider && matchDesde && matchHasta
   })
 )
 
@@ -270,28 +262,49 @@ const limpiarFiltros = () => {
   paginaActual.value    = 1
 }
 
+const cargarColeccionPaginada = async <T>(path: string) => {
+  const items: T[] = []
+  let page = 1
+  let lastPage = 1
+
+  do {
+    const separator = path.includes('?') ? '&' : '?'
+    const res = await fetch(`${API_BASE}${path}${separator}page=${page}`, { headers: hdrs() })
+    if (!res.ok) {
+      throw new Error('No se pudo cargar la colección paginada.')
+    }
+
+    const json = await res.json()
+    if (json.status !== 'success') {
+      throw new Error(json.message ?? 'La respuesta del servidor no fue válida.')
+    }
+
+    const payload = (json.data ?? {}) as PaginatedResponse<T>
+    items.push(...(payload.data ?? []))
+    lastPage = payload.last_page ?? 1
+    page += 1
+  } while (page <= lastPage)
+
+  return items
+}
+
 // ── API ──
 const cargarKPIs = async () => {
   try {
-    // Ventas pendientes
-    const resVentas = await fetch(`${API_BASE}/workspace/admin/ventas/pendientes`, { headers: hdrs() })
-    if (resVentas.ok) {
-      const jsonVentas = await resVentas.json()
-      if (jsonVentas.status === 'success') {
-        const lista = jsonVentas.data.data ?? jsonVentas.data
-        ventasPendientes.value = jsonVentas.data.total ?? lista.length
-      }
-    }
+    const [ventas, distribuidores, deudas] = await Promise.all([
+      cargarColeccionPaginada<any>('/workspace/admin/ventas/pendientes'),
+      cargarColeccionPaginada<any>('/workspace/admin/distribuidores'),
+      cargarColeccionPaginada<any>('/workspace/admin/finanzas/deudas'),
+    ])
 
-    // Líderes activos
-    const resLideres = await fetch(`${API_BASE}/workspace/admin/distribuidores`, { headers: hdrs() })
-    if (resLideres.ok) {
-      const jsonLideres = await resLideres.json()
-      if (jsonLideres.status === 'success') {
-        const lista = jsonLideres.data.data ?? jsonLideres.data
-        lideresActivos.value = lista.filter((m: any) => m.estado_validacion === 'activa').length
-      }
-    }
+    ventasPendientes.value = ventas.length
+    ventasValidadas.value = ventas
+      .reduce((sum, venta) => sum + Number(venta.monto_total_venta ?? 0), 0)
+      .toFixed(2)
+    lideresActivos.value = distribuidores.filter((distribuidor) => distribuidor.estado_validacion === 'activa').length
+    deudaTotal.value = deudas
+      .reduce((sum, deuda) => sum + Number(deuda.monto_pendiente ?? 0), 0)
+      .toFixed(2)
   } catch { /* silencioso */ }
 }
 
@@ -304,6 +317,7 @@ const cargarTabla = async () => {
       const lista = json.data?.data ?? json.data ?? []
       tableData.value = lista.map((v: any) => ({
         id:         v.id,
+        rawDate:    v.capturado_at ?? null,
         time:       v.capturado_at ? new Date(v.capturado_at).toLocaleString('es-PE') : '—',
         leader:     v.vendedor?.usuario ? `${v.vendedor.usuario.nombre} ${v.vendedor.usuario.apellido}` : '—',
         action:     'Venta',
@@ -403,15 +417,15 @@ onMounted(() => actualizar())
 .chart-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px; flex-wrap:wrap; }
 .chart-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 2px; }
 .chart-subtitle { font-size:10px; color:#aaa; margin:0; }
-.chart-filters { display:flex; gap:3px; }
-.filter-btn { padding:3px 9px; border:1px solid #e0e0e0; border-radius:5px; background:white; font-size:10px; cursor:pointer; color:#777; }
-.filter-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
-.donut-wrap { display:flex; justify-content:center; margin:8px 0; }
-.legend { display:flex; flex-direction:column; gap:6px; }
-.legend-item { display:flex; align-items:center; gap:7px; font-size:11px; }
-.legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-.legend-label { flex:1; color:#555; }
-.legend-pct { font-weight:700; color:#222; }
+.insight-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.insight-item { border:1px solid #e5edf6; border-radius:12px; padding:14px; background:#fbfdff; }
+.insight-kicker { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#1d4ed8; margin-bottom:8px; }
+.insight-item strong { display:block; font-size:15px; color:#0f172a; margin-bottom:6px; }
+.insight-item p { margin:0; font-size:12px; color:#64748b; line-height:1.5; }
+.pending-list { display:flex; flex-direction:column; gap:10px; }
+.pending-item { border:1px solid #eceff3; border-radius:12px; padding:12px; background:#f8fafc; }
+.pending-item strong { display:block; font-size:12px; color:#0f172a; margin-bottom:5px; }
+.pending-item span { font-size:11px; color:#64748b; line-height:1.5; }
 .table-card { background:white; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.07); width:100%; overflow:hidden; box-sizing:border-box; }
 .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
 .filtros-row { display:flex; align-items:center; gap:8px; }
@@ -451,7 +465,7 @@ onMounted(() => actualizar())
 .page-btn:hover { border-color:#4ab8f5; color:#4ab8f5; }
 .page-btn:disabled { opacity:0.4; cursor:not-allowed; }
 .page-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
-@media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(2,1fr); } .charts-row { grid-template-columns:1fr; } .filtros-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(2,1fr); } .charts-row { grid-template-columns:1fr; } .insight-grid { grid-template-columns:1fr; } .filtros-grid { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:768px) { .sidebar { transform:translateX(-100%); } .sidebar.sidebar-open { transform:translateX(0); box-shadow:4px 0 24px rgba(0,0,0,0.5); } .main-content { margin-left:0; width:100%; } .menu-btn { display:flex; } .user-details { display:none; } .breadcrumb { display:none; } .page-body { padding:14px; gap:12px; } .page-title { font-size:18px; } .kpi-grid { grid-template-columns:1fr 1fr; gap:10px; } .kpi-value { font-size:20px; } }
 @media (max-width:480px) { .kpi-grid { grid-template-columns:1fr; } .topbar-center { display:none; } .page-header { flex-direction:column; align-items:flex-start; } .filtros-grid { grid-template-columns:1fr; } }
 </style>
