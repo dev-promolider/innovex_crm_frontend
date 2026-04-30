@@ -76,14 +76,6 @@
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
               </div>
-              <div class="view-toggle">
-                <button class="view-btn active">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
-                </button>
-                <button class="view-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                </button>
-              </div>
             </div>
 
             <div v-if="cargando" class="loading-state">
@@ -95,7 +87,7 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha/Hora</th>
+                    <th>Campaña</th>
                     <th>Fechas</th>
                     <th>Kits</th>
                     <th>Stock Inicial</th>
@@ -492,7 +484,13 @@ const campanasFiltradas = computed(() =>
   campanas.value.filter(c => {
     const matchEstado   = filtroEstado.value === 'todos' || c.estado === filtroEstado.value
     const matchBusqueda = c.nombre.toLowerCase().includes(busqueda.value.toLowerCase())
-    return matchEstado && matchBusqueda
+    const campaignStart = c.fecha_inicio ? new Date(`${c.fecha_inicio}T00:00:00`) : null
+    const campaignEnd = c.fecha_fin ? new Date(`${c.fecha_fin}T23:59:59`) : campaignStart
+    const fromDate = fechaInicio.value ? new Date(`${fechaInicio.value}T00:00:00`) : null
+    const toDate = fechaFin.value ? new Date(`${fechaFin.value}T23:59:59`) : null
+    const matchDesde = !fromDate || !campaignEnd || campaignEnd >= fromDate
+    const matchHasta = !toDate || !campaignStart || campaignStart <= toDate
+    return matchEstado && matchBusqueda && matchDesde && matchHasta
   })
 )
 
@@ -779,9 +777,6 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .resumen-val { font-weight:700; color:#1a1a1a; }
 .table-area { flex:1; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-.view-toggle { display:flex; gap:4px; }
-.view-btn { padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; color:#666; }
-.view-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
 .table-wrap { overflow-x:auto; }
 .data-table { width:100%; border-collapse:collapse; font-size:13px; }
 .data-table thead tr { background:#1a1a2e; color:white; }

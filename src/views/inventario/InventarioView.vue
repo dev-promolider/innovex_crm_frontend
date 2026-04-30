@@ -255,21 +255,7 @@
 
         <!-- TAB: Movimientos -->
         <div v-if="tabActivo === 'movimientos'" class="card">
-          <div class="section-header">
-            <div>
-              <h3 class="section-title">Movimientos de Inventario</h3>
-              <p class="section-sub">Pendiente de integración con el endpoint administrativo del ledger de inventario.</p>
-            </div>
-          </div>
-
-          <div class="inventory-placeholder">
-            <div class="inventory-placeholder__icon">↗</div>
-            <h4 class="inventory-placeholder__title">Próxima entrega</h4>
-            <p class="inventory-placeholder__copy">
-              El backend ya registra movimientos internos, pero aún no expone una cola administrativa para listarlos.
-              Esta pestaña queda reservada para conectarla cuando exista el endpoint de consulta.
-            </p>
-          </div>
+          <InventoryMovementsPanel />
         </div>
 
       </div>
@@ -305,6 +291,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import InventoryMovementsPanel from '@/features/inventario/components/InventoryMovementsPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'

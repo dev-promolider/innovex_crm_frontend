@@ -35,7 +35,7 @@
             <option value="revision_admin">Revision admin</option>
             <option value="pendiente_activacion">Pendiente activacion</option>
           </select>
-          <span class="result-count">{{ lideresFiltrados.length }} resultados</span>
+          <span class="result-count">{{ lideresFiltrados.length }} visibles en esta página</span>
         </div>
 
         <!-- Tabla -->
@@ -99,7 +99,7 @@
           </div>
 
           <div class="table-footer">
-            <span class="table-count">Mostrando 1 a {{ Math.min(lideresFiltrados.length, 15) }} de {{ meta.total }} resultados</span>
+            <span class="table-count">Mostrando {{ currentPageStart }} a {{ currentPageEnd }} de {{ meta.total }} resultados</span>
             <div class="pagination">
               <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
               <button class="page-btn active">{{ meta.current_page }}</button>
@@ -261,6 +261,16 @@ const lideresFiltrados = computed(() =>
     return matchBusqueda && matchEstado
   })
 )
+
+const currentPageStart = computed(() => {
+  if (meta.value.total === 0 || lideres.value.length === 0) return 0
+  return (meta.value.current_page - 1) * lideres.value.length + 1
+})
+
+const currentPageEnd = computed(() => {
+  if (meta.value.total === 0 || lideres.value.length === 0) return 0
+  return (meta.value.current_page - 1) * lideres.value.length + lideres.value.length
+})
 
 // ── API ──
 const cargarLideres = async (pagina = 1) => {

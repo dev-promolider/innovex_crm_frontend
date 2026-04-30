@@ -116,15 +116,13 @@
           <div class="table-header">
             <div>
               <h3 class="chart-title">Actividad Reciente</h3>
-              <p class="chart-subtitle">Últimos eventos del sistema</p>
+              <p class="chart-subtitle">Ventas pendientes visibles desde la cola administrativa actual</p>
             </div>
             <!-- Filtros -->
             <div class="filtros-row">
               <select v-model="filtroAccion" class="select-filter">
                 <option value="todos">Todos</option>
                 <option value="venta">Venta</option>
-                <option value="pago">Pago</option>
-                <option value="kit">Solicitud Kit</option>
               </select>
               <button class="btn-outline" @click="mostrarFiltros = !mostrarFiltros">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>

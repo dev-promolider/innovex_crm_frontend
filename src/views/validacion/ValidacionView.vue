@@ -94,7 +94,7 @@
             <div class="table-toolbar">
               <div class="search-box search-wide">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" v-model="busqueda" placeholder="Buscar campaña..." class="search-input" />
+                <input type="text" v-model="busqueda" placeholder="Buscar cliente, vendedor o kit..." class="search-input" />
               </div>
             </div>
 
@@ -123,7 +123,13 @@
                   <tr v-if="ventasFiltradas.length === 0">
                     <td colspan="10" class="empty-state">✅ No hay ventas con este filtro.</td>
                   </tr>
-                  <tr v-for="v in ventasFiltradas" :key="v.id">
+                  <tr
+                    v-for="v in ventasFiltradas"
+                    :key="v.id"
+                    class="tr-clickable"
+                    :class="{ 'tr-clickable--active': selectedVentaId === v.id }"
+                    @click="seleccionarVenta(v.id)"
+                  >
                     <td>
                       <div class="cliente-info">
                         <div class="cliente-name">{{ v.consumidor_nombre ?? '—' }}</div>
@@ -155,11 +161,11 @@
                     </td>
                     <td>
                       <div class="acciones" v-if="v.estado === 'pendiente' || !v.estado">
-                        <button class="btn-aprobar" @click="aprobar(v)" :disabled="procesando === v.id">
+                        <button class="btn-aprobar" @click.stop="aprobar(v)" :disabled="procesando === v.id">
                           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                           {{ procesando === v.id ? '...' : 'Aprobar' }}
                         </button>
-                        <button class="btn-rechazar" @click="abrirModalRechazar(v)">
+                        <button class="btn-rechazar" @click.stop="abrirModalRechazar(v)">
                           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                           Rechazar
                         </button>
@@ -181,6 +187,65 @@
               </div>
             </div>
           </div>
+
+          <aside class="detail-panel">
+            <div class="detail-panel__header">
+              <div>
+                <p class="detail-panel__eyebrow">Detalle operativo</p>
+                <h3 class="detail-panel__title">Venta seleccionada</h3>
+              </div>
+            </div>
+
+            <div v-if="cargandoDetalle" class="detail-empty-state">
+              Cargando expediente de venta...
+            </div>
+
+            <div v-else-if="!ventaDetalle" class="detail-empty-state">
+              Selecciona una venta de la cola para revisar evidencia, cuenta bancaria y contexto del distribuidor.
+            </div>
+
+            <div v-else class="detail-stack">
+              <section class="detail-card">
+                <span class="detail-card__label">Consumidor</span>
+                <strong>{{ ventaDetalle.consumidor?.nombre || 'Sin nombre' }}</strong>
+                <p>{{ ventaDetalle.consumidor?.documento || 'Sin documento' }}</p>
+                <p>{{ ventaDetalle.consumidor?.telefono || 'Sin telefono' }}</p>
+              </section>
+
+              <section class="detail-card">
+                <span class="detail-card__label">Distribuidor</span>
+                <strong>{{ ventaDetalle.distribuidor?.nombre || 'Sin distribuidor' }}</strong>
+                <p>Rango: {{ ventaDetalle.distribuidor?.rango || 'Sin rango' }}</p>
+                <p>Nivel de confianza: {{ ventaDetalle.distribuidor?.nivel_confianza ?? '—' }}</p>
+              </section>
+
+              <section class="detail-card">
+                <span class="detail-card__label">Venta</span>
+                <strong>{{ ventaDetalle.kit?.nombre || 'Kit no disponible' }}</strong>
+                <p>Cantidad: {{ ventaDetalle.cantidad ?? 0 }}</p>
+                <p>Monto total: S/ {{ Number(ventaDetalle.monto_total ?? 0).toFixed(2) }}</p>
+                <p>Precio unitario: S/ {{ Number(ventaDetalle.kit?.precio_unitario ?? 0).toFixed(2) }}</p>
+              </section>
+
+              <section class="detail-card">
+                <span class="detail-card__label">Cuenta bancaria usada</span>
+                <strong>{{ ventaDetalle.cuenta_bancaria?.alias_cuenta || 'Sin cuenta asociada' }}</strong>
+                <p>{{ ventaDetalle.cuenta_bancaria?.banco_nombre || 'Banco no disponible' }} · {{ ventaDetalle.cuenta_bancaria?.moneda_iso || '—' }}</p>
+                <p>Titular: {{ ventaDetalle.cuenta_bancaria?.titular_cuenta || '—' }}</p>
+                <p>{{ ventaDetalle.cuenta_bancaria?.instrucciones_pago || 'Sin instrucciones registradas.' }}</p>
+              </section>
+
+              <section class="detail-card">
+                <span class="detail-card__label">Evidencia</span>
+                <p>GPS: {{ formatCoordinate(ventaDetalle.evidencia?.gps_latitud) }}, {{ formatCoordinate(ventaDetalle.evidencia?.gps_longitud) }}</p>
+                <p>Precision: {{ formatCoordinate(ventaDetalle.evidencia?.gps_precision_metros) }} m</p>
+                <p>Huella: {{ ventaDetalle.evidencia?.huella_biometrica_ref || 'Sin referencia biometrica' }}</p>
+                <a v-if="ventaDetalle.evidencia?.comprobante_foto_url" :href="ventaDetalle.evidencia.comprobante_foto_url" target="_blank" class="detail-card__link">
+                  Abrir comprobante original
+                </a>
+              </section>
+            </div>
+          </aside>
         </div>
       </div>
 
@@ -243,6 +308,9 @@ const modalRechazar     = shallowRef(false)
 const ventaSeleccionada = shallowRef<any>(null)
 const motivoRechazo     = shallowRef('')
 const errorMotivo       = shallowRef('')
+const selectedVentaId   = shallowRef<number | null>(null)
+const ventaDetalle      = shallowRef<any>(null)
+const cargandoDetalle   = shallowRef(false)
 
 const opcionesEstado = [
   { value: 'todos',     label: 'Todos',      color: '#4ab8f5' },
@@ -279,6 +347,11 @@ const labelEstado = (e: string) => ({
   pendiente: 'Pendiente', aprobada: 'Validada', rechazada: 'Rechazada'
 }[e] ?? 'Pendiente')
 
+const formatCoordinate = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined || value === '') return '—'
+  return Number(value).toFixed(5)
+}
+
 const contarEstado = (estado: string) => todasVentas.value.filter(v => (v.estado ?? 'pendiente') === estado).length
 
 // ── Filtrado ──
@@ -289,7 +362,12 @@ const ventasFiltradas = computed(() =>
       (v.consumidor_nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase()) ||
       nombreVendedor(v).toLowerCase().includes(busqueda.value.toLowerCase()) ||
       (v.kit?.nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase())
-    return matchEstado && matchBusq
+    const ventaDate = v.capturado_at ? new Date(v.capturado_at) : null
+    const fromDate = fechaInicio.value ? new Date(`${fechaInicio.value}T00:00:00`) : null
+    const toDate = fechaFin.value ? new Date(`${fechaFin.value}T23:59:59`) : null
+    const matchDesde = !fromDate || !ventaDate || ventaDate >= fromDate
+    const matchHasta = !toDate || !ventaDate || ventaDate <= toDate
+    return matchEstado && matchBusq && matchDesde && matchHasta
   })
 )
 
@@ -309,6 +387,18 @@ const cargarVentas = async (pagina = 1) => {
         current_page: json.data.current_page ?? 1,
         last_page:    json.data.last_page    ?? 1,
       }
+
+      if (selectedVentaId.value != null) {
+        const stillVisible = ventas.value.some((venta) => venta.id === selectedVentaId.value)
+        if (!stillVisible) {
+          selectedVentaId.value = null
+          ventaDetalle.value = null
+        }
+      }
+
+      if (selectedVentaId.value == null && ventas.value.length > 0) {
+        await seleccionarVenta(ventas.value[0].id)
+      }
     } else {
       errorMsg.value = json.message ?? 'Error al cargar ventas.'
     }
@@ -316,6 +406,27 @@ const cargarVentas = async (pagina = 1) => {
     errorMsg.value = 'No se pudo conectar con el servidor.'
   } finally {
     cargando.value = false
+  }
+}
+
+const seleccionarVenta = async (ventaId: number) => {
+  selectedVentaId.value = ventaId
+  cargandoDetalle.value = true
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/ventas/${ventaId}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+
+    if (json.status === 'success') {
+      ventaDetalle.value = json.data
+    } else {
+      errorMsg.value = json.message ?? 'No se pudo cargar el detalle de la venta.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo cargar el detalle de la venta.'
+  } finally {
+    cargandoDetalle.value = false
   }
 }
 
@@ -439,6 +550,18 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .date-label { font-size:11px; color:#888; display:block; margin-bottom:4px; }
 .date-input { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px; color:#333; outline:none; box-sizing:border-box; }
 .table-area { flex:1; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.detail-panel { width:320px; flex-shrink:0; background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.detail-panel__header { margin-bottom:14px; }
+.detail-panel__eyebrow { color:#8c5f2c; font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; }
+.detail-panel__title { margin:6px 0 0; font-size:16px; font-weight:700; color:#1a1a1a; }
+.detail-empty-state { border:1px dashed #d7dfeb; border-radius:10px; padding:18px; color:#7a8598; font-size:12px; line-height:1.6; background:#fafcff; }
+.detail-stack { display:flex; flex-direction:column; gap:12px; }
+.detail-card { border:1px solid #edf2f7; border-radius:12px; padding:14px; background:#fbfdff; }
+.detail-card__label { display:block; margin-bottom:8px; color:#7a8598; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
+.detail-card strong { display:block; color:#172033; font-size:13px; margin-bottom:4px; }
+.detail-card p { margin:4px 0 0; color:#526074; font-size:12px; line-height:1.5; }
+.detail-card__link { display:inline-flex; margin-top:10px; color:#1a6ab5; font-size:12px; font-weight:600; text-decoration:none; }
+.detail-card__link:hover { text-decoration:underline; }
 .table-toolbar { margin-bottom:14px; }
 .search-wide { width:100%; }
 .loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
@@ -450,6 +573,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .data-table th { padding:10px 12px; text-align:left; font-weight:600; font-size:11px; white-space:nowrap; }
 .data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
+.tr-clickable { cursor:pointer; }
+.tr-clickable--active { background:#eff6ff; }
 .data-table td { padding:10px 12px; vertical-align:middle; }
 .cliente-info { display:flex; flex-direction:column; }
 .cliente-name { font-weight:600; color:#1a1a1a; font-size:12px; }
@@ -500,4 +625,5 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
 .form-textarea { resize:vertical; min-height:80px; }
 .form-error { font-size:11px; color:#ef4444; }
+@media (max-width: 1280px) { .content-layout { flex-direction:column; } .filters-panel, .detail-panel { width:100%; } }
 </style>

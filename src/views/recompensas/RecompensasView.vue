@@ -92,47 +92,11 @@
       </div>
 
       <div v-if="tabActivo === 'Canjes Solicitados'" class="card">
-        <p class="section-sub">Estado de integración de canjes de puntos</p>
-        <div class="placeholder-panel">
-          <div class="placeholder-copy">
-            <h3>Sin endpoint admin para canjes todavía</h3>
-            <p>
-              El backend actual permite administrar el catálogo de recompensas, pero no expone un historial administrativo de canjes ni acciones de aprobación.
-            </p>
-          </div>
-          <div class="placeholder-list">
-            <div class="placeholder-item">
-              <strong>Cobertura actual</strong>
-              <span>CRUD de premios y activación/desactivación desde admin.</span>
-            </div>
-            <div class="placeholder-item">
-              <strong>Pendiente backend</strong>
-              <span>Listado de canjes, detalle por distribuidor y cambios de estado.</span>
-            </div>
-          </div>
-        </div>
+        <RewardRedemptionsPanel />
       </div>
 
       <div v-if="tabActivo === 'Motor Scoring'" class="card">
-        <p class="section-sub">Parámetros operativos del puntaje</p>
-        <div class="placeholder-panel">
-          <div class="placeholder-copy">
-            <h3>Configuración aún no centralizada</h3>
-            <p>
-              La aplicación no expone una configuración maestra del scoring en el backend. Mantener reglas estáticas aquí induciría a error operativo.
-            </p>
-          </div>
-          <div class="placeholder-list">
-            <div class="placeholder-item">
-              <strong>Recomendación</strong>
-              <span>Agregar un endpoint de lectura y actualización de reglas antes de habilitar edición en admin.</span>
-            </div>
-            <div class="placeholder-item">
-              <strong>Riesgo evitado</strong>
-              <span>Evitar que operaciones use parámetros fijos que no correspondan a la lógica vigente.</span>
-            </div>
-          </div>
-        </div>
+        <ScoringAdminPanel />
       </div>
     </div>
 
@@ -218,6 +182,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import RewardRedemptionsPanel from '@/features/recompensas/components/RewardRedemptionsPanel.vue'
+import ScoringAdminPanel from '@/features/recompensas/components/ScoringAdminPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
