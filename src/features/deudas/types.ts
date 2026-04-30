@@ -42,6 +42,46 @@ export interface DebtTransaction {
     created_at: string | null
 }
 
+export interface LedgerDistributorSummary {
+    id: number
+    nombre: string
+    estado: string | null
+}
+
+export interface LedgerDebtSnapshot {
+    id: number
+    estado: string
+    monto_total: number
+    monto_pagado: number
+    monto_pendiente: number
+    fecha_vencimiento: string | null
+}
+
+export interface LedgerMovement {
+    id: number
+    tipo: string
+    monto: number
+    saldo_disponible_anterior: number
+    saldo_disponible_posterior: number
+    referencia_id: number | null
+    referencia_tipo: string | null
+    descripcion: string | null
+    created_at: string | null
+}
+
+export interface LedgerAccountStatement {
+    distribuidor: LedgerDistributorSummary
+    resumen: {
+        saldo_disponible_actual: number
+        deuda_pendiente_actual: number
+        total_comisiones_liberadas: number
+        total_retiros: number
+        total_pagos_deuda: number
+    }
+    deuda_activa: LedgerDebtSnapshot | null
+    movimientos: LedgerMovement[]
+}
+
 export interface DebtListItem {
     id: number
     estado: string

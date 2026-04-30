@@ -6,10 +6,12 @@ import type { DebtListItem } from '../types'
 
 const {
   debtDetail,
+  accountStatement,
   debts,
   errorMessage,
   filteredDebts,
   filters,
+  isAccountStatementLoading,
   isDetailLoading,
   isLoading,
   pagination,
@@ -194,8 +196,10 @@ onMounted(async () => {
       </div>
 
       <DeudaLedgerPanel
+        :account-statement="accountStatement"
         :debt-detail="debtDetail"
         :debts="filteredDebts"
+        :is-account-statement-loading="isAccountStatementLoading"
         :is-loading="isDetailLoading && !selectedDebt"
         :selected-debt-id="selectedDebtId"
         @select="handleSelectDebt"

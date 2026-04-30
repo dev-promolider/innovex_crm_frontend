@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { DebtDetail, DebtListItem } from '../types'
+import type { DebtDetail, DebtListItem, LedgerAccountStatement, LedgerMovement } from '../types'
 
 const props = defineProps<{
   debts: DebtListItem[]
   selectedDebtId: number | null
   debtDetail: DebtDetail | null
+  accountStatement: LedgerAccountStatement | null
   isLoading: boolean
+  isAccountStatementLoading: boolean
 }>()
 
 const emit = defineEmits<{
@@ -56,6 +58,9 @@ const accentColor = (debtId: number) => {
   const palette = ['#006466', '#0f766e', '#2563eb', '#c2410c', '#be123c', '#6d28d9']
   return palette[debtId % palette.length]
 }
+
+const movementLabel = (movement: LedgerMovement) =>
+  movement.descripcion || movement.tipo.replace(/_/g, ' ')
 </script>
 
 <template>
@@ -149,6 +154,63 @@ const accentColor = (debtId: number) => {
             <strong>{{ formatMoney(transaction.monto) }}</strong>
           </div>
         </div>
+      </div>
+
+      <div class="account-block">
+        <div class="account-block__head">
+          <div>
+            <h5 class="block-title">Estado de cuenta</h5>
+            <p class="detail-subtitle">Resumen financiero del distribuidor seleccionado.</p>
+          </div>
+          <span v-if="props.accountStatement?.distribuidor.estado" class="ledger-state" :class="`ledger-state-${props.accountStatement.distribuidor.estado}`">
+            {{ stateLabel(props.accountStatement.distribuidor.estado) }}
+          </span>
+        </div>
+
+        <div v-if="props.isAccountStatementLoading" class="block-empty">Cargando estado de cuenta...</div>
+        <div v-else-if="!props.accountStatement" class="block-empty">No se pudo obtener el estado de cuenta del distribuidor.</div>
+        <template v-else>
+          <div class="account-grid">
+            <div class="detail-metric">
+              <span class="detail-label">Saldo disponible</span>
+              <strong>{{ formatMoney(props.accountStatement.resumen.saldo_disponible_actual) }}</strong>
+            </div>
+            <div class="detail-metric">
+              <span class="detail-label">Deuda pendiente actual</span>
+              <strong>{{ formatMoney(props.accountStatement.resumen.deuda_pendiente_actual) }}</strong>
+            </div>
+            <div class="detail-metric">
+              <span class="detail-label">Comisiones liberadas</span>
+              <strong>{{ formatMoney(props.accountStatement.resumen.total_comisiones_liberadas) }}</strong>
+            </div>
+            <div class="detail-metric">
+              <span class="detail-label">Retiros registrados</span>
+              <strong>{{ formatMoney(props.accountStatement.resumen.total_retiros) }}</strong>
+            </div>
+          </div>
+
+          <div v-if="props.accountStatement.deuda_activa" class="active-debt-card">
+            <div>
+              <span class="detail-label">Deuda activa enlazada</span>
+              <p class="detail-subtitle">Vencimiento {{ formatDate(props.accountStatement.deuda_activa.fecha_vencimiento) }}</p>
+            </div>
+            <strong>{{ formatMoney(props.accountStatement.deuda_activa.monto_pendiente) }}</strong>
+          </div>
+
+          <div class="transactions-block">
+            <h5 class="block-title">Ultimos movimientos del ledger</h5>
+            <div v-if="props.accountStatement.movimientos.length === 0" class="block-empty">Sin movimientos financieros recientes.</div>
+            <div v-else class="transaction-list">
+              <div v-for="movement in props.accountStatement.movimientos" :key="movement.id" class="transaction-item">
+                <div>
+                  <strong>{{ movementLabel(movement) }}</strong>
+                  <p>{{ formatDate(movement.created_at) }} · saldo {{ formatMoney(movement.saldo_disponible_posterior) }}</p>
+                </div>
+                <strong>{{ formatMoney(movement.monto) }}</strong>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </aside>
@@ -334,10 +396,31 @@ const accentColor = (debtId: number) => {
 }
 
 .quota-block,
-.transactions-block {
+.transactions-block,
+.account-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.account-block__head,
+.active-debt-card {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.active-debt-card {
+  background: rgba(15, 23, 42, 0.36);
+  border-radius: 16px;
+  padding: 12px;
 }
 
 .quota-list,
@@ -362,7 +445,8 @@ const accentColor = (debtId: number) => {
 }
 
 @media (max-width: 960px) {
-  .detail-grid {
+  .detail-grid,
+  .account-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -83,7 +83,7 @@
           <div class="table-filters">
             <div class="search-box search-wide">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" v-model="busquedaSol" placeholder="Buscar solicitud, kit, líder..." class="search-input" />
+              <input type="text" v-model="busquedaSol" placeholder="Buscar distribuidor, rango, kit o contrato..." class="search-input" />
             </div>
             <select v-model="filtroEstadoSol" class="select-filter">
               <option value="todos">Todos los estados</option>
@@ -101,42 +101,49 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Fecha</th>
-                  <th>Líder Solicitante</th>
+                  <th>Distribuidor</th>
+                  <th>Rango</th>
                   <th>Kit</th>
                   <th>Cantidad</th>
-                  <th>Precio Unit.</th>
                   <th>Total</th>
+                  <th>Contrato</th>
+                  <th>Confianza</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="solicitudesFiltradas.length === 0">
-                  <td colspan="8" class="empty-state">No hay solicitudes con este filtro.</td>
+                  <td colspan="9" class="empty-state">No hay solicitudes con este filtro.</td>
                 </tr>
-                <tr v-for="s in solicitudesFiltradas" :key="s.id">
-                  <td class="td-fecha">{{ formatFecha(s.created_at) }}</td>
+                <tr
+                  v-for="s in solicitudesFiltradas"
+                  :key="s.solicitud_id"
+                  :class="{ 'inventory-row-selected': solicitudSeleccionada?.solicitud_id === s.solicitud_id }"
+                  @click="seleccionarSolicitud(s.solicitud_id)"
+                >
                   <td>
                     <div class="lider-info">
                       <div class="lider-avatar">{{ inicialesLider(s) }}</div>
                       <div class="lider-name">{{ nombreLider(s) }}</div>
                     </div>
                   </td>
+                  <td class="td-lider">{{ s.distribuidor?.rango ?? '—' }}</td>
                   <td class="td-kit">{{ s.kit?.nombre ?? '—' }}</td>
-                  <td class="td-center">{{ s.cantidad_solicitada }}</td>
-                  <td class="td-center">S/ {{ Number(s.kit?.precio_unitario ?? 0).toFixed(2) }}</td>
-                  <td class="td-monto">S/ {{ (Number(s.kit?.precio_unitario ?? 0) * Number(s.cantidad_solicitada ?? 0)).toFixed(2) }}</td>
+                  <td class="td-center">{{ s.cantidad ?? '—' }}</td>
+                  <td class="td-monto">S/ {{ Number(s.monto_total ?? 0).toFixed(2) }}</td>
+                  <td class="td-kit">{{ s.contrato?.numero_contrato ?? 'Sin contrato' }}</td>
+                  <td class="td-center">{{ s.distribuidor?.nivel_confianza ?? '—' }}</td>
                   <td>
                     <span class="badge" :class="'sol-' + (s.estado ?? 'pendiente')">{{ labelEstadoSol(s.estado) }}</span>
                   </td>
                   <td>
                     <div class="acciones" v-if="s.estado === 'pendiente'">
-                      <button class="btn-aprobar" @click="aprobarSolicitud(s)" :disabled="procesando === s.id">
+                      <button class="btn-aprobar" @click.stop="aprobarSolicitud(s)" :disabled="procesando === s.solicitud_id">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ procesando === s.id ? '...' : 'Aprobar' }}
+                        {{ procesando === s.solicitud_id ? '...' : 'Aprobar' }}
                       </button>
-                      <button class="btn-rechazar" @click="abrirModalRechazar(s)">
+                      <button class="btn-rechazar" @click.stop="abrirModalRechazar(s)">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Rechazar
                       </button>
@@ -156,6 +163,94 @@
               <button class="page-btn" :disabled="metaSol.current_page === metaSol.last_page" @click="cambiarPaginaSol(metaSol.current_page + 1)">Siguiente</button>
             </div>
           </div>
+
+          <div class="request-detail-card">
+            <div class="section-header">
+              <div>
+                <h3 class="section-title">Detalle de solicitud</h3>
+                <p class="section-sub">Contrato, evidencias de firma e historial crediticio del distribuidor.</p>
+              </div>
+            </div>
+
+            <div v-if="cargandoDetalle" class="loading-state detail-state">
+              <div class="spinner"></div><span>Cargando detalle...</span>
+            </div>
+
+            <div v-else-if="!detalleSolicitud" class="empty-state detail-state">
+              Selecciona una solicitud para revisar el expediente administrativo.
+            </div>
+
+            <div v-else class="request-detail-layout">
+              <div class="request-summary-grid">
+                <div class="detail-metric-card">
+                  <span class="detail-metric-label">Distribuidor</span>
+                  <strong>{{ detalleSolicitud.distribuidor?.nombre ?? '—' }}</strong>
+                  <small>{{ detalleSolicitud.distribuidor?.rango ?? 'Sin rango' }}</small>
+                </div>
+                <div class="detail-metric-card">
+                  <span class="detail-metric-label">Monto total</span>
+                  <strong>S/ {{ Number(detalleSolicitud.monto_total ?? 0).toFixed(2) }}</strong>
+                  <small>{{ detalleSolicitud.cantidad ?? 0 }} kits solicitados</small>
+                </div>
+                <div class="detail-metric-card">
+                  <span class="detail-metric-label">Contrato</span>
+                  <strong>{{ detalleSolicitud.contrato?.numero_contrato ?? 'Sin contrato' }}</strong>
+                  <small>{{ detalleSolicitud.contrato?.estado ?? 'pendiente' }}</small>
+                </div>
+                <div class="detail-metric-card">
+                  <span class="detail-metric-label">Crédito histórico</span>
+                  <strong>{{ detalleSolicitud.historial_credito?.deudas_activas ?? 0 }} activas</strong>
+                  <small>S/ {{ Number(detalleSolicitud.historial_credito?.monto_pendiente_total ?? 0).toFixed(2) }} pendientes</small>
+                </div>
+              </div>
+
+              <div class="request-panels-grid">
+                <section class="request-panel-block">
+                  <h4 class="request-panel-title">Integridad contractual</h4>
+                  <dl class="request-definition-list">
+                    <div>
+                      <dt>Huella PDF</dt>
+                      <dd>{{ detalleSolicitud.contrato?.huella_pdf ?? 'No disponible' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Huella firma combinada</dt>
+                      <dd>{{ detalleSolicitud.contrato?.huella_firma_combinada ?? 'No disponible' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Firmado</dt>
+                      <dd>{{ formatFecha(detalleSolicitud.contrato?.firmado_at) }}</dd>
+                    </div>
+                    <div>
+                      <dt>IP firma</dt>
+                      <dd>{{ detalleSolicitud.contrato?.ip_firma ?? 'No registrada' }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="request-panel-block">
+                  <h4 class="request-panel-title">Riesgo y contexto</h4>
+                  <dl class="request-definition-list">
+                    <div>
+                      <dt>Nivel confianza</dt>
+                      <dd>{{ detalleSolicitud.distribuidor?.nivel_confianza ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Total deudas</dt>
+                      <dd>{{ detalleSolicitud.historial_credito?.total_deudas ?? 0 }}</dd>
+                    </div>
+                    <div>
+                      <dt>Deudas pagadas</dt>
+                      <dd>{{ detalleSolicitud.historial_credito?.deudas_pagadas ?? 0 }}</dd>
+                    </div>
+                    <div>
+                      <dt>GPS firma</dt>
+                      <dd>{{ gpsFirma(detalleSolicitud) }}</dd>
+                    </div>
+                  </dl>
+                </section>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- TAB: Movimientos -->
@@ -163,67 +258,17 @@
           <div class="section-header">
             <div>
               <h3 class="section-title">Movimientos de Inventario</h3>
-              <p class="section-sub">{{ movimientosFiltrados.length }} registros</p>
-            </div>
-            <div class="table-filters" style="margin:0">
-              <div class="search-box search-wide">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" v-model="busquedaMov" placeholder="Buscar kit..." class="search-input" />
-              </div>
-              <select v-model="filtroTipoMov" class="select-filter">
-                <option value="todos">Todos</option>
-                <option value="Entradas">Entradas</option>
-                <option value="Asignación">Asignación</option>
-                <option value="Salida">Salida</option>
-                <option value="Merma">Merma</option>
-              </select>
-              <input type="date" v-model="fechaDesde" class="date-input-sm" />
-              <input type="date" v-model="fechaHasta" class="date-input-sm" />
+              <p class="section-sub">Pendiente de integración con el endpoint administrativo del ledger de inventario.</p>
             </div>
           </div>
 
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fecha/Hora</th>
-                  <th>Tipo</th>
-                  <th>Kit</th>
-                  <th>Cantidad</th>
-                  <th>Líder Destino</th>
-                  <th>Admin Autorizó</th>
-                  <th>Stock Resultante</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="movimientosFiltrados.length === 0">
-                  <td colspan="7" class="empty-state">No hay movimientos.</td>
-                </tr>
-                <tr v-for="m in movimientosFiltrados" :key="m.id">
-                  <td class="td-fecha">{{ m.fecha }}</td>
-                  <td>
-                    <div class="tipo-cell">
-                      <span class="dot-tipo" :style="{ background: colorTipo(m.tipo) }"></span>
-                      <span class="badge" :class="'tipo-' + m.tipo.toLowerCase()">{{ m.tipo }}</span>
-                    </div>
-                  </td>
-                  <td class="td-kit">{{ m.kit }}</td>
-                  <td :class="m.cantidad > 0 ? 'td-pos' : 'td-neg'">{{ m.cantidad > 0 ? '+' : '' }}{{ m.cantidad }}</td>
-                  <td class="td-lider">{{ m.lider || '—' }}</td>
-                  <td class="td-admin">{{ m.admin }}</td>
-                  <td class="td-stock">{{ m.stockResult }} unidades</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="table-footer">
-            <span class="table-count">Mostrando 1 a {{ movimientosFiltrados.length }} de {{ movimientos.length }} resultados</span>
-            <div class="pagination">
-              <button class="page-btn">Anterior</button>
-              <button class="page-btn active">1</button>
-              <button class="page-btn">Siguiente</button>
-            </div>
+          <div class="inventory-placeholder">
+            <div class="inventory-placeholder__icon">↗</div>
+            <h4 class="inventory-placeholder__title">Próxima entrega</h4>
+            <p class="inventory-placeholder__copy">
+              El backend ya registra movimientos internos, pero aún no expone una cola administrativa para listarlos.
+              Esta pestaña queda reservada para conectarla cuando exista el endpoint de consulta.
+            </p>
           </div>
         </div>
 
@@ -238,7 +283,7 @@
         </div>
         <div class="modal-body">
           <p>Solicitud de <strong>{{ nombreLider(solicitudSeleccionada) }}</strong></p>
-          <p>Kit: <strong>{{ solicitudSeleccionada?.kit?.nombre }}</strong> x{{ solicitudSeleccionada?.cantidad_solicitada }}</p>
+          <p>Kit: <strong>{{ solicitudSeleccionada?.kit?.nombre }}</strong> x{{ solicitudSeleccionada?.cantidad ?? 0 }}</p>
           <div class="form-group" style="margin-top:14px">
             <label>Motivo del rechazo *</label>
             <textarea v-model="motivoRechazo" placeholder="Escribe el motivo..." class="form-input form-textarea"></textarea>
@@ -270,7 +315,7 @@ const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 // ── State ──
 const errorMsg   = ref('')
 const successMsg = ref('')
-const tabActivo  = ref('movimientos') // ← pestaña por defecto
+const tabActivo  = ref('solicitudes')
 
 // KPIs
 const kpis = ref({ stockAlmacen: 0, stockDistribuido: 0, stockBajo: 0, merma: 3 })
@@ -279,33 +324,19 @@ const kits = ref<any[]>([])
 // Solicitudes
 const solicitudes           = ref<any[]>([])
 const cargandoSol           = ref(false)
+const cargandoDetalle       = ref(false)
 const procesando            = ref<number | null>(null)
 const busquedaSol           = ref('')
 const filtroEstadoSol       = ref('todos')
 const solicitudesPendientes = ref(0)
 const metaSol = ref({ total: 0, current_page: 1, last_page: 1 })
+const detalleSolicitud      = ref<any>(null)
 
 // Modal rechazar
 const modalRechazar         = ref(false)
 const solicitudSeleccionada = ref<any>(null)
 const motivoRechazo         = ref('')
 const errorMotivo           = ref('')
-
-// Movimientos
-const busquedaMov   = ref('')
-const filtroTipoMov = ref('todos')
-const fechaDesde    = ref('')
-const fechaHasta    = ref('')
-
-const movimientos = ref([
-  { id:1, fecha:'2025-02-18 08:00', tipo:'Entradas',  kit:'Kit Bienestar Básico',  cantidad:+100, lider:'',               admin:'Admin Principal', stockResult:175 },
-  { id:2, fecha:'2025-02-17 14:30', tipo:'Asignación', kit:'Kit Bienestar Premium', cantidad:-5,   lider:'Ana Torres',     admin:'Admin Principal', stockResult:37  },
-  { id:3, fecha:'2025-02-17 10:15', tipo:'Asignación', kit:'Kit Belleza Día',       cantidad:-8,   lider:'María González', admin:'Supervisor 1',    stockResult:90  },
-  { id:4, fecha:'2025-02-16 16:45', tipo:'Salida',     kit:'Kit Bienestar Elite',   cantidad:-2,   lider:'Diego Herrera',  admin:'Admin Principal', stockResult:18  },
-  { id:5, fecha:'2025-02-16 09:00', tipo:'Entradas',   kit:'Kit Belleza Noche',     cantidad:+50,  lider:'',               admin:'Almacén',          stockResult:55  },
-  { id:6, fecha:'2025-02-15 11:30', tipo:'Merma',      kit:'Kit Bienestar Básico',  cantidad:-3,   lider:'',               admin:'Almacén',          stockResult:72  },
-  { id:7, fecha:'2025-02-14 15:00', tipo:'Asignación', kit:'Kit Bienestar Básico',  cantidad:-10,  lider:'Eduardo Flores', admin:'Supervisor 1',     stockResult:75  },
-])
 
 // ── Helpers ──
 const formatFecha = (f: string) => {
@@ -314,26 +345,32 @@ const formatFecha = (f: string) => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-const nombreLider    = (s: any) => { const u = s?.solicitante?.usuario; return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : '—' }
-const inicialesLider = (s: any) => { const u = s?.solicitante?.usuario; if (!u) return '?'; return ((u.nombre?.[0] ?? '') + (u.apellido?.[0] ?? '')).toUpperCase() }
+const nombreLider    = (s: any) => s?.distribuidor?.nombre ?? '—'
+const inicialesLider = (s: any) => {
+  const nombre = s?.distribuidor?.nombre?.trim?.() ?? ''
+  if (!nombre) return '?'
+  return nombre.split(' ').slice(0, 2).map((segment: string) => segment[0]?.toUpperCase?.() ?? '').join('')
+}
 const labelEstadoSol = (e: string) => ({ pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' }[e] ?? 'Pendiente')
 const stockDisponible = (k: any) => (k.stock_central ?? 0) - (k.stock_comprometido ?? 0)
-const colorTipo = (tipo: string) => ({ Entradas:'#22c55e', Asignación:'#3b82f6', Salida:'#ef4444', Merma:'#f59e0b' }[tipo] || '#94a3b8')
+const gpsFirma = (detalle: any) => {
+  const lat = detalle?.contrato?.gps_latitud
+  const lng = detalle?.contrato?.gps_longitud
+  if (lat == null || lng == null) return 'No registrado'
+  return `${lat}, ${lng}`
+}
 
 // ── Filtrados ──
 const solicitudesFiltradas = computed(() =>
   solicitudes.value.filter(s => {
     const matchEstado = filtroEstadoSol.value === 'todos' || s.estado === filtroEstadoSol.value
-    const matchBusq   = !busquedaSol.value || nombreLider(s).toLowerCase().includes(busquedaSol.value.toLowerCase()) || (s.kit?.nombre ?? '').toLowerCase().includes(busquedaSol.value.toLowerCase())
+    const term = busquedaSol.value.toLowerCase()
+    const matchBusq   = !busquedaSol.value
+      || nombreLider(s).toLowerCase().includes(term)
+      || (s.distribuidor?.rango ?? '').toLowerCase().includes(term)
+      || (s.kit?.nombre ?? '').toLowerCase().includes(term)
+      || (s.contrato?.numero_contrato ?? '').toLowerCase().includes(term)
     return matchEstado && matchBusq
-  })
-)
-
-const movimientosFiltrados = computed(() =>
-  movimientos.value.filter(m => {
-    const matchTipo = filtroTipoMov.value === 'todos' || m.tipo === filtroTipoMov.value
-    const matchBusq = !busquedaMov.value || m.kit.toLowerCase().includes(busquedaMov.value.toLowerCase())
-    return matchTipo && matchBusq
   })
 )
 
@@ -362,11 +399,18 @@ const cargarSolicitudes = async (pagina = 1) => {
     const json = await res.json()
     if (json.status === 'success') {
       solicitudes.value           = json.data.data ?? json.data
-      solicitudesPendientes.value = solicitudes.value.filter((s: any) => s.estado === 'pendiente').length
+      solicitudesPendientes.value = solicitudes.value.length
       metaSol.value = {
         total:        json.data.total        ?? solicitudes.value.length,
         current_page: json.data.current_page ?? 1,
         last_page:    json.data.last_page    ?? 1,
+      }
+
+      if (solicitudes.value.length > 0) {
+        const alreadySelected = solicitudes.value.find((item: any) => item.solicitud_id === detalleSolicitud.value?.solicitud_id)
+        await seleccionarSolicitud((alreadySelected ?? solicitudes.value[0]).solicitud_id)
+      } else {
+        detalleSolicitud.value = null
       }
     } else {
       errorMsg.value = json.message ?? 'Error al cargar solicitudes.'
@@ -378,11 +422,29 @@ const cargarSolicitudes = async (pagina = 1) => {
   }
 }
 
+const seleccionarSolicitud = async (solicitudId: number) => {
+  cargandoDetalle.value = true
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/solicitudes/${solicitudId}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (json.status === 'success') {
+      detalleSolicitud.value = json.data
+    } else {
+      errorMsg.value = json.message ?? 'No se pudo cargar el detalle de la solicitud.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo cargar el detalle de la solicitud.'
+  } finally {
+    cargandoDetalle.value = false
+  }
+}
+
 const aprobarSolicitud = async (s: any) => {
-  procesando.value = s.id
+  procesando.value = s.solicitud_id
   errorMsg.value   = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${s.id}/aprobar`, { method: 'POST', headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${s.solicitud_id}/aprobar`, { method: 'POST', headers: hdrs() })
     const json = await res.json()
     if (res.ok && json.status === 'success') {
       successMsg.value = `✅ Solicitud aprobada. Contrato: ${json.data?.numero_contrato ?? ''}`
@@ -409,9 +471,9 @@ const abrirModalRechazar = (s: any) => {
 const rechazarSolicitud = async () => {
   if (!motivoRechazo.value.trim()) { errorMotivo.value = 'El motivo es obligatorio.'; return }
   if (!solicitudSeleccionada.value) return
-  procesando.value = solicitudSeleccionada.value.id
+  procesando.value = solicitudSeleccionada.value.solicitud_id
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${solicitudSeleccionada.value.id}/rechazar`, {
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/${solicitudSeleccionada.value.solicitud_id}/rechazar`, {
       method: 'POST', headers: hdrs(),
       body: JSON.stringify({ motivo: motivoRechazo.value })
     })
@@ -528,6 +590,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .data-table th { padding:10px 14px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap; }
 .data-table tbody tr { border-bottom:1px solid #f0f0f0; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f8fafc; }
+.inventory-row-selected { background:#eff6ff; }
 .data-table td { padding:10px 14px; vertical-align:middle; }
 .td-fecha { color:#888; font-size:11px; white-space:nowrap; }
 .td-kit   { font-weight:600; color:#333; }
@@ -560,6 +623,25 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-rechazar:hover { background:#fecaca; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
+.request-detail-card { margin-top:20px; padding-top:20px; border-top:1px solid #e2e8f0; }
+.request-detail-layout { display:flex; flex-direction:column; gap:16px; }
+.request-summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.detail-metric-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:4px; }
+.detail-metric-label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.08em; }
+.detail-metric-card strong { color:#162033; font-size:15px; }
+.detail-metric-card small { color:#64748b; font-size:12px; }
+.request-panels-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.request-panel-block { background:#fffaf2; border:1px solid #f1e1c1; border-radius:14px; padding:16px; }
+.request-panel-title { margin:0 0 12px; font-size:14px; font-weight:700; color:#162033; }
+.request-definition-list { display:flex; flex-direction:column; gap:12px; margin:0; }
+.request-definition-list div { display:flex; flex-direction:column; gap:4px; }
+.request-definition-list dt { font-size:11px; font-weight:700; color:#8c5f2c; text-transform:uppercase; letter-spacing:0.08em; }
+.request-definition-list dd { margin:0; font-size:12px; color:#374151; word-break:break-word; }
+.detail-state { padding:24px 0; }
+.inventory-placeholder { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:#64748b; background:linear-gradient(135deg,#fffaf2,#ffffff); border:1px dashed #e2c78f; border-radius:16px; padding:24px; }
+.inventory-placeholder__icon { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff1d6; color:#8c5f2c; font-size:24px; font-weight:700; }
+.inventory-placeholder__title { margin:0; font-size:16px; color:#162033; }
+.inventory-placeholder__copy { margin:0; max-width:52ch; font-size:13px; line-height:1.6; }
 .table-count { font-size:12px; color:#999; }
 .pagination { display:flex; gap:6px; }
 .page-btn { padding:5px 12px; border:1px solid #ddd; border-radius:6px; background:white; font-size:12px; cursor:pointer; color:#555; }
@@ -582,4 +664,16 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
 .form-textarea { resize:vertical; min-height:80px; }
 .form-error { font-size:11px; color:#ef4444; }
+@media (max-width: 1100px) {
+  .request-summary-grid,
+  .request-panels-grid,
+  .kpi-grid,
+  .stock-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 720px) {
+  .request-summary-grid,
+  .request-panels-grid,
+  .kpi-grid,
+  .stock-grid { grid-template-columns:1fr; }
+}
 </style>

@@ -2,7 +2,13 @@ import { computed, reactive, ref, shallowRef } from 'vue'
 import axios from 'axios'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
-import type { DebtDetail, DebtListItem, DebtPaginationMeta, PaginatedPayload } from '../types'
+import type {
+    DebtDetail,
+    DebtListItem,
+    DebtPaginationMeta,
+    LedgerAccountStatement,
+    PaginatedPayload,
+} from '../types'
 
 interface SuccessResponse<T> {
     status: string
@@ -45,9 +51,11 @@ export function useDeudasApi() {
 
     const debts = ref<DebtListItem[]>([])
     const debtDetail = shallowRef<DebtDetail | null>(null)
+    const accountStatement = shallowRef<LedgerAccountStatement | null>(null)
     const selectedDebtId = shallowRef<number | null>(null)
     const isLoading = shallowRef(false)
     const isDetailLoading = shallowRef(false)
+    const isAccountStatementLoading = shallowRef(false)
     const errorMessage = shallowRef('')
     const pagination = reactive<DebtPaginationMeta>(defaultPagination())
     const filters = reactive({
@@ -119,9 +127,37 @@ export function useDeudasApi() {
         }
     }
 
+    const fetchAccountStatement = async (membresiaId: number | null | undefined) => {
+        if (!membresiaId) {
+            accountStatement.value = null
+            return
+        }
+
+        isAccountStatementLoading.value = true
+
+        try {
+            const response = await apiClient.get<SuccessResponse<LedgerAccountStatement>>(
+                `/workspace/admin/finanzas/ledger/estado-cuenta/${membresiaId}`,
+                { headers: authHeaders() },
+            )
+
+            accountStatement.value = response.data.data
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            accountStatement.value = null
+        } finally {
+            isAccountStatementLoading.value = false
+        }
+    }
+
     const selectDebt = async (debtId: number) => {
         selectedDebtId.value = debtId
-        await fetchDebtDetail(debtId)
+        const selectedDebt = debts.value.find((debt) => debt.id === debtId) ?? null
+
+        await Promise.all([
+            fetchDebtDetail(debtId),
+            fetchAccountStatement(selectedDebt?.distribuidor.membresia_id),
+        ])
     }
 
     const filteredDebts = computed(() => {
@@ -162,9 +198,11 @@ export function useDeudasApi() {
     return {
         debts,
         debtDetail,
+        accountStatement,
         selectedDebtId,
         isLoading,
         isDetailLoading,
+        isAccountStatementLoading,
         errorMessage,
         pagination,
         filters,
@@ -175,6 +213,7 @@ export function useDeudasApi() {
         overdueInstallments,
         fetchDebts,
         fetchDebtDetail,
+        fetchAccountStatement,
         selectDebt,
     }
 }
