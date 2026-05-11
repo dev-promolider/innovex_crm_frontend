@@ -100,8 +100,13 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const isAuthenticated = localStorage.getItem('token')
   const isSuperadmin = localStorage.getItem('user_es_superadmin') === 'true'
+  const workspaceRole = localStorage.getItem('workspace_role') ?? ''
+  const hasPanelAccess = isSuperadmin || workspaceRole.length > 0
 
   if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ name: 'login' })
+  } else if (to.meta.requiresAuth && !hasPanelAccess) {
+    localStorage.clear()
     next({ name: 'login' })
   } else if (to.meta.requiresSuperadmin && !isSuperadmin) {
     next({ name: 'dashboard' })

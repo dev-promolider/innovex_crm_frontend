@@ -64,6 +64,30 @@ export interface EmpresasPaginationMeta {
     total: number
 }
 
+export interface CreateEmpresaPrimerAdminPayload {
+    nombre: string
+    apellido: string
+    email: string
+    telefono?: string
+    tipo_documento?: string
+    numero_documento?: string
+    direccion?: string
+}
+
+export interface CreatedEmpresaPrimerAdmin {
+    id: number
+    uuid: string
+    nombre: string
+    apellido: string
+    email: string
+    password_temporal: string
+}
+
+export interface CreateEmpresaResult {
+    empresa: EmpresaListItem
+    primer_admin: CreatedEmpresaPrimerAdmin
+}
+
 export interface CreateEmpresaPayload {
     nombre: string
     nombre_comercial?: string
@@ -78,4 +102,5 @@ export interface CreateEmpresaPayload {
     sitio_web?: string
     plan_saas?: string
     max_distribuidores?: number
+    primer_admin: CreateEmpresaPrimerAdminPayload
 }

@@ -4,6 +4,7 @@ import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import type {
     CreateEmpresaPayload,
+    CreateEmpresaResult,
     EmpresaDetail,
     EmpresaListItem,
     EmpresasPaginationMeta,
@@ -126,7 +127,7 @@ export function useEmpresasApi() {
         clearMessages()
 
         try {
-            const response = await apiClient.post<SuccessResponse<EmpresaListItem>>(
+            const response = await apiClient.post<SuccessResponse<CreateEmpresaResult>>(
                 '/superadmin/empresas',
                 payload,
                 {

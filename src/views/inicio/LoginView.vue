@@ -182,10 +182,20 @@ const handleLogin = async () => {
       String(Boolean(data.data.user.es_superadmin)),
     );
 
+    const panelWorkspace = Array.isArray(data.data.panel_workspaces)
+      ? data.data.panel_workspaces[0]
+      : null;
+
     if (data.data.lobby && data.data.lobby.length > 0) {
       localStorage.setItem("empresa_id", String(data.data.lobby[0].empresa_id));
+      localStorage.setItem("workspace_role", String(panelWorkspace?.rol ?? ""));
+    } else if (panelWorkspace?.empresa_id) {
+      localStorage.setItem("empresa_id", String(panelWorkspace.empresa_id));
+      localStorage.setItem("workspace_role", String(panelWorkspace.rol ?? ""));
     } else {
-      localStorage.setItem("empresa_id", "1");
+      localStorage.removeItem("empresa_id");
+      localStorage.removeItem("workspace_role");
+      throw new Error("Tu cuenta no tiene acceso a ningun workspace del panel web.");
     }
 
     router.push({ name: "dashboard" });

@@ -29,6 +29,13 @@ const form = reactive({
   sitio_web: '',
   plan_saas: 'growth',
   max_distribuidores: '',
+  admin_nombre: '',
+  admin_apellido: '',
+  admin_email: '',
+  admin_telefono: '',
+  admin_tipo_documento: 'dni',
+  admin_numero_documento: '',
+  admin_direccion: '',
 })
 
 const localError = shallowRef('')
@@ -47,6 +54,13 @@ const resetForm = () => {
   form.sitio_web = ''
   form.plan_saas = 'growth'
   form.max_distribuidores = ''
+  form.admin_nombre = ''
+  form.admin_apellido = ''
+  form.admin_email = ''
+  form.admin_telefono = ''
+  form.admin_tipo_documento = 'dni'
+  form.admin_numero_documento = ''
+  form.admin_direccion = ''
   localError.value = ''
 }
 
@@ -61,9 +75,18 @@ watch(
 
 const handleSubmit = () => {
   const nombre = form.nombre.trim()
+  const adminNombre = form.admin_nombre.trim()
+  const adminApellido = form.admin_apellido.trim()
+  const adminEmail = form.admin_email.trim()
+  const maxDistribuidores = String(form.max_distribuidores ?? '').trim()
 
   if (!nombre) {
     localError.value = 'El nombre de la empresa es obligatorio.'
+    return
+  }
+
+  if (!adminNombre || !adminApellido || !adminEmail) {
+    localError.value = 'Debes completar nombre, apellido y correo del primer administrador.'
     return
   }
 
@@ -81,9 +104,18 @@ const handleSubmit = () => {
     sitio_web: form.sitio_web.trim() || undefined,
     plan_saas: form.plan_saas.trim() || undefined,
     max_distribuidores:
-      form.max_distribuidores.trim().length > 0
-        ? Number(form.max_distribuidores)
+      maxDistribuidores.length > 0
+        ? Number(maxDistribuidores)
         : undefined,
+    primer_admin: {
+      nombre: adminNombre,
+      apellido: adminApellido,
+      email: adminEmail,
+      telefono: form.admin_telefono.trim() || undefined,
+      tipo_documento: form.admin_tipo_documento.trim() || undefined,
+      numero_documento: form.admin_numero_documento.trim() || undefined,
+      direccion: form.admin_direccion.trim() || undefined,
+    },
   }
 
   localError.value = ''
@@ -217,6 +249,55 @@ const handleSubmit = () => {
               </div>
             </div>
           </section>
+
+          <section class="form-section">
+            <div class="section-copy">
+              <h3 class="section-heading">Primer administrador</h3>
+              <p class="section-description">Este usuario recibira acceso inicial al panel web administrativo de la empresa.</p>
+            </div>
+
+            <div class="form-grid form-grid-two">
+              <div class="form-group">
+                <label class="form-label" for="admin-nombre">Nombre</label>
+                <input id="admin-nombre" v-model="form.admin_nombre" class="form-input" type="text" placeholder="Ana" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="admin-apellido">Apellido</label>
+                <input id="admin-apellido" v-model="form.admin_apellido" class="form-input" type="text" placeholder="Quispe" />
+              </div>
+
+              <div class="form-group form-group-full">
+                <label class="form-label" for="admin-email">Correo de acceso</label>
+                <input id="admin-email" v-model="form.admin_email" class="form-input" type="email" placeholder="admin.empresa@innovex.com" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="admin-telefono">Telefono</label>
+                <input id="admin-telefono" v-model="form.admin_telefono" class="form-input" type="text" placeholder="+51 999 999 111" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="admin-tipo-documento">Tipo de documento</label>
+                <select id="admin-tipo-documento" v-model="form.admin_tipo_documento" class="form-input form-select">
+                  <option value="dni">DNI</option>
+                  <option value="ce">CE</option>
+                  <option value="pasaporte">Pasaporte</option>
+                  <option value="nit">NIT</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="admin-numero-documento">Numero de documento</label>
+                <input id="admin-numero-documento" v-model="form.admin_numero_documento" class="form-input" type="text" placeholder="76543210" />
+              </div>
+
+              <div class="form-group form-group-full">
+                <label class="form-label" for="admin-direccion">Direccion</label>
+                <input id="admin-direccion" v-model="form.admin_direccion" class="form-input" type="text" placeholder="Av. Principal 123" />
+              </div>
+            </div>
+          </section>
         </div>
 
         <aside class="summary-card">
@@ -237,6 +318,11 @@ const handleSubmit = () => {
             <p>Email: {{ form.email_contacto || 'No definido' }}</p>
             <p>Telefono: {{ form.telefono_contacto || 'No definido' }}</p>
             <p>Max. distribuidores: {{ form.max_distribuidores || 'Sin limite definido' }}</p>
+          </div>
+
+          <div class="summary-block summary-block-admin">
+            <p class="summary-name">{{ form.admin_nombre.trim() || 'Primer administrador pendiente' }}</p>
+            <p class="summary-muted">{{ form.admin_email.trim() || 'Sin correo de acceso' }}</p>
           </div>
 
           <div class="palette-preview">

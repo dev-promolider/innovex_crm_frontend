@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, shallowRef } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useEmpresasApi } from '../composables/useEmpresasApi'
-import type { EmpresaEstado, EmpresaListItem } from '../types'
+import type { CreateEmpresaResult, EmpresaEstado, EmpresaListItem } from '../types'
 import CreateEmpresaDialog from './CreateEmpresaDialog.vue'
 import EmpresasTable from './EmpresasTable.vue'
 import SuspendEmpresaDialog from './SuspendEmpresaDialog.vue'
@@ -33,6 +33,7 @@ const filters = reactive({
 const createDialogOpen = shallowRef(false)
 const suspendDialogOpen = shallowRef(false)
 const selectedEmpresaId = shallowRef<number | null>(null)
+const latestProvisioningResult = shallowRef<CreateEmpresaResult | null>(null)
 
 const filteredEmpresas = computed(() => {
   const normalizedSearch = filters.search.trim().toLowerCase()
@@ -87,6 +88,7 @@ const loadPage = async (page = 1) => {
 
 const openCreateDialog = () => {
   clearMessages()
+  latestProvisioningResult.value = null
   createDialogOpen.value = true
 }
 
@@ -104,11 +106,21 @@ const requestSuspend = (empresaId: number) => {
 const handleCreateEmpresa = async (payload: Parameters<typeof createEmpresa>[0]) => {
   try {
     const createdEmpresa = await createEmpresa(payload)
+    latestProvisioningResult.value = createdEmpresa
     createDialogOpen.value = false
-    await openEmpresaWorkspace(createdEmpresa.id)
   } catch {
     return
   }
+}
+
+const openLatestCreatedWorkspace = async () => {
+  const empresaId = latestProvisioningResult.value?.empresa.id
+
+  if (!empresaId) {
+    return
+  }
+
+  await openEmpresaWorkspace(empresaId)
 }
 
 const handleActivateEmpresa = async (empresaId: number) => {
@@ -214,6 +226,29 @@ onMounted(async () => {
       {{ successMessage }}
       <button class="alert-close" @click="clearMessages">✕</button>
     </div>
+
+    <section v-if="latestProvisioningResult" class="provisioning-card">
+      <div>
+        <p class="provisioning-card__eyebrow">Primer acceso listo</p>
+        <h3 class="provisioning-card__title">
+          {{ latestProvisioningResult.primer_admin.nombre }} {{ latestProvisioningResult.primer_admin.apellido }} ya puede entrar al panel.
+        </h3>
+        <p class="provisioning-card__copy">
+          Guarda estas credenciales temporales antes de cerrar esta vista. Luego continua con la configuracion inicial del workspace.
+        </p>
+      </div>
+
+      <div class="provisioning-card__credentials">
+        <p><strong>Empresa:</strong> {{ latestProvisioningResult.empresa.nombre }}</p>
+        <p><strong>Correo:</strong> {{ latestProvisioningResult.primer_admin.email }}</p>
+        <p><strong>Password temporal:</strong> {{ latestProvisioningResult.primer_admin.password_temporal }}</p>
+      </div>
+
+      <div class="provisioning-card__actions">
+        <button type="button" class="btn-outline" @click="latestProvisioningResult = null">Ocultar</button>
+        <button type="button" class="btn-primary" @click="openLatestCreatedWorkspace">Abrir workspace</button>
+      </div>
+    </section>
 
       <div class="card empresas-card">
         <div class="section-header">
@@ -355,6 +390,57 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+}
+
+.provisioning-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(21, 101, 192, 0.18);
+  background: linear-gradient(135deg, rgba(229, 241, 255, 0.92), rgba(245, 250, 255, 0.98));
+}
+
+.provisioning-card__eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.provisioning-card__title {
+  margin: 0;
+  font-size: 18px;
+  color: #10233f;
+}
+
+.provisioning-card__copy {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #4b5d78;
+}
+
+.provisioning-card__credentials {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  font-size: 13px;
+  color: #12243f;
+}
+
+.provisioning-card__credentials p {
+  margin: 0;
+}
+
+.provisioning-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .alert-error {
