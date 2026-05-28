@@ -223,13 +223,17 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .detail-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.96));
+  border: 1px solid rgba(26, 43, 71, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
 }
 
 .detail-hero {
   padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(55, 111, 200, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(245, 248, 252, 0.98), rgba(239, 246, 255, 0.98));
 }
 
 .detail-badges {
@@ -250,29 +254,29 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .badge-success {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(226, 247, 232, 0.98);
+  color: #1b6b39;
 }
 
 .badge-danger {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: rgba(253, 234, 234, 0.98);
+  color: #983737;
 }
 
 .badge-warning {
-  background: #fef3c7;
-  color: #b45309;
+  background: rgba(214, 234, 255, 0.88);
+  color: #1f63ae;
 }
 
 .badge-muted {
-  background: #e2e8f0;
-  color: #475569;
+  background: rgba(233, 238, 246, 0.98);
+  color: #42526d;
 }
 
 .badge-outline {
-  border: 1px solid #dbe3ef;
-  background: #fff;
-  color: #475569;
+  border: 1px solid rgba(151, 177, 209, 0.24);
+  background: rgba(255, 255, 255, 0.82);
+  color: #51657f;
 }
 
 .detail-headline {
@@ -286,13 +290,13 @@ const statusClass = (status: EmpresaEstado) => {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #172033;
+  color: #162033;
 }
 
 .detail-alias {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: #5e6d83;
 }
 
 .detail-stats {
@@ -302,29 +306,31 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .stat-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid rgba(26, 43, 71, 0.08);
+  border-radius: 16px;
   padding: 14px;
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.84);
 }
 
 .stat-label {
   display: block;
   margin-bottom: 6px;
   font-size: 12px;
-  color: #64748b;
+  color: #73839a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .stat-value {
   font-size: 26px;
   font-weight: 700;
-  color: #172033;
+  color: #162033;
 }
 
 .stat-text {
   font-size: 13px;
   font-weight: 700;
-  color: #172033;
+  color: #162033;
 }
 
 .inline-alert {
@@ -337,9 +343,9 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .inline-alert-info {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border: 1px solid rgba(158, 187, 220, 0.24);
+  background: linear-gradient(180deg, rgba(238, 245, 255, 0.94) 0%, rgba(245, 249, 255, 0.96) 100%);
+  color: #1f63ae;
 }
 
 .detail-info-grid {
@@ -367,7 +373,9 @@ const statusClass = (status: EmpresaEstado) => {
   gap: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #2563eb;
+  color: #5e7898;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .info-icon {
@@ -380,7 +388,7 @@ const statusClass = (status: EmpresaEstado) => {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #172033;
+  color: #162033;
 }
 
 .info-card-list,
@@ -390,7 +398,7 @@ const statusClass = (status: EmpresaEstado) => {
 .range-level {
   font-size: 13px;
   line-height: 1.55;
-  color: #64748b;
+  color: #5e6d83;
 }
 
 .info-card-list,
@@ -409,7 +417,7 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .info-card-list strong {
-  color: #172033;
+  color: #162033;
 }
 
 .detail-secondary-grid {
@@ -419,12 +427,13 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .empty-state {
-  border: 1px dashed #cbd5e1;
-  border-radius: 10px;
+  border: 1px dashed rgba(158, 187, 220, 0.34);
+  border-radius: 16px;
   padding: 28px 16px;
   text-align: center;
   font-size: 13px;
-  color: #64748b;
+  color: #5e6d83;
+  background: rgba(238, 245, 255, 0.58);
 }
 
 .range-list {
@@ -434,10 +443,10 @@ const statusClass = (status: EmpresaEstado) => {
 }
 
 .range-item {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid rgba(26, 43, 71, 0.08);
+  border-radius: 16px;
   padding: 14px;
-  background: #f8fafc;
+  background: rgba(247, 248, 250, 0.92);
 }
 
 .range-top {
@@ -450,13 +459,13 @@ const statusClass = (status: EmpresaEstado) => {
   margin: 0 0 2px;
   font-size: 14px;
   font-weight: 700;
-  color: #172033;
+  color: #162033;
 }
 
 .loading-block {
   height: 180px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  border-radius: 18px;
+  background: linear-gradient(90deg, rgba(233, 238, 246, 0.9) 25%, rgba(238, 245, 255, 0.92) 50%, rgba(233, 238, 246, 0.9) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.2s infinite;
 }
@@ -484,26 +493,26 @@ const statusClass = (status: EmpresaEstado) => {
 .btn-secondary,
 .btn-danger {
   padding: 10px 18px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
 }
 
 .btn-primary {
   border: none;
-  background: linear-gradient(135deg, #1f7ae0, #145fbe);
+  background: linear-gradient(135deg, #16335f, #376fc8);
   color: #fff;
 }
 
 .btn-secondary {
-  border: 1px solid #dbe3ef;
-  background: #fff;
-  color: #475569;
+  border: 1px solid rgba(26, 43, 71, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: #42526d;
 }
 
 .btn-danger {
   border: none;
-  background: #dc2626;
+  background: linear-gradient(135deg, #b54646, #983737);
   color: #fff;
 }
 

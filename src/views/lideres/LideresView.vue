@@ -1,7 +1,7 @@
 <template>
   <AppShell>
     <template #breadcrumb>
-      <span class="breadcrumb">Inicio › <strong>Gestión de Líderes</strong></span>
+      <span class="breadcrumb">Inicio › <strong>Red de distribuidores</strong></span>
     </template>
 
     <div class="page-body">
@@ -11,15 +11,26 @@
 
         <div class="page-header">
           <div>
-            <h1 class="page-title">Gestión de Líderes</h1>
+            <h1 class="page-title">Red de distribuidores</h1>
             <p class="page-subtitle">
               <span v-if="cargando">Cargando...</span>
               <span v-else>{{ meta.total }} distribuidores en la red activa</span>
             </p>
           </div>
-          <button class="btn-primary" @click="modalPin = true">Invitar Líder (Generar PIN)</button>
+          <button class="btn-primary" @click="modalPin = true">Invitar distribuidor</button>
         </div>
 
+        <div class="view-tabs">
+          <button class="view-tab" :class="{ active: vistaActiva === 'lista' }" type="button" @click="vistaActiva = 'lista'">Lista</button>
+          <button class="view-tab" :class="{ active: vistaActiva === 'arbol' }" type="button" @click="vistaActiva = 'arbol'">Árbol N-niveles</button>
+          <button class="view-tab" :class="{ active: vistaActiva === 'cambios-patrocinador' }" type="button" @click="vistaActiva = 'cambios-patrocinador'">Cambios de patrocinador</button>
+        </div>
+
+        <SponsorChangeQueuePanel v-if="vistaActiva === 'cambios-patrocinador'" @updated="refrescarRed" />
+
+        <NetworkTreePanel v-else-if="vistaActiva === 'arbol'" ref="treePanelRef" />
+
+        <template v-else>
         <!-- Filtros -->
         <div class="filters-bar">
           <div class="search-box search-wide">
@@ -35,7 +46,7 @@
             <option value="revision_admin">Revision admin</option>
             <option value="pendiente_activacion">Pendiente activacion</option>
           </select>
-          <span class="result-count">{{ lideresFiltrados.length }} visibles en esta página</span>
+          <span class="result-count">{{ lideres.length }} visibles en esta página</span>
         </div>
 
         <!-- Tabla -->
@@ -60,10 +71,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="lideresFiltrados.length === 0">
+                <tr v-if="lideres.length === 0">
                   <td colspan="8" class="empty-state">No se encontraron distribuidores.</td>
                 </tr>
-                <tr v-for="m in lideresFiltrados" :key="m.id">
+                <tr v-for="m in lideres" :key="m.id">
                   <td>
                     <div class="lider-info">
                       <div class="lider-avatar" :style="{ background: colorAvatar(m) }">{{ iniciales(m) }}</div>
@@ -87,6 +98,42 @@
                       <button class="acc-btn" title="Ver detalle" @click="verDetalle(m)">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#4ab8f5" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
+                      <button
+                        v-if="m.estado_validacion === 'revision_admin'"
+                        class="acc-btn acc-btn--success"
+                        :disabled="procesandoMembresiaId === m.id"
+                        title="Aprobar membresía"
+                        @click="aprobarMembresia(m)"
+                      >
+                        Aprobar
+                      </button>
+                      <button
+                        v-if="m.estado_validacion === 'revision_admin'"
+                        class="acc-btn acc-btn--danger"
+                        :disabled="procesandoMembresiaId === m.id"
+                        title="Rechazar membresía"
+                        @click="rechazarMembresia(m)"
+                      >
+                        Rechazar
+                      </button>
+                      <button
+                        v-if="m.estado_validacion === 'activa'"
+                        class="acc-btn acc-btn--warn"
+                        :disabled="procesandoMembresiaId === m.id"
+                        title="Suspender membresía"
+                        @click="suspenderMembresia(m)"
+                      >
+                        Suspender
+                      </button>
+                      <button
+                        v-if="m.estado_validacion === 'suspendida'"
+                        class="acc-btn acc-btn--success"
+                        :disabled="procesandoMembresiaId === m.id"
+                        title="Reactivar membresía"
+                        @click="reactivarMembresia(m)"
+                      >
+                        Reactivar
+                      </button>
                       <!-- Copiar datos -->
                       <button class="acc-btn" title="Copiar datos" @click="copiarDatos(m)">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#64748b" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -107,6 +154,7 @@
             </div>
           </div>
         </div>
+        </template>
       </div>
 
     <!-- ── Modal Ver Detalle ── -->
@@ -160,47 +208,78 @@
       </div>
     </div>
 
-    <!-- ── Modal Generar PIN ── -->
-    <div v-if="modalPin" class="modal-overlay" @click.self="cerrarModalPin">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h2>🔑 Invitar Líder</h2>
-          <button class="modal-close" @click="cerrarModalPin">✕</button>
-        </div>
-        <div class="modal-body">
-          <div v-if="!pinGenerado">
-            <p style="font-size:13px;color:#555;margin:0 0 14px">Genera un PIN de invitación para que un nuevo líder pueda registrarse en la plataforma.</p>
-            <div class="form-group">
-              <label>Email del líder (opcional)</label>
-              <input v-model="emailInvitado" type="email" placeholder="email@ejemplo.com" class="form-input" />
-            </div>
+    <AppModal
+      :open="modalPin"
+      title="Invitar distribuidor"
+      description="Genera un código de invitación con patrocinador, rango inicial y vigencia."
+      size="sm"
+      @close="cerrarModalPin"
+    >
+      <div v-if="!pinGenerado" class="invite-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Email del distribuidor</label>
+            <input v-model="invitacionForm.email_invitado" type="email" placeholder="email@ejemplo.com" class="form-input" />
           </div>
-          <div v-else class="pin-result">
-            <div class="pin-box">
-              <span class="pin-label">PIN generado</span>
-              <span class="pin-code">{{ pinGenerado }}</span>
-            </div>
-            <p class="pin-hint">Comparte este PIN con el líder para que complete su registro.</p>
-            <button class="btn-copy-pin" @click="copiarPin">
-              📋 Copiar PIN
-            </button>
+          <div class="form-group">
+            <label>Vigencia (días)</label>
+            <input v-model.number="invitacionForm.dias_vigencia" type="number" min="1" max="30" class="form-input" />
           </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="cerrarModalPin">{{ pinGenerado ? 'Cerrar' : 'Cancelar' }}</button>
-          <button v-if="!pinGenerado" class="btn-primary" @click="generarPin" :disabled="generandoPin">
-            {{ generandoPin ? 'Generando...' : 'Generar PIN' }}
-          </button>
+          <div class="form-group">
+            <label>Rango inicial</label>
+            <select v-model="invitacionForm.rango_id_asignado" class="form-input">
+              <option :value="null">{{ rangoIngresoAutomaticoLabel }}</option>
+              <option v-for="rango in rangosDisponibles" :key="rango.id" :value="rango.id">
+                {{ rango.nombre_rango }} · Nivel {{ rango.nivel }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Patrocinador</label>
+            <select v-model="invitacionForm.referente_id" class="form-input">
+              <option :value="null">Sin patrocinador</option>
+              <option v-for="lider in patrocinadoresDisponibles" :key="lider.id" :value="lider.id">
+                {{ nombreCompleto(lider) }} · {{ lider.rango?.nombre_rango ?? 'Sin rango' }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group form-group-full">
+            <label>Notas internas</label>
+            <textarea v-model="invitacionForm.notas" rows="3" placeholder="Contexto para el seguimiento administrativo" class="form-input form-textarea" />
+          </div>
         </div>
       </div>
-    </div>
+      <div v-else class="pin-result">
+        <div class="pin-box">
+          <span class="pin-label">Código de invitación</span>
+          <span class="pin-code">{{ codigoInvitacionMostrado }}</span>
+        </div>
+        <p class="pin-hint">
+          Comparte este código con el distribuidor. Debe iniciar sesión con el mismo correo de la invitación y usarlo en el lobby de la app móvil.
+        </p>
+        <p v-if="invitacionExpiraEn" class="pin-hint">Vence: {{ invitacionExpiraEn }}</p>
+        <button type="button" class="btn-copy-pin" @click="copiarPin">
+          Copiar código
+        </button>
+      </div>
+
+      <template #footer>
+        <button type="button" class="btn-secondary" @click="cerrarModalPin">{{ pinGenerado ? 'Cerrar' : 'Cancelar' }}</button>
+        <button v-if="!pinGenerado" type="button" class="btn-primary" @click="generarPin" :disabled="generandoPin">
+          {{ generandoPin ? 'Generando...' : 'Generar invitación' }}
+        </button>
+      </template>
+    </AppModal>
 
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive, watch, onBeforeUnmount } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import AppModal from '../../components/shared/AppModal.vue'
+import NetworkTreePanel from '@/features/distribuidores/components/NetworkTreePanel.vue'
+import SponsorChangeQueuePanel from '@/features/distribuidores/components/SponsorChangeQueuePanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
@@ -209,13 +288,17 @@ const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
 // ── State ──
+const vistaActiva = ref<'lista' | 'arbol' | 'cambios-patrocinador'>('lista')
 const lideres    = ref<any[]>([])
 const cargando   = ref(false)
 const errorMsg   = ref('')
 const successMsg = ref('')
 const busqueda        = ref('')
 const filtroEstado    = ref('todos')
-const meta = ref({ total: 0, current_page: 1, last_page: 1 })
+const meta = ref({ total: 0, current_page: 1, last_page: 1, per_page: 15, from: 0, to: 0 })
+const treePanelRef = ref<InstanceType<typeof NetworkTreePanel> | null>(null)
+const procesandoMembresiaId = ref<number | null>(null)
+let filtrosDebounce: ReturnType<typeof setTimeout> | null = null
 
 // Modales
 const modalDetalle      = ref(false)
@@ -225,8 +308,35 @@ const capacidadesDetalle = ref<any>(null)
 const historialRangos = ref<any[]>([])
 const modalPin          = ref(false)
 const pinGenerado       = ref('')
-const emailInvitado     = ref('')
+const invitacionExpiraEn = ref('')
 const generandoPin      = ref(false)
+const rangosDisponibles = ref<any[]>([])
+const invitacionForm = reactive({
+  email_invitado: '',
+  rango_id_asignado: null as number | null,
+  referente_id: null as number | null,
+  notas: '',
+  dias_vigencia: 7,
+})
+
+function formatCodigoInvitacion(raw: string): string {
+  const normalized = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  if (normalized.length === 8) {
+    return `${normalized.slice(0, 4)}-${normalized.slice(4)}`
+  }
+  return raw
+}
+
+const codigoInvitacionMostrado = computed(() => formatCodigoInvitacion(pinGenerado.value))
+const rangoIngresoAutomaticoLabel = computed(() => {
+  const rangoIngreso = rangosDisponibles.value.find((rango) => rango.es_rango_ingreso || Number(rango.nivel) === 1)
+
+  if (!rangoIngreso) {
+    return 'Ingreso N1'
+  }
+
+  return `${rangoIngreso.nombre_rango} · Nivel ${rangoIngreso.nivel}`
+})
 
 // ── Helpers ──
 const colores    = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
@@ -241,43 +351,45 @@ const iniciales = (m: any) => {
   return (n + a).toUpperCase() || '?'
 }
 
-const labelEstado    = (e: string) => ({ activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro', revision_admin: 'Revision admin', pendiente_activacion: 'Pendiente activacion', biometra_pendiente: 'Biometria pendiente', documentos_pendientes: 'Documentos pendientes', bloqueada_riesgo: 'Bloqueada por riesgo', retirada: 'Retirada', rechazada: 'Rechazada' }[e] ?? e)
+const labelEstado    = (e: string) => ({ activa: 'Activo', suspendida: 'Suspendida', pre_registro: 'Pre-registro', revision_admin: 'Revision admin', pendiente_activacion: 'Pendiente activacion', biometria_pendiente: 'Firma pendiente', documentos_pendientes: 'Documentos pendientes', bloqueada_riesgo: 'Bloqueada por riesgo', retirada: 'Retirada', rechazada: 'Rechazada' }[e] ?? e)
 const formatFecha    = (f: string) => f ? new Date(f).toLocaleDateString('es-PE') : '—'
 const nombreReferente = (m: any) => {
   const u = m?.referente?.usuario
   return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : 'Sin patrocinador'
 }
 const boolLabel = (value: boolean | null | undefined) => value ? 'Sí' : 'No'
-
-// ── Filtrado corregido ──
-const lideresFiltrados = computed(() =>
-  lideres.value.filter(m => {
-    const nombre = nombreCompleto(m).toLowerCase()
-    const dni    = m.usuario?.numero_documento ?? ''
-    const email = m.usuario?.email?.toLowerCase?.() ?? ''
-    const matchBusqueda  = nombre.includes(busqueda.value.toLowerCase()) || dni.includes(busqueda.value) || email.includes(busqueda.value.toLowerCase())
-    const matchEstado    = filtroEstado.value === 'todos' || m.estado_validacion === filtroEstado.value
-
-    return matchBusqueda && matchEstado
-  })
+const patrocinadoresDisponibles = computed(() =>
+  lideres.value.filter((lider) => ['activa', 'pendiente_activacion', 'revision_admin'].includes(lider.estado_validacion))
 )
 
 const currentPageStart = computed(() => {
   if (meta.value.total === 0 || lideres.value.length === 0) return 0
-  return (meta.value.current_page - 1) * lideres.value.length + 1
+  return meta.value.from || 0
 })
 
 const currentPageEnd = computed(() => {
   if (meta.value.total === 0 || lideres.value.length === 0) return 0
-  return (meta.value.current_page - 1) * lideres.value.length + lideres.value.length
+  return meta.value.to || 0
 })
 
 // ── API ──
 const cargarLideres = async (pagina = 1) => {
   cargando.value = true
   errorMsg.value = ''
+
+  const params = new URLSearchParams({ page: String(pagina) })
+  const terminoBusqueda = busqueda.value.trim()
+
+  if (terminoBusqueda) {
+    params.set('search', terminoBusqueda)
+  }
+
+  if (filtroEstado.value !== 'todos') {
+    params.set('estado', filtroEstado.value)
+  }
+
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/distribuidores?page=${pagina}`, { headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/distribuidores?${params.toString()}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
@@ -286,6 +398,9 @@ const cargarLideres = async (pagina = 1) => {
         total:        json.data.total        ?? lideres.value.length,
         current_page: json.data.current_page ?? 1,
         last_page:    json.data.last_page    ?? 1,
+        per_page:     json.data.per_page     ?? lideres.value.length,
+        from:         json.data.from         ?? (lideres.value.length > 0 ? 1 : 0),
+        to:           json.data.to           ?? lideres.value.length,
       }
     } else {
       errorMsg.value = json.message ?? 'Error al cargar líderes.'
@@ -298,6 +413,24 @@ const cargarLideres = async (pagina = 1) => {
 }
 
 const cambiarPagina = (p: number) => cargarLideres(p)
+const refrescarRed = async () => {
+  await cargarLideres(meta.value.current_page)
+  await treePanelRef.value?.recargar()
+}
+
+const cargarRangos = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/rangos`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+    const json = await res.json()
+    if (res.ok && json.status === 'success') {
+      rangosDisponibles.value = json.data?.rangos ?? []
+    }
+  } catch {
+    errorMsg.value = 'No se pudo cargar la configuracion de rangos para invitar líderes.'
+  }
+}
+
 const verDetalle    = async (m: any) => {
   liderSeleccionado.value = m
   modalDetalle.value = true
@@ -331,6 +464,77 @@ const verDetalle    = async (m: any) => {
   }
 }
 
+const ejecutarAccionMembresia = async (
+  membresiaId: number,
+  endpoint: string,
+  successFallback: string,
+  body?: Record<string, unknown>,
+) => {
+  procesandoMembresiaId.value = membresiaId
+  errorMsg.value = ''
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/aprobaciones/${membresiaId}/${endpoint}`, {
+      method: 'POST',
+      headers: hdrs(),
+      body: body ? JSON.stringify(body) : JSON.stringify({}),
+    })
+
+    if (res.status === 401) {
+      cerrarSesion()
+      return
+    }
+
+    const json = await res.json()
+
+    if (!res.ok || json.status !== 'success') {
+      errorMsg.value = json.message ?? 'No se pudo completar la acción.'
+      return
+    }
+
+    successMsg.value = json.message ?? successFallback
+    await refrescarRed()
+
+    if (liderSeleccionado.value?.id === membresiaId) {
+      liderSeleccionado.value = lideres.value.find((item) => item.id === membresiaId) ?? liderSeleccionado.value
+    }
+
+    setTimeout(() => { successMsg.value = '' }, 3000)
+  } catch {
+    errorMsg.value = 'No se pudo completar la acción administrativa.'
+  } finally {
+    procesandoMembresiaId.value = null
+  }
+}
+
+const aprobarMembresia = async (m: any) => {
+  await ejecutarAccionMembresia(m.id, 'aprobar', 'Membresía aprobada correctamente.')
+}
+
+const rechazarMembresia = async (m: any) => {
+  const motivo = window.prompt(`Indica el motivo de rechazo para ${nombreCompleto(m)}:`)?.trim()
+
+  if (!motivo) {
+    return
+  }
+
+  await ejecutarAccionMembresia(m.id, 'rechazar', 'Membresía rechazada correctamente.', { motivo })
+}
+
+const suspenderMembresia = async (m: any) => {
+  const motivo = window.prompt(`Indica el motivo de suspensión para ${nombreCompleto(m)}:`)?.trim()
+
+  if (!motivo) {
+    return
+  }
+
+  await ejecutarAccionMembresia(m.id, 'suspender', 'Membresía suspendida correctamente.', { motivo })
+}
+
+const reactivarMembresia = async (m: any) => {
+  await ejecutarAccionMembresia(m.id, 'reactivar', 'Membresía reactivada correctamente.')
+}
+
 // ── Copiar datos ──
 const copiarDatos = async (m: any) => {
   const texto = `Líder: ${nombreCompleto(m)}
@@ -353,22 +557,29 @@ Nivel en Red: ${m.rango?.nivel ? 'Nivel ' + m.rango.nivel : 'Sin nivel'}`
 // ── Generar PIN ──
 const generarPin = async () => {
   generandoPin.value = true
+  errorMsg.value = ''
   try {
     const res  = await fetch(`${API_BASE}/workspace/admin/invitaciones`, {
       method: 'POST',
       headers: hdrs(),
-      body: JSON.stringify({ email: emailInvitado.value || null })
+      body: JSON.stringify({
+        email_invitado: invitacionForm.email_invitado.trim(),
+        rango_id_asignado: invitacionForm.rango_id_asignado,
+        referente_id: invitacionForm.referente_id,
+        notas: invitacionForm.notas.trim() || null,
+        dias_vigencia: invitacionForm.dias_vigencia,
+      })
     })
     const json = await res.json()
     if (res.ok && json.status === 'success') {
-      pinGenerado.value = json.data?.pin ?? json.data?.token ?? 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+      pinGenerado.value = json.data?.codigo ?? json.data?.token ?? ''
+      invitacionExpiraEn.value = formatFecha(json.data?.expires_at)
+      successMsg.value = json.message ?? 'Invitación generada correctamente.'
     } else {
-      // Si el backend no tiene este endpoint aún, generamos un PIN local
-      pinGenerado.value = 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+      errorMsg.value = json.message ?? 'No se pudo generar la invitación.'
     }
   } catch {
-    // Generamos PIN local si no hay conexión
-    pinGenerado.value = 'PIN-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+    errorMsg.value = 'No se pudo generar la invitación.'
   } finally {
     generandoPin.value = false
   }
@@ -377,20 +588,44 @@ const generarPin = async () => {
 const copiarPin = async () => {
   try {
     await navigator.clipboard.writeText(pinGenerado.value)
-    successMsg.value = '✅ PIN copiado al portapapeles.'
+    successMsg.value = '✅ Código copiado al portapapeles.'
     setTimeout(() => { successMsg.value = '' }, 3000)
   } catch {
-    errorMsg.value = 'No se pudo copiar el PIN.'
+    errorMsg.value = 'No se pudo copiar el código.'
   }
 }
 
 const cerrarModalPin = () => {
   modalPin.value    = false
   pinGenerado.value = ''
-  emailInvitado.value = ''
+  invitacionExpiraEn.value = ''
+  invitacionForm.email_invitado = ''
+  invitacionForm.rango_id_asignado = null
+  invitacionForm.referente_id = null
+  invitacionForm.notas = ''
+  invitacionForm.dias_vigencia = 7
 }
 
-onMounted(() => cargarLideres())
+onMounted(() => {
+  cargarLideres()
+  cargarRangos()
+})
+
+watch([busqueda, filtroEstado], () => {
+  if (filtrosDebounce) {
+    clearTimeout(filtrosDebounce)
+  }
+
+  filtrosDebounce = setTimeout(() => {
+    void cargarLideres(1)
+  }, 250)
+})
+
+onBeforeUnmount(() => {
+  if (filtrosDebounce) {
+    clearTimeout(filtrosDebounce)
+  }
+})
 </script>
 
 <style>
@@ -427,6 +662,9 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#666; padding:6px; }
 .notif-badge { position:absolute; top:2px; right:2px; background:#ef4444; color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
 .page-body { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
+.view-tabs { display:flex; gap:8px; margin-bottom:14px; }
+.view-tab { border:1px solid #dbe3ee; background:#fff; color:#475569; padding:8px 14px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; }
+.view-tab.active { background:#0f1b2d; border-color:#0f1b2d; color:#fff; }
 .page-header { display:flex; align-items:center; justify-content:space-between; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
 .page-subtitle { font-size:13px; color:#999; margin:0; }
@@ -473,6 +711,10 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .acciones { display:flex; gap:6px; }
 .acc-btn { background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:background 0.15s; }
 .acc-btn:hover { background:#f1f5f9; }
+.acc-btn:disabled { opacity:0.55; cursor:not-allowed; }
+.acc-btn--success { background:#dcfce7; color:#166534; padding:6px 10px; font-size:11px; font-weight:700; }
+.acc-btn--danger { background:#fee2e2; color:#991b1b; padding:6px 10px; font-size:11px; font-weight:700; }
+.acc-btn--warn { background:#fef3c7; color:#b45309; padding:6px 10px; font-size:11px; font-weight:700; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
 .table-count { font-size:12px; color:#999; }
@@ -490,9 +732,12 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
 .modal-body p { font-size:13px; color:#555; margin:0; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group-full { grid-column:1 / -1; }
 .form-group label { font-size:12px; font-weight:600; color:#555; }
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
+.form-textarea { resize:vertical; min-height:88px; }
 .detalle-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .detalle-grid--three { grid-template-columns:repeat(3,1fr); }
 .detalle-item { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:#f8fafc; border-radius:8px; }
@@ -506,11 +751,13 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .pin-result { display:flex; flex-direction:column; align-items:center; gap:14px; }
 .pin-box { background:#0f1b2d; border-radius:12px; padding:20px 32px; text-align:center; }
 .pin-label { font-size:11px; color:#4a6080; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
-.pin-code { font-size:28px; font-weight:800; color:#4ab8f5; letter-spacing:4px; display:block; }
+.pin-code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:26px; font-weight:800; color:#4ab8f5; letter-spacing:0.2em; display:block; }
+.invite-form { display:flex; flex-direction:column; gap:14px; }
 .pin-hint { font-size:12px; color:#888; text-align:center; margin:0; }
 .btn-copy-pin { padding:8px 20px; border:1.5px solid #4ab8f5; border-radius:8px; background:white; color:#1a6ab5; font-size:13px; font-weight:600; cursor:pointer; }
 .btn-copy-pin:hover { background:#eff6ff; }
 @media (max-width: 860px) {
+  .form-grid,
   .detalle-grid,
   .detalle-grid--three {
     grid-template-columns:1fr;

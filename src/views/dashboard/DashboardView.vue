@@ -33,7 +33,7 @@
           <div class="kpi-card kpi-blue">
             <div class="kpi-info">
               <span class="kpi-label">Monto en cola de validación</span>
-              <span class="kpi-value">S/ {{ ventasValidadas }}</span>
+              <span class="kpi-value">{{ formatCurrency(ventasValidadas) }}</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
           </div>
@@ -47,7 +47,7 @@
           <div class="kpi-card kpi-red">
             <div class="kpi-info">
               <span class="kpi-label">Cartera pendiente registrada</span>
-              <span class="kpi-value">S/ {{ deudaTotal }}</span>
+              <span class="kpi-value">{{ formatCurrency(deudaTotal) }}</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
           </div>
@@ -77,7 +77,7 @@
               </div>
               <div class="insight-item">
                 <span class="insight-kicker">Finanzas</span>
-                <strong>S/ {{ deudaTotal }} en cartera</strong>
+                <strong>{{ formatCurrency(deudaTotal) }} en cartera</strong>
                 <p>El total se consolida desde la cartera administrativa registrada en deudas.</p>
               </div>
               <div class="insight-item">
@@ -199,11 +199,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
 const { authHeaders } = useAuthenticatedSession()
+const { ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 
 const hdrs = () => authHeaders()
 
@@ -211,9 +213,9 @@ const hdrs = () => authHeaders()
 const cargando        = ref(false)
 const cargandoTabla   = ref(false)
 const errorMsg        = ref('')
-const ventasValidadas = ref('0.00')
+const ventasValidadas = ref(0)
 const ventasPendientes = ref(0)
-const deudaTotal      = ref('0.00')
+const deudaTotal      = ref(0)
 const lideresActivos  = ref(0)
 
 // ── Tabla state ──
@@ -228,13 +230,6 @@ const porPagina       = 10
 
 // ── Fecha ──
 const fechaHoy = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long' })
-
-type PaginatedResponse<T> = {
-  data?: T[]
-  current_page?: number
-  last_page?: number
-  total?: number
-}
 
 // ── Filtrado tabla ──
 const tablaFiltrada = computed(() =>
@@ -260,49 +255,18 @@ const limpiarFiltros = () => {
   paginaActual.value    = 1
 }
 
-const cargarColeccionPaginada = async <T>(path: string) => {
-  const items: T[] = []
-  let page = 1
-  let lastPage = 1
-
-  do {
-    const separator = path.includes('?') ? '&' : '?'
-    const res = await fetch(`${API_BASE}${path}${separator}page=${page}`, { headers: hdrs() })
-    if (!res.ok) {
-      throw new Error('No se pudo cargar la colección paginada.')
-    }
-
-    const json = await res.json()
-    if (json.status !== 'success') {
-      throw new Error(json.message ?? 'La respuesta del servidor no fue válida.')
-    }
-
-    const payload = (json.data ?? {}) as PaginatedResponse<T>
-    items.push(...(payload.data ?? []))
-    lastPage = payload.last_page ?? 1
-    page += 1
-  } while (page <= lastPage)
-
-  return items
-}
-
 // ── API ──
 const cargarKPIs = async () => {
   try {
-    const [ventas, distribuidores, deudas] = await Promise.all([
-      cargarColeccionPaginada<any>('/workspace/admin/ventas/pendientes'),
-      cargarColeccionPaginada<any>('/workspace/admin/distribuidores'),
-      cargarColeccionPaginada<any>('/workspace/admin/finanzas/deudas'),
-    ])
+    const res = await fetch(`${API_BASE}/workspace/admin/analytics/resumen`, { headers: hdrs() })
+    if (!res.ok) return
+    const json = await res.json()
+    if (json.status !== 'success') return
 
-    ventasPendientes.value = ventas.length
-    ventasValidadas.value = ventas
-      .reduce((sum, venta) => sum + Number(venta.monto_total_venta ?? 0), 0)
-      .toFixed(2)
-    lideresActivos.value = distribuidores.filter((distribuidor) => distribuidor.estado_validacion === 'activa').length
-    deudaTotal.value = deudas
-      .reduce((sum, deuda) => sum + Number(deuda.monto_pendiente ?? 0), 0)
-      .toFixed(2)
+    ventasPendientes.value = Number(json.data?.ventas?.pendientes_cantidad ?? 0)
+    ventasValidadas.value = Number(json.data?.ventas?.pendientes_monto ?? 0)
+    lideresActivos.value = Number(json.data?.distribuidores?.activos ?? 0)
+    deudaTotal.value = Number(json.data?.finanzas?.deuda_activa_monto ?? 0)
   } catch { /* silencioso */ }
 }
 
@@ -320,7 +284,7 @@ const cargarTabla = async () => {
         leader:     v.vendedor?.usuario ? `${v.vendedor.usuario.nombre} ${v.vendedor.usuario.apellido}` : '—',
         action:     'Venta',
         actionType: 'venta',
-        description:`${v.kit?.nombre ?? '—'} - S/.${Number(v.monto_total_venta ?? 0).toFixed(2)}`,
+        description:`${v.kit?.nombre ?? '—'} - ${formatCurrency(v.monto_total_venta)}`,
         status:     v.estado ?? 'pendiente',
         statusType: v.estado ?? 'pendiente',
       }))
@@ -332,7 +296,7 @@ const cargarTabla = async () => {
 const actualizar = async () => {
   cargando.value = true
   errorMsg.value = ''
-  await Promise.all([cargarKPIs(), cargarTabla()])
+  await Promise.all([ensureCurrencyLoaded(), cargarKPIs(), cargarTabla()])
   cargando.value = false
 }
 
@@ -352,7 +316,9 @@ const exportarCSV = () => {
   URL.revokeObjectURL(url)
 }
 
-onMounted(() => actualizar())
+onMounted(() => {
+  void actualizar()
+})
 </script>
 
 <style scoped>

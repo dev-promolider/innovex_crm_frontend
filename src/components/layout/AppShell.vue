@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { primaryNavigation, secondaryNavigation, type NavigationItem } from '../../app/navigation'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
@@ -22,6 +23,7 @@ withDefaults(
 )
 
 const { userName, userEmail, userInitial, logout } = useAuthenticatedSession()
+const { t } = useI18n()
 const route = useRoute()
 
 const sidebarOpen = shallowRef(false)
@@ -62,8 +64,8 @@ const toggleSidebar = () => {
         :user-name="userName"
         :user-email="userEmail"
         :user-initial="userInitial"
-        :section-label="currentItem.label"
-        :section-description="currentItem.description"
+        :section-label="t(currentItem.labelKey)"
+        :section-description="t(currentItem.descriptionKey)"
         :notification-count="notificationCount"
         :avatar-image-src="avatarImageSrc"
         :show-search="showSearch"

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import AppSearchInput from '../shared/AppSearchInput.vue'
 
@@ -27,20 +29,26 @@ defineEmits<{
   toggleMenu: []
 }>()
 
+const { t } = useI18n()
 const searchQuery = shallowRef('')
+const router = useRouter()
+
+const goToProfile = () => {
+  router.push({ name: 'perfil' })
+}
 </script>
 
 <template>
   <header class="app-topbar">
     <div class="app-topbar__left">
-      <button type="button" class="app-topbar__menu" aria-label="Abrir navegacion" @click="$emit('toggleMenu')">
+      <button type="button" class="app-topbar__menu" :aria-label="t('common.openNavigation')" @click="$emit('toggleMenu')">
         <AppIcon name="menu" :size="20" />
       </button>
 
       <div class="app-topbar__heading">
         <div class="app-topbar__breadcrumb">
           <slot name="breadcrumb">
-            <span>Inicio</span>
+            <span>{{ t('common.home') }}</span>
           </slot>
         </div>
 
@@ -60,12 +68,17 @@ const searchQuery = shallowRef('')
     </div>
 
     <div class="app-topbar__right">
-      <button type="button" class="app-topbar__notifications" aria-label="Ver notificaciones">
+      <button type="button" class="app-topbar__notifications" :aria-label="t('common.notifications')">
         <AppIcon name="notification" :size="18" />
         <span class="app-topbar__badge">{{ notificationCount }}</span>
       </button>
 
-      <div class="app-topbar__user" aria-label="Informacion de usuario">
+      <button
+        type="button"
+        class="app-topbar__user"
+        :aria-label="t('common.openProfile')"
+        @click="goToProfile"
+      >
         <div class="app-topbar__avatar" aria-hidden="true">
           <img v-if="avatarImageSrc" :src="avatarImageSrc" :alt="userName" class="app-topbar__avatar-image" />
           <span v-else>{{ userInitial }}</span>
@@ -75,7 +88,7 @@ const searchQuery = shallowRef('')
           <span class="app-topbar__name">{{ userName }}</span>
           <span class="app-topbar__email">{{ userEmail }}</span>
         </div>
-      </div>
+      </button>
     </div>
   </header>
 </template>
@@ -195,6 +208,7 @@ const searchQuery = shallowRef('')
 }
 
 .app-topbar__user {
+   border: 0;
    display: flex;
    align-items: center;
    gap: 10px;
@@ -203,6 +217,24 @@ const searchQuery = shallowRef('')
    border-radius: 16px;
    background: #f8fbff;
    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+   cursor: pointer;
+   transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.app-topbar__user:hover {
+   background: #f2f7fd;
+   box-shadow:
+     inset 0 0 0 1px rgba(90, 132, 182, 0.18),
+     0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.app-topbar__user:focus-visible {
+   outline: 2px solid #2263e5;
+   outline-offset: 3px;
+}
+
+.app-topbar__user:active {
+   transform: scale(0.99);
 }
 
 .app-topbar__avatar {

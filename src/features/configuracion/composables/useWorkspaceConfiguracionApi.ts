@@ -2,7 +2,12 @@ import axios from 'axios'
 import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import type { UsuarioListItem } from '@/features/usuarios/types'
 import type {
+    WorkspaceFounderConfiguration,
+    WorkspaceFounderRegistrationPayload,
+    WorkspaceFounderRegistrationResult,
+    WorkspaceFounderUserCandidate,
     UpdateWorkspaceProfilePayload,
     WorkspaceLogoPreview,
     WorkspaceProfile,
@@ -12,6 +17,14 @@ interface SuccessResponse<T> {
     status: string
     message?: string
     data: T
+}
+
+interface PaginationPayload<T> {
+    data: T[]
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
 }
 
 interface WorkspaceConfiguracionApiOptions {
@@ -51,10 +64,16 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
     const profile = shallowRef<WorkspaceProfile | null>(null)
     const logoPreview = shallowRef<WorkspaceLogoPreview | null>(null)
+    const founderConfig = shallowRef<WorkspaceFounderConfiguration | null>(null)
+    const founderUserCandidates = shallowRef<WorkspaceFounderUserCandidate[]>([])
+    const founderRegistrationResult = shallowRef<WorkspaceFounderRegistrationResult | null>(null)
     const isLoading = shallowRef(false)
     const isSaving = shallowRef(false)
     const isUploadingLogo = shallowRef(false)
     const isConfirmingLogo = shallowRef(false)
+    const isFounderLoading = shallowRef(false)
+    const isFounderSaving = shallowRef(false)
+    const isFounderUsersLoading = shallowRef(false)
     const errorMessage = shallowRef('')
     const successMessage = shallowRef('')
 
@@ -81,6 +100,98 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             throw error
         } finally {
             isLoading.value = false
+        }
+    }
+
+    const fetchFounderConfig = async () => {
+        isFounderLoading.value = true
+        errorMessage.value = ''
+
+        try {
+            const response = await apiClient.get<SuccessResponse<WorkspaceFounderConfiguration>>(
+                `${basePath}/fundador`,
+                {
+                    headers: requestHeaders(),
+                },
+            )
+
+            founderConfig.value = response.data.data
+            return response.data.data
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        } finally {
+            isFounderLoading.value = false
+        }
+    }
+
+    const searchFounderUsers = async (search = '') => {
+        isFounderUsersLoading.value = true
+        errorMessage.value = ''
+
+        try {
+            const response = isSuperadminScope
+                ? await apiClient.get<SuccessResponse<PaginationPayload<UsuarioListItem>>>(
+                    '/superadmin/usuarios',
+                    {
+                        headers: platformHeaders(),
+                        params: {
+                            search: search.trim(),
+                            per_page: 10,
+                        },
+                    },
+                )
+                : await apiClient.get<SuccessResponse<PaginationPayload<WorkspaceFounderUserCandidate>>>(
+                    `${basePath}/fundador/usuarios`,
+                    {
+                        headers: requestHeaders(),
+                        params: {
+                            search: search.trim(),
+                            per_page: 10,
+                        },
+                    },
+                )
+
+            founderUserCandidates.value = response.data.data.data.map((usuario) => ({
+                id: usuario.id,
+                nombre_completo: usuario.nombre_completo,
+                email: usuario.email,
+                numero_documento: usuario.numero_documento,
+                estado_global: usuario.estado_global,
+                membresias_activas_count: usuario.membresias_activas_count,
+            }))
+
+            return founderUserCandidates.value
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        } finally {
+            isFounderUsersLoading.value = false
+        }
+    }
+
+    const registerFounder = async (payload: WorkspaceFounderRegistrationPayload) => {
+        isFounderSaving.value = true
+        clearMessages()
+
+        try {
+            const response = await apiClient.post<SuccessResponse<WorkspaceFounderRegistrationResult>>(
+                `${basePath}/fundador`,
+                payload,
+                {
+                    headers: requestHeaders(),
+                },
+            )
+
+            founderRegistrationResult.value = response.data.data
+            successMessage.value = response.data.message ?? 'Patrocinador fundador registrado correctamente.'
+            await fetchFounderConfig()
+            return response.data.data
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        } finally {
+            isFounderSaving.value = false
         }
     }
 
@@ -177,15 +288,24 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
     return {
         profile: readonly(profile),
         logoPreview: readonly(logoPreview),
+        founderConfig: readonly(founderConfig),
+        founderUserCandidates: readonly(founderUserCandidates),
+        founderRegistrationResult: readonly(founderRegistrationResult),
         isLoading: readonly(isLoading),
         isSaving: readonly(isSaving),
         isUploadingLogo: readonly(isUploadingLogo),
         isConfirmingLogo: readonly(isConfirmingLogo),
+        isFounderLoading: readonly(isFounderLoading),
+        isFounderSaving: readonly(isFounderSaving),
+        isFounderUsersLoading: readonly(isFounderUsersLoading),
         errorMessage: readonly(errorMessage),
         successMessage: readonly(successMessage),
         clearMessages,
         clearLogoPreview,
         fetchProfile,
+        fetchFounderConfig,
+        searchFounderUsers,
+        registerFounder,
         updateProfile,
         uploadLogoPreview,
         confirmLogo,

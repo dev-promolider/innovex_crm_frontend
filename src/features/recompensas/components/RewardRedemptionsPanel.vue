@@ -17,6 +17,7 @@ const {
 } = useRewardRedemptionsApi()
 
 const search = shallowRef('')
+const membresiaId = shallowRef('')
 const selectedStatus = shallowRef('')
 const selectedId = shallowRef<number | null>(null)
 const selectedRedemption = shallowRef<RewardRedemption | null>(null)
@@ -43,10 +44,15 @@ const formatDate = (value: string | null) => {
 }
 
 const loadRedemptions = async (page = 1) => {
+  const parsedMembresiaId = Number.parseInt(membresiaId.value.trim(), 10)
+
   await fetchRedemptions({
     page,
     estado: selectedStatus.value || undefined,
     search: search.value.trim() || undefined,
+    membresia_id: Number.isFinite(parsedMembresiaId) && parsedMembresiaId > 0
+      ? parsedMembresiaId
+      : undefined,
   })
 
   if (!redemptions.value.length) {
@@ -111,6 +117,14 @@ onMounted(() => {
 
       <div class="toolbar-filters">
         <input v-model="search" type="text" class="filter-input" placeholder="Buscar distribuidor o premio..." @keyup.enter="loadRedemptions()">
+        <input
+          v-model="membresiaId"
+          type="number"
+          min="1"
+          class="filter-input filter-input-narrow"
+          placeholder="ID membresia"
+          @keyup.enter="loadRedemptions()"
+        >
         <select v-model="selectedStatus" class="filter-select" @change="loadRedemptions()">
           <option value="">Todos los estados</option>
           <option value="procesando">Procesando</option>
@@ -308,6 +322,11 @@ onMounted(() => {
 
 .filter-input {
   min-width: 250px;
+}
+
+.filter-input-narrow {
+  min-width: 140px;
+  max-width: 160px;
 }
 
 .filter-button,

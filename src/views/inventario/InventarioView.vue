@@ -91,6 +91,11 @@
               <option value="aprobada">Aprobada</option>
               <option value="rechazada">Rechazada</option>
             </select>
+            <select v-model="filtroOrigenSol" class="select-filter" @change="cargarSolicitudes(1)">
+              <option value="todos">Todos los origenes</option>
+              <option value="empresa">Origen empresa</option>
+              <option value="patrocinador">Origen patrocinador</option>
+            </select>
           </div>
 
           <div v-if="cargandoSol" class="loading-state">
@@ -104,6 +109,7 @@
                   <th>Distribuidor</th>
                   <th>Rango</th>
                   <th>Kit</th>
+                  <th>Origen</th>
                   <th>Cantidad</th>
                   <th>Total</th>
                   <th>Contrato</th>
@@ -114,7 +120,7 @@
               </thead>
               <tbody>
                 <tr v-if="solicitudesFiltradas.length === 0">
-                  <td colspan="9" class="empty-state">No hay solicitudes con este filtro.</td>
+                  <td colspan="10" class="empty-state">No hay solicitudes con este filtro.</td>
                 </tr>
                 <tr
                   v-for="s in solicitudesFiltradas"
@@ -124,21 +130,22 @@
                 >
                   <td>
                     <div class="lider-info">
-                      <div class="lider-avatar">{{ inicialesLider(s) }}</div>
-                      <div class="lider-name">{{ nombreLider(s) }}</div>
+                      <div class="lider-avatar">{{ inicialesDistribuidor(s) }}</div>
+                      <div class="lider-name">{{ nombreDistribuidor(s) }}</div>
                     </div>
                   </td>
                   <td class="td-lider">{{ s.distribuidor?.rango ?? '—' }}</td>
                   <td class="td-kit">{{ s.kit?.nombre ?? '—' }}</td>
+                  <td><span class="badge" :class="'sol-' + origenSolicitud(s)">{{ labelOrigenSolicitud(s) }}</span></td>
                   <td class="td-center">{{ s.cantidad ?? '—' }}</td>
-                  <td class="td-monto">S/ {{ Number(s.monto_total ?? 0).toFixed(2) }}</td>
+                  <td class="td-monto">{{ formatCurrency(s.monto_total) }}</td>
                   <td class="td-kit">{{ s.contrato?.numero_contrato ?? 'Sin contrato' }}</td>
                   <td class="td-center">{{ s.distribuidor?.nivel_confianza ?? '—' }}</td>
                   <td>
-                    <span class="badge" :class="'sol-' + (s.estado ?? 'pendiente')">{{ labelEstadoSol(s.estado) }}</span>
+                    <span class="badge" :class="'sol-' + estadoUiSolicitud(s.estado)">{{ labelEstadoSol(s.estado) }}</span>
                   </td>
                   <td>
-                    <div class="acciones" v-if="s.estado === 'pendiente'">
+                    <div class="acciones" v-if="puedeGestionarseSolicitud(s)">
                       <button class="btn-aprobar" @click.stop="aprobarSolicitud(s)" :disabled="procesando === s.solicitud_id">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         {{ procesando === s.solicitud_id ? '...' : 'Aprobar' }}
@@ -170,6 +177,14 @@
                 <h3 class="section-title">Detalle de solicitud</h3>
                 <p class="section-sub">Contrato, evidencias de firma e historial crediticio del distribuidor.</p>
               </div>
+              <button
+                v-if="detalleSolicitud?.contrato?.id"
+                class="btn-contract-view"
+                :disabled="abriendoContratoId === detalleSolicitud?.contrato?.id"
+                @click="verContrato(detalleSolicitud)"
+              >
+                {{ abriendoContratoId === detalleSolicitud?.contrato?.id ? 'Abriendo contrato...' : 'Ver contrato' }}
+              </button>
             </div>
 
             <div v-if="cargandoDetalle" class="loading-state detail-state">
@@ -189,7 +204,7 @@
                 </div>
                 <div class="detail-metric-card">
                   <span class="detail-metric-label">Monto total</span>
-                  <strong>S/ {{ Number(detalleSolicitud.monto_total ?? 0).toFixed(2) }}</strong>
+                  <strong>{{ formatCurrency(detalleSolicitud.monto_total) }}</strong>
                   <small>{{ detalleSolicitud.cantidad ?? 0 }} kits solicitados</small>
                 </div>
                 <div class="detail-metric-card">
@@ -200,7 +215,7 @@
                 <div class="detail-metric-card">
                   <span class="detail-metric-label">Crédito histórico</span>
                   <strong>{{ detalleSolicitud.historial_credito?.deudas_activas ?? 0 }} activas</strong>
-                  <small>S/ {{ Number(detalleSolicitud.historial_credito?.monto_pendiente_total ?? 0).toFixed(2) }} pendientes</small>
+                  <small>{{ formatCurrency(detalleSolicitud.historial_credito?.monto_pendiente_total) }} pendientes</small>
                 </div>
               </div>
 
@@ -268,7 +283,7 @@
           <button class="modal-close" @click="modalRechazar = false">✕</button>
         </div>
         <div class="modal-body">
-          <p>Solicitud de <strong>{{ nombreLider(solicitudSeleccionada) }}</strong></p>
+          <p>Solicitud de <strong>{{ nombreDistribuidor(solicitudSeleccionada) }}</strong></p>
           <p>Kit: <strong>{{ solicitudSeleccionada?.kit?.nombre }}</strong> x{{ solicitudSeleccionada?.cantidad ?? 0 }}</p>
           <div class="form-group" style="margin-top:14px">
             <label>Motivo del rechazo *</label>
@@ -290,12 +305,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
 import InventoryMovementsPanel from '@/features/inventario/components/InventoryMovementsPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
+const { ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
@@ -315,9 +332,11 @@ const cargandoDetalle       = ref(false)
 const procesando            = ref<number | null>(null)
 const busquedaSol           = ref('')
 const filtroEstadoSol       = ref('todos')
+const filtroOrigenSol       = ref('todos')
 const solicitudesPendientes = ref(0)
 const metaSol = ref({ total: 0, current_page: 1, last_page: 1 })
 const detalleSolicitud      = ref<any>(null)
+const abriendoContratoId    = ref<number | null>(null)
 
 // Modal rechazar
 const modalRechazar         = ref(false)
@@ -332,13 +351,20 @@ const formatFecha = (f: string) => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-const nombreLider    = (s: any) => s?.distribuidor?.nombre ?? '—'
-const inicialesLider = (s: any) => {
+const nombreDistribuidor = (s: any) => s?.distribuidor?.nombre ?? '—'
+const inicialesDistribuidor = (s: any) => {
   const nombre = s?.distribuidor?.nombre?.trim?.() ?? ''
   if (!nombre) return '?'
   return nombre.split(' ').slice(0, 2).map((segment: string) => segment[0]?.toUpperCase?.() ?? '').join('')
 }
-const labelEstadoSol = (e: string) => ({ pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' }[e] ?? 'Pendiente')
+const estadoUiSolicitud = (estado?: string) => {
+  if (estado === 'pendiente_aprobacion') return 'pendiente'
+  return estado ?? 'pendiente'
+}
+const puedeGestionarseSolicitud = (solicitud: any) => estadoUiSolicitud(solicitud?.estado) === 'pendiente'
+const labelEstadoSol = (estado?: string) => ({ pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' }[estadoUiSolicitud(estado)] ?? 'Pendiente')
+const origenSolicitud = (solicitud: any) => solicitud?.origen_abastecimiento === 'patrocinador' ? 'patrocinador' : 'empresa'
+const labelOrigenSolicitud = (solicitud: any) => origenSolicitud(solicitud) === 'patrocinador' ? 'Patrocinador' : 'Empresa'
 const stockDisponible = (k: any) => (k.stock_central ?? 0) - (k.stock_comprometido ?? 0)
 const gpsFirma = (detalle: any) => {
   const lat = detalle?.contrato?.gps_latitud
@@ -350,10 +376,10 @@ const gpsFirma = (detalle: any) => {
 // ── Filtrados ──
 const solicitudesFiltradas = computed(() =>
   solicitudes.value.filter(s => {
-    const matchEstado = filtroEstadoSol.value === 'todos' || s.estado === filtroEstadoSol.value
+    const matchEstado = filtroEstadoSol.value === 'todos' || estadoUiSolicitud(s.estado) === filtroEstadoSol.value
     const term = busquedaSol.value.toLowerCase()
     const matchBusq   = !busquedaSol.value
-      || nombreLider(s).toLowerCase().includes(term)
+      || nombreDistribuidor(s).toLowerCase().includes(term)
       || (s.distribuidor?.rango ?? '').toLowerCase().includes(term)
       || (s.kit?.nombre ?? '').toLowerCase().includes(term)
       || (s.contrato?.numero_contrato ?? '').toLowerCase().includes(term)
@@ -381,7 +407,11 @@ const cargarSolicitudes = async (pagina = 1) => {
   cargandoSol.value = true
   errorMsg.value    = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/pendientes?page=${pagina}`, { headers: hdrs() })
+    const params = new URLSearchParams({
+      page: String(pagina),
+      origen_abastecimiento: filtroOrigenSol.value,
+    })
+    const res  = await fetch(`${API_BASE}/workspace/admin/solicitudes/pendientes?${params.toString()}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
@@ -424,6 +454,54 @@ const seleccionarSolicitud = async (solicitudId: number) => {
     errorMsg.value = 'No se pudo cargar el detalle de la solicitud.'
   } finally {
     cargandoDetalle.value = false
+  }
+}
+
+const verContrato = async (solicitud: any) => {
+  const contratoId = solicitud?.contrato?.id
+
+  if (!contratoId) {
+    errorMsg.value = 'Esta solicitud no tiene contrato disponible.'
+    return
+  }
+
+  abriendoContratoId.value = contratoId
+  errorMsg.value = ''
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/contratos/${contratoId}`, { headers: hdrs() })
+    if (res.status === 401) { cerrarSesion(); return }
+
+    const json = await res.json()
+    if (json.status !== 'success') {
+      errorMsg.value = json.message ?? 'No se pudo abrir el contrato.'
+      return
+    }
+
+    const pdfUrl = json.data?.pdf_url
+    if (!pdfUrl) {
+      errorMsg.value = 'El PDF del contrato no está disponible en este momento.'
+      return
+    }
+
+    const pdfRes = await fetch(pdfUrl, {
+      headers: authHeaders(),
+    })
+
+    if (pdfRes.status === 401) { cerrarSesion(); return }
+    if (!pdfRes.ok) {
+      errorMsg.value = 'No se pudo descargar el PDF del contrato.'
+      return
+    }
+
+    const pdfBlob = await pdfRes.blob()
+    const objectUrl = URL.createObjectURL(pdfBlob)
+    window.open(objectUrl, '_blank', 'noopener,noreferrer')
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+  } catch {
+    errorMsg.value = 'No se pudo abrir el contrato.'
+  } finally {
+    abriendoContratoId.value = null
   }
 }
 
@@ -483,6 +561,7 @@ const rechazarSolicitud = async () => {
 const cambiarPaginaSol = (p: number) => cargarSolicitudes(p)
 
 onMounted(async () => {
+  await ensureCurrencyLoaded()
   await cargarKits()
   await cargarSolicitudes()
 })
@@ -608,6 +687,9 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-aprobar:disabled { opacity:0.5; cursor:not-allowed; }
 .btn-rechazar { display:flex; align-items:center; gap:4px; padding:5px 12px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:12px; font-weight:600; cursor:pointer; }
 .btn-rechazar:hover { background:#fecaca; }
+.btn-contract-view { display:inline-flex; align-items:center; justify-content:center; padding:9px 14px; border:none; border-radius:8px; background:#162236; color:#fff; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.btn-contract-view:hover { background:#1f3350; }
+.btn-contract-view:disabled { opacity:0.6; cursor:not-allowed; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
 .request-detail-card { margin-top:20px; padding-top:20px; border-top:1px solid #e2e8f0; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import AppButton from '@/components/shared/AppButton.vue'
+import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import { useBankValidationApi } from '../composables/useBankValidationApi'
 
 const emit = defineEmits<{
@@ -22,6 +23,8 @@ const {
 
 const search = shallowRef('')
 const selectedSaleId = shallowRef<number | null>(null)
+
+const { ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 
 const selectedSale = computed(() =>
   pendingSales.value.find((sale) => sale.id === selectedSaleId.value) ?? filteredSales.value[0] ?? null,
@@ -70,13 +73,6 @@ watch(filteredSales, (sales) => {
   }
 }, { immediate: true })
 
-const formatCurrency = (value: number | string | null | undefined) =>
-  new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-    maximumFractionDigits: 2,
-  }).format(Number(value ?? 0))
-
 const formatDate = (value: string | null | undefined) =>
   value
     ? new Intl.DateTimeFormat('es-PE', {
@@ -124,6 +120,7 @@ const goToPage = async (page: number) => {
 }
 
 onMounted(async () => {
+  await ensureCurrencyLoaded()
   await fetchPendingSales()
 })
 </script>

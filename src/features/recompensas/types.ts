@@ -90,6 +90,7 @@ export interface RewardRedemptionFilters {
     page?: number
     estado?: string
     search?: string
+    membresia_id?: number
 }
 
 export interface PaginationMeta {

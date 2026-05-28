@@ -75,6 +75,20 @@ withDefaults(
   </svg>
 
   <svg
+    v-else-if="name === 'approvals'"
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    <path d="M7 12h5" />
+  </svg>
+
+  <svg
     v-else-if="name === 'users'"
     :width="size"
     :height="size"
@@ -154,6 +168,19 @@ withDefaults(
     <line x1="8" y1="12" x2="21" y2="12" />
     <line x1="8" y1="18" x2="21" y2="18" />
     <line x1="3" y1="6" x2="3.01" y2="6" />
+  </svg>
+
+  <svg
+    v-else-if="name === 'profile'"
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
+    <path d="M20 21a8 8 0 0 0-16 0" />
+    <circle cx="12" cy="8" r="4" />
   </svg>
 
   <svg

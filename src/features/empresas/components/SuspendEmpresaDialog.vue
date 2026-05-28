@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from 'vue'
-import AppModal from '@/components/shared/AppModal.vue'
+import Button from 'primevue/button'
+import AppDialog from '@/components/shared/AppDialog.vue'
 
 interface Props {
   open: boolean
@@ -42,9 +43,9 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <AppModal
+  <AppDialog
     :open="open"
-    size="sm"
+    width="sm"
     title="Suspender empresa"
     :description="`Esta accion revocara la operacion del workspace ${empresaNombre}.`"
     @close="emit('update:open', false)"
@@ -72,12 +73,16 @@ const handleSubmit = () => {
     </div>
 
     <template #footer>
-      <button type="button" class="btn-secondary" @click="emit('update:open', false)">Cancelar</button>
-      <button type="button" class="btn-danger" :disabled="!canSubmit" @click="handleSubmit">
-        {{ submitting ? 'Suspendiendo...' : 'Confirmar suspension' }}
-      </button>
+      <Button type="button" label="Cancelar" severity="secondary" outlined @click="emit('update:open', false)" />
+      <Button
+        type="button"
+        :label="submitting ? 'Suspendiendo...' : 'Confirmar suspension'"
+        severity="danger"
+        :disabled="!canSubmit"
+        @click="handleSubmit"
+      />
     </template>
-  </AppModal>
+  </AppDialog>
 </template>
 
 <style scoped>
@@ -133,28 +138,4 @@ const handleSubmit = () => {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
 }
 
-.btn-secondary,
-.btn-danger {
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.btn-secondary {
-  border: 1px solid #dbe3ef;
-  background: #fff;
-  color: #475569;
-}
-
-.btn-danger {
-  border: none;
-  background: #dc2626;
-  color: #fff;
-}
-
-.btn-danger:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
 </style>

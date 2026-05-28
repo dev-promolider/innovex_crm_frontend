@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
+import { formatDate as formatLocalizedDate } from '@/utils/formatters'
 import type { DebtDetail, DebtListItem, LedgerAccountStatement, LedgerMovement } from '../types'
 
 const props = defineProps<{
@@ -13,7 +15,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [debtId: number]
+  reverseMovement: [movement: LedgerMovement]
+  openDispute: [debtId: number]
+  resolveDispute: [debtId: number]
 }>()
+
+const { formatCurrency: formatMoney } = useWorkspaceCurrency()
 
 const selectedDebtLabel = computed(() => {
   if (!props.debtDetail?.modelo_pago) {
@@ -31,15 +38,8 @@ const stateLabel = (state: string | null | undefined) => ({
   en_disputa: 'En disputa',
 }[state ?? ''] ?? 'Sin estado')
 
-const formatMoney = (value: number | null | undefined) =>
-  new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-    maximumFractionDigits: 2,
-  }).format(Number(value ?? 0))
-
 const formatDate = (value: string | null | undefined) =>
-  value ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(value)) : '—'
+  formatLocalizedDate(value)
 
 const avatarLabel = (debt: DebtListItem) => {
   const fullName = debt.distribuidor.nombre?.trim() ?? ''
@@ -103,7 +103,30 @@ const movementLabel = (movement: LedgerMovement) =>
           <h4 class="detail-title">{{ debtDetail.distribuidor.nombre ?? 'Distribuidor' }}</h4>
           <p class="detail-subtitle">{{ selectedDebtLabel }} · {{ debtDetail.contrato.numero ?? 'Sin contrato' }}</p>
         </div>
-        <span class="detail-balance">{{ formatMoney(debtDetail.monto_pendiente) }}</span>
+        <div class="detail-head__actions">
+          <span class="detail-balance">{{ formatMoney(debtDetail.monto_pendiente) }}</span>
+          <button
+            v-if="debtDetail.estado !== 'en_disputa' && debtDetail.estado !== 'pagada'"
+            class="mini-action"
+            type="button"
+            @click="emit('openDispute', debtDetail.id)"
+          >
+            Abrir disputa
+          </button>
+          <button
+            v-else-if="debtDetail.estado === 'en_disputa'"
+            class="mini-action"
+            type="button"
+            @click="emit('resolveDispute', debtDetail.id)"
+          >
+            Resolver disputa
+          </button>
+        </div>
+      </div>
+
+      <div v-if="debtDetail.estado === 'en_disputa'" class="dispute-box">
+        <strong>Deuda en disputa</strong>
+        <p>{{ debtDetail.disputa?.motivo ?? 'Sin motivo registrado.' }}</p>
       </div>
 
       <div class="detail-grid">
@@ -206,7 +229,17 @@ const movementLabel = (movement: LedgerMovement) =>
                   <strong>{{ movementLabel(movement) }}</strong>
                   <p>{{ formatDate(movement.created_at) }} · saldo {{ formatMoney(movement.saldo_disponible_posterior) }}</p>
                 </div>
-                <strong>{{ formatMoney(movement.monto) }}</strong>
+                <div class="movement-actions">
+                  <strong>{{ formatMoney(movement.monto) }}</strong>
+                  <button
+                    v-if="movement.es_reversible"
+                    class="mini-action"
+                    type="button"
+                    @click="emit('reverseMovement', movement)"
+                  >
+                    Revertir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -378,6 +411,38 @@ const movementLabel = (movement: LedgerMovement) =>
   color: #fef08a;
   font-size: 18px;
   font-weight: 700;
+}
+
+.detail-head__actions,
+.movement-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-action {
+  background: rgba(103, 232, 249, 0.12);
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 999px;
+  color: #67e8f9;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.dispute-box {
+  background: rgba(216, 180, 254, 0.12);
+  border: 1px solid rgba(216, 180, 254, 0.24);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.dispute-box p {
+  color: #d8b4fe;
+  font-size: 12px;
+  margin: 4px 0 0;
 }
 
 .detail-grid {

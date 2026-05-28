@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { Search, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   modelValue?: string
@@ -19,6 +20,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+const { t } = useI18n()
 
 const updateValue = (value: string | number) => {
   emit('update:modelValue', String(value))
@@ -49,7 +52,7 @@ const clearValue = () => {
       @click="clearValue"
     >
       <X class="app-search-clear-icon" />
-      <span class="sr-only">Limpiar busqueda</span>
+      <span class="sr-only">{{ t('common.clearSearch') }}</span>
     </button>
   </div>
 </template>

@@ -775,7 +775,7 @@ CREATE TABLE IF NOT EXISTS solicitud_kit (
 
 CREATE TABLE IF NOT EXISTS contrato_digital (
     id                       BIGINT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
-    numero_contrato          VARCHAR(60)      NOT NULL UNIQUE,
+    numero_contrato          VARCHAR(60)      NOT NULL,
     empresa_id               BIGINT UNSIGNED  NOT NULL,
     membresia_id             BIGINT UNSIGNED  NOT NULL,
     solicitud_kit_id         BIGINT UNSIGNED  NULL,
@@ -815,6 +815,7 @@ CREATE TABLE IF NOT EXISTS contrato_digital (
     CONSTRAINT fk_contrato_dispositivo FOREIGN KEY (dispositivo_firma_id)
         REFERENCES dispositivo_registrado (id) ON DELETE RESTRICT,
 
+    UNIQUE KEY contrato_digital_numero_contrato_version_unique (numero_contrato, version_contrato),
     UNIQUE KEY uq_contrato_huella_pdf (huella_pdf),
     INDEX idx_contrato_empresa         (empresa_id),
     INDEX idx_contrato_membresia       (membresia_id),

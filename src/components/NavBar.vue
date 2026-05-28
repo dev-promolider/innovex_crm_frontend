@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import logo from '../assets/logo.png'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { primaryNavigation, secondaryNavigation } from '../app/navigation'
 import { useAuthenticatedSession } from '../composables/useAuthenticatedSession'
 import AppIcon from './layout/AppIcon.vue'
@@ -19,10 +20,25 @@ const emit = defineEmits<{
 	logout: []
 }>()
 
-const { isSuperadmin } = useAuthenticatedSession()
+const { t } = useI18n()
+const { isSuperadmin, empresaId } = useAuthenticatedSession()
 
-const visiblePrimaryNavigation = computed(() => primaryNavigation.filter((item) => !item.requiresSuperadmin || isSuperadmin.value))
-const visibleSecondaryNavigation = computed(() => secondaryNavigation.filter((item) => !item.requiresSuperadmin || isSuperadmin.value))
+const hasWorkspaceContext = computed(() => empresaId.value.length > 0)
+
+const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceContext?: boolean }) => {
+	if (item.requiresSuperadmin && !isSuperadmin.value) {
+		return false
+	}
+
+	if (item.requiresWorkspaceContext && !hasWorkspaceContext.value) {
+		return false
+	}
+
+	return true
+}
+
+const visiblePrimaryNavigation = computed(() => primaryNavigation.filter(canShowItem))
+const visibleSecondaryNavigation = computed(() => secondaryNavigation.filter(canShowItem))
 
 const handleNavigate = () => emit('navigate')
 const handleLogout = () => emit('logout')
@@ -31,11 +47,11 @@ const handleLogout = () => emit('logout')
 <template>
 	<aside class="app-sidebar" :class="{ 'app-sidebar--open': isOpen }">
 		<div class="app-sidebar__brand">
-			<img :src="logo" alt="Logo de Innovex" class="app-sidebar__logo" />
+			<img :src="logo" :alt="t('common.appName')" class="app-sidebar__logo" />
 		</div>
 
-		<div class="app-sidebar__section">General</div>
-		<nav class="app-sidebar__nav" aria-label="Navegacion principal">
+		<div class="app-sidebar__section">{{ t('common.general') }}</div>
+		<nav class="app-sidebar__nav" :aria-label="t('common.general')">
 			<RouterLink
 				v-for="item in visiblePrimaryNavigation"
 				:key="item.to"
@@ -47,11 +63,11 @@ const handleLogout = () => emit('logout')
 				<span class="app-sidebar__link-icon">
 					<AppIcon :name="item.icon" :size="18" />
 				</span>
-				<strong class="app-sidebar__link-label">{{ item.label }}</strong>
+				<strong class="app-sidebar__link-label">{{ t(item.labelKey) }}</strong>
 			</RouterLink>
 		</nav>
 
-		<div class="app-sidebar__section app-sidebar__section--secondary">Ajustes</div>
+		<div class="app-sidebar__section app-sidebar__section--secondary">{{ t('common.settings') }}</div>
 		<div class="app-sidebar__footer">
 			<RouterLink
 				v-for="item in visibleSecondaryNavigation"
@@ -64,14 +80,14 @@ const handleLogout = () => emit('logout')
 				<span class="app-sidebar__link-icon">
 					<AppIcon :name="item.icon" :size="18" />
 				</span>
-				<strong class="app-sidebar__link-label">{{ item.label }}</strong>
+				<strong class="app-sidebar__link-label">{{ t(item.labelKey) }}</strong>
 			</RouterLink>
 
 			<button type="button" class="app-sidebar__link app-sidebar__logout" @click="handleLogout">
 				<span class="app-sidebar__link-icon">
 					<AppIcon name="logout" :size="18" />
 				</span>
-				<strong class="app-sidebar__link-label">Cerrar sesion</strong>
+				<strong class="app-sidebar__link-label">{{ t('common.logout') }}</strong>
 			</button>
 		</div>
 	</aside>

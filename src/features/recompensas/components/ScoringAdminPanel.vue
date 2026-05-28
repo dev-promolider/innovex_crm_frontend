@@ -31,7 +31,7 @@ const totalWeights = computed(() =>
   + form.value.peso_salud_red,
 )
 
-const roleLabel = (role: ScoringRole) => role === 'vendedor_base' ? 'Vendedor base' : 'Lider de red'
+const roleLabel = (role: ScoringRole) => role === 'vendedor_base' ? 'Distribuidor base' : 'Lider de red'
 
 const formatDate = (value: string | null) => {
   if (!value) {
@@ -111,7 +111,7 @@ onMounted(async () => {
       </div>
 
       <div class="role-switcher">
-        <button type="button" class="role-button" :class="{ active: activeRole === 'vendedor_base' }" @click="activeRole = 'vendedor_base'">Vendedor base</button>
+        <button type="button" class="role-button" :class="{ active: activeRole === 'vendedor_base' }" @click="activeRole = 'vendedor_base'">Distribuidor base</button>
         <button type="button" class="role-button" :class="{ active: activeRole === 'lider_red' }" @click="activeRole = 'lider_red'">Lider de red</button>
       </div>
     </div>

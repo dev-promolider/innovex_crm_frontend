@@ -62,12 +62,12 @@
                 <button v-for="f in formatos" :key="f" class="format-btn" :class="{ active: formatoSeleccionado === f }" @click="formatoSeleccionado = f">{{ f }}</button>
               </div>
               <div class="status-banner">
-                <strong>Sin backend de exportación aún</strong>
+                <strong>Backend conectado</strong>
                 <p>
-                  Hoy no existe un endpoint administrativo para generar archivos de reportes. Esta pantalla queda como planeación operativa para la siguiente entrega.
+                  Los reportes CSV usan los endpoints administrativos de analítica y respetan el rango de fechas seleccionado.
                 </p>
               </div>
-              <button class="btn-generar" disabled>Generación pendiente de implementación</button>
+              <button class="btn-generar" @click="generarReporte">Generar CSV</button>
             </div>
 
             <div class="card">
@@ -107,12 +107,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import { useAnalyticsApi } from '@/features/analytics/composables/useAnalyticsApi'
 
 const fechaDesde = ref('')
 const fechaHasta = ref('')
 const formatoSeleccionado = ref('CSV')
 const formatos = ['CSV', 'XLSX (Excel)', 'PDF']
 const tipoSeleccionado = ref('ventas')
+const analyticsApi = useAnalyticsApi()
 
 const tiposReporte = [
   { key:'ventas',      label:'Ventas Validadas',      desc:'Reporte completo de ventas validadas con detalles de líder, vendedor, kit y monto', icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
@@ -167,6 +169,75 @@ const coberturas = [
     tone: 'pending',
   },
 ]
+
+const toCsv = (rows: Record<string, unknown>[]) => {
+  if (rows.length === 0) {
+    return 'sin_datos\n'
+  }
+
+  const firstRow = rows[0]
+  if (!firstRow) {
+    return 'sin_datos\n'
+  }
+
+  const headers = Object.keys(firstRow)
+  const body = rows.map((row) => headers.map((header) => JSON.stringify(row[header] ?? '')).join(','))
+
+  return [headers.join(','), ...body].join('\n')
+}
+
+const downloadCsv = (filename: string, rows: Record<string, unknown>[]) => {
+  const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+const generarReporte = async () => {
+  const filters = {
+    desde: fechaDesde.value || undefined,
+    hasta: fechaHasta.value || undefined,
+  }
+
+  if (tipoSeleccionado.value === 'ventas') {
+    const rows = await analyticsApi.fetchSalesByCampaign(filters)
+    downloadCsv('ventas_por_campana.csv', rows as unknown as Record<string, unknown>[])
+    return
+  }
+
+  if (tipoSeleccionado.value === 'rendimiento') {
+    const rows = await analyticsApi.fetchDistributorRanking({ ...filters, limit: 50 })
+    downloadCsv('rendimiento_distribuidores.csv', rows as unknown as Record<string, unknown>[])
+    return
+  }
+
+  if (tipoSeleccionado.value === 'canjes') {
+    const resumen = await analyticsApi.fetchSummary(filters)
+    downloadCsv('marketplace_resumen.csv', [
+      {
+        canjes_cantidad: resumen.marketplace.canjes_cantidad,
+        puntos_utilizados: resumen.marketplace.puntos_utilizados,
+        desde: resumen.periodo.desde,
+        hasta: resumen.periodo.hasta,
+      },
+    ])
+    return
+  }
+
+  const resumen = await analyticsApi.fetchSummary(filters)
+  downloadCsv(`${tipoSeleccionado.value}_resumen.csv`, [
+    {
+      deuda_activa_monto: resumen.finanzas.deuda_activa_monto,
+      ventas_aprobadas_monto: resumen.ventas.aprobadas_monto,
+      distribuidores_activos: resumen.distribuidores.activos,
+      desde: resumen.periodo.desde,
+      hasta: resumen.periodo.hasta,
+    },
+  ])
+}
 </script>
 
 <style>

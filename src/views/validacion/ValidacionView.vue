@@ -4,15 +4,15 @@
       <span class="breadcrumb">Inicio › <strong>Validación</strong></span>
     </template>
 
-    <div class="page-body">
+    <div class="page-body admin-list-page validacion-page">
 
-        <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
-        <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
+        <div v-if="errorMsg" class="admin-alert admin-alert--error">{{ errorMsg }}<button @click="errorMsg=''" class="admin-alert__close">✕</button></div>
+        <div v-if="successMsg" class="admin-alert admin-alert--success">{{ successMsg }}<button @click="successMsg=''" class="admin-alert__close">✕</button></div>
 
-        <div class="page-header">
+        <div class="admin-list-page__header">
           <div>
-            <h1 class="page-title">Validación de Ventas</h1>
-            <p class="page-subtitle">
+            <h1 class="admin-list-page__title">Validación de Ventas</h1>
+            <p class="admin-list-page__subtitle">
               <span v-if="activeTab === 'ventas' && cargando">Cargando...</span>
               <span v-else-if="activeTab === 'ventas'">{{ ventasFiltradas.length }} ventas visibles en la cola administrativa</span>
               <span v-else>{{ pendingBankCount }} ventas aprobadas esperan confirmacion bancaria</span>
@@ -91,10 +91,10 @@
           </aside>
 
           <div class="table-area">
-            <div class="table-toolbar">
-              <div class="search-box search-wide">
+          <div class="table-toolbar">
+              <div class="admin-search-box search-wide">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" v-model="busqueda" placeholder="Buscar cliente, vendedor o kit..." class="search-input" />
+                <input type="text" v-model="busqueda" placeholder="Buscar cliente, distribuidor o kit..." class="admin-search-input" />
               </div>
             </div>
 
@@ -109,8 +109,8 @@
                   <tr>
                     <th>Cliente</th>
                     <th>Fecha</th>
-                    <th>Vendedor</th>
-                    <th>Líder</th>
+                    <th>Distribuidor</th>
+                    <th>Patrocinador</th>
                     <th>Kit</th>
                     <th>Monto</th>
                     <th>Banco</th>
@@ -139,19 +139,24 @@
                     <td class="td-fecha">{{ formatFecha(v.capturado_at) }}</td>
                     <td>
                       <div class="vendedor-info">
-                        <div class="vendedor-avatar">{{ inicialesVendedor(v) }}</div>
-                        <span class="vendedor-name">{{ nombreVendedor(v) }}</span>
+                        <div class="vendedor-avatar">{{ inicialesDistribuidor(v) }}</div>
+                        <span class="vendedor-name">{{ nombreDistribuidor(v) }}</span>
                       </div>
                     </td>
-                    <td class="td-lider">{{ nombreLider(v) }}</td>
+                    <td class="td-lider">{{ nombrePatrocinador(v) }}</td>
                     <td class="td-kit">{{ v.kit?.nombre ?? '—' }}</td>
-                    <td class="td-monto">S/ {{ Number(v.monto_total_venta ?? 0).toFixed(2) }}</td>
+                    <td class="td-monto">{{ formatCurrency(v.monto_total_venta) }}</td>
                     <td class="td-banco">{{ v.banco ?? 'BCP' }}</td>
                     <td class="td-center">
-                      <a v-if="v.comprobante_foto_url" :href="v.comprobante_foto_url" target="_blank" class="comprobante-link">
+                      <button
+                        v-if="v.comprobante_foto_url"
+                        type="button"
+                        class="comprobante-link comprobante-link--button"
+                        @click.stop="openReceiptModal(v.comprobante_foto_url, buildReceiptLabel(v))"
+                      >
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         {{ v.numero_comprobante ?? 'TRF-' + String(v.id).padStart(3,'0') }}
-                      </a>
+                      </button>
                       <span v-else class="text-muted">—</span>
                     </td>
                     <td>
@@ -178,12 +183,12 @@
             </div>
 
             <!-- Paginación -->
-            <div v-if="meta.last_page > 1" class="table-footer">
-              <span class="table-count">Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} total</span>
-              <div class="pagination">
-                <button class="page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
-                <button class="page-btn active">{{ meta.current_page }}</button>
-                <button class="page-btn" :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)">Siguiente</button>
+            <div v-if="meta.last_page > 1" class="admin-table-footer">
+              <span class="admin-table-count">Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} total</span>
+              <div class="admin-pagination">
+                <button class="admin-page-btn" :disabled="meta.current_page === 1" @click="cambiarPagina(meta.current_page - 1)">Anterior</button>
+                <button class="admin-page-btn admin-page-btn--active">{{ meta.current_page }}</button>
+                <button class="admin-page-btn" :disabled="meta.current_page === meta.last_page" @click="cambiarPagina(meta.current_page + 1)">Siguiente</button>
               </div>
             </div>
           </div>
@@ -223,8 +228,8 @@
                 <span class="detail-card__label">Venta</span>
                 <strong>{{ ventaDetalle.kit?.nombre || 'Kit no disponible' }}</strong>
                 <p>Cantidad: {{ ventaDetalle.cantidad ?? 0 }}</p>
-                <p>Monto total: S/ {{ Number(ventaDetalle.monto_total ?? 0).toFixed(2) }}</p>
-                <p>Precio unitario: S/ {{ Number(ventaDetalle.kit?.precio_unitario ?? 0).toFixed(2) }}</p>
+                <p>Monto total: {{ formatCurrency(ventaDetalle.monto_total) }}</p>
+                <p>Precio unitario: {{ formatCurrency(ventaDetalle.kit?.precio_unitario) }}</p>
               </section>
 
               <section class="detail-card">
@@ -240,14 +245,27 @@
                 <p>GPS: {{ formatCoordinate(ventaDetalle.evidencia?.gps_latitud) }}, {{ formatCoordinate(ventaDetalle.evidencia?.gps_longitud) }}</p>
                 <p>Precision: {{ formatCoordinate(ventaDetalle.evidencia?.gps_precision_metros) }} m</p>
                 <p>Huella: {{ ventaDetalle.evidencia?.huella_biometrica_ref || 'Sin referencia biometrica' }}</p>
-                <a v-if="ventaDetalle.evidencia?.comprobante_foto_url" :href="ventaDetalle.evidencia.comprobante_foto_url" target="_blank" class="detail-card__link">
-                  Abrir comprobante original
-                </a>
+                <div v-if="ventaDetalle.evidencia?.comprobante_foto_url" class="detail-card__actions">
+                  <button
+                    type="button"
+                    class="detail-card__link detail-card__link--button"
+                    @click="openReceiptModal(ventaDetalle.evidencia.comprobante_foto_url, buildReceiptLabel(ventaDetalle))"
+                  >
+                    Ver comprobante
+                  </button>
+                </div>
               </section>
             </div>
           </aside>
         </div>
       </div>
+
+    <SaleReceiptModal
+      :open="isReceiptModalOpen"
+      :receipt-url="activeReceiptUrl"
+      :receipt-label="activeReceiptLabel"
+      @close="closeReceiptModal"
+    />
 
     <!-- Modal Rechazar -->
     <div v-if="modalRechazar" class="modal-overlay" @click.self="modalRechazar = false">
@@ -259,7 +277,7 @@
         <div class="modal-body">
           <p>Cliente: <strong>{{ ventaSeleccionada?.consumidor_nombre ?? '—' }}</strong></p>
           <p>Kit: <strong>{{ ventaSeleccionada?.kit?.nombre ?? '—' }}</strong></p>
-          <p>Monto: <strong>S/ {{ Number(ventaSeleccionada?.monto_total_venta ?? 0).toFixed(2) }}</strong></p>
+          <p>Monto: <strong>{{ formatCurrency(ventaSeleccionada?.monto_total_venta) }}</strong></p>
           <div class="form-group" style="margin-top:14px">
             <label>Motivo del rechazo *</label>
             <textarea v-model="motivoRechazo" placeholder="Explica por qué se rechaza esta venta..." class="form-input form-textarea"></textarea>
@@ -280,12 +298,15 @@
 
 <script setup lang="ts">
 import { shallowRef, computed, onMounted } from 'vue'
+import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
 import BankValidationPanel from '@/features/validacion/components/BankValidationPanel.vue'
+import SaleReceiptModal from '@/features/validacion/components/SaleReceiptModal.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
+const { ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
@@ -311,6 +332,9 @@ const errorMotivo       = shallowRef('')
 const selectedVentaId   = shallowRef<number | null>(null)
 const ventaDetalle      = shallowRef<any>(null)
 const cargandoDetalle   = shallowRef(false)
+const isReceiptModalOpen = shallowRef(false)
+const activeReceiptUrl = shallowRef('')
+const activeReceiptLabel = shallowRef('Comprobante de venta')
 
 const opcionesEstado = [
   { value: 'todos',     label: 'Todos',      color: '#4ab8f5' },
@@ -326,18 +350,18 @@ const formatFecha = (f: string) => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-const nombreVendedor = (v: any) => {
+const nombreDistribuidor = (v: any) => {
   const u = v?.vendedor?.usuario
   return u ? `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() : '—'
 }
 
-const inicialesVendedor = (v: any) => {
+const inicialesDistribuidor = (v: any) => {
   const u = v?.vendedor?.usuario
   if (!u) return '?'
   return ((u.nombre?.[0] ?? '') + (u.apellido?.[0] ?? '')).toUpperCase()
 }
 
-const nombreLider = (v: any) => {
+const nombrePatrocinador = (v: any) => {
   const ref = v?.vendedor?.referente?.usuario
   if (ref) return `${ref.nombre ?? ''} ${ref.apellido ?? ''}`.trim()
   return v?.lider_nombre ?? '—'
@@ -352,6 +376,23 @@ const formatCoordinate = (value: string | number | null | undefined) => {
   return Number(value).toFixed(5)
 }
 
+const buildReceiptLabel = (venta: any) => venta?.numero_comprobante ?? `Comprobante venta #${venta?.id ?? ''}`.trim()
+
+const hasReceipt = (receiptUrl: string | null | undefined) => typeof receiptUrl === 'string' && receiptUrl.trim().length > 0
+
+const openReceiptModal = (receiptUrl: string | null | undefined, receiptLabel = 'Comprobante de venta') => {
+  if (!hasReceipt(receiptUrl)) return
+  activeReceiptUrl.value = String(receiptUrl).trim()
+  activeReceiptLabel.value = receiptLabel
+  isReceiptModalOpen.value = true
+}
+
+const closeReceiptModal = () => {
+  isReceiptModalOpen.value = false
+  activeReceiptUrl.value = ''
+  activeReceiptLabel.value = 'Comprobante de venta'
+}
+
 const contarEstado = (estado: string) => todasVentas.value.filter(v => (v.estado ?? 'pendiente') === estado).length
 
 // ── Filtrado ──
@@ -360,7 +401,7 @@ const ventasFiltradas = computed(() =>
     const matchEstado  = filtroEstado.value === 'todos' || (v.estado ?? 'pendiente') === filtroEstado.value
     const matchBusq    = !busqueda.value ||
       (v.consumidor_nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase()) ||
-      nombreVendedor(v).toLowerCase().includes(busqueda.value.toLowerCase()) ||
+      nombreDistribuidor(v).toLowerCase().includes(busqueda.value.toLowerCase()) ||
       (v.kit?.nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase())
     const ventaDate = v.capturado_at ? new Date(v.capturado_at) : null
     const fromDate = fechaInicio.value ? new Date(`${fechaInicio.value}T00:00:00`) : null
@@ -376,7 +417,8 @@ const cargarVentas = async (pagina = 1) => {
   cargando.value = true
   errorMsg.value = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/ventas/pendientes?page=${pagina}`, { headers: hdrs() })
+    const params = new URLSearchParams({ page: String(pagina), per_page: '20' })
+    const res  = await fetch(`${API_BASE}/workspace/admin/ventas?${params.toString()}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
@@ -484,7 +526,9 @@ const rechazar = async () => {
 }
 
 const cambiarPagina = (p: number) => cargarVentas(p)
-onMounted(() => cargarVentas())
+onMounted(() => {
+  void Promise.all([ensureCurrencyLoaded(), cargarVentas()])
+})
 </script>
 
 <style>
@@ -520,17 +564,10 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .user-email { font-size:11px; color:#999; }
 .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#666; padding:6px; }
 .notif-badge { position:absolute; top:2px; right:2px; background:#ef4444; color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-.page-body { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
-.page-header { display:flex; align-items:center; justify-content:space-between; }
-.page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 4px; }
-.page-subtitle { font-size:13px; color:#999; margin:0; }
 .view-switcher { display:flex; gap:10px; flex-wrap:wrap; }
 .view-switcher__tab { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; border:1px solid #dbe4f0; background:white; color:#516072; font-size:12px; font-weight:700; cursor:pointer; }
 .view-switcher__tab--active { background:#1a3a5c; color:white; border-color:#1a3a5c; box-shadow:0 10px 22px rgba(26,58,92,0.18); }
 .view-switcher__count { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 8px; border-radius:999px; background:rgba(74,184,245,0.12); color:inherit; font-size:11px; }
-.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
 .content-layout { display:flex; gap:20px; align-items:flex-start; }
 .filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .filters-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 14px; }
@@ -560,8 +597,10 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .detail-card__label { display:block; margin-bottom:8px; color:#7a8598; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
 .detail-card strong { display:block; color:#172033; font-size:13px; margin-bottom:4px; }
 .detail-card p { margin:4px 0 0; color:#526074; font-size:12px; line-height:1.5; }
+.detail-card__actions { display:flex; gap:10px; margin-top:10px; }
 .detail-card__link { display:inline-flex; margin-top:10px; color:#1a6ab5; font-size:12px; font-weight:600; text-decoration:none; }
 .detail-card__link:hover { text-decoration:underline; }
+.detail-card__link--button { margin-top:0; padding:0; border:none; background:none; cursor:pointer; }
 .table-toolbar { margin-bottom:14px; }
 .search-wide { width:100%; }
 .loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:60px; color:#999; font-size:13px; }
@@ -590,6 +629,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .vendedor-name { font-weight:600; color:#1a1a1a; font-size:12px; }
 .comprobante-link { display:flex; align-items:center; gap:4px; color:#4ab8f5; text-decoration:none; font-size:11px; font-weight:600; }
 .comprobante-link:hover { text-decoration:underline; }
+.comprobante-link--button { padding:0; border:none; background:none; cursor:pointer; }
 .text-muted { color:#999; font-size:12px; }
 .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
 .est-pendiente { background:#fef3c7; color:#b45309; }
@@ -602,12 +642,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-rechazar { display:flex; align-items:center; gap:3px; padding:4px 10px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; cursor:pointer; }
 .btn-rechazar:hover { background:#fecaca; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
-.table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
-.table-count { font-size:12px; color:#999; }
-.pagination { display:flex; gap:6px; }
-.page-btn { padding:5px 12px; border:1px solid #ddd; border-radius:6px; background:white; font-size:12px; cursor:pointer; color:#555; }
-.page-btn:disabled { opacity:0.4; cursor:not-allowed; }
-.page-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
+.admin-page-btn--active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
 .modal-sm { width:420px; }
@@ -625,5 +660,6 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
 .form-textarea { resize:vertical; min-height:80px; }
 .form-error { font-size:11px; color:#ef4444; }
+@media (max-width: 768px) { .validacion-page.admin-list-page { padding:14px; } }
 @media (max-width: 1280px) { .content-layout { flex-direction:column; } .filters-panel, .detail-panel { width:100%; } }
 </style>

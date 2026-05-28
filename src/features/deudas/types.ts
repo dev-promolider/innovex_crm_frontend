@@ -39,6 +39,9 @@ export interface DebtTransaction {
     tipo: string
     monto: number
     descripcion: string | null
+    asiento_contable_id: number | null
+    transaccion_reversa_de: number | null
+    es_reversible: boolean
     created_at: string | null
 }
 
@@ -65,6 +68,9 @@ export interface LedgerMovement {
     saldo_disponible_posterior: number
     referencia_id: number | null
     referencia_tipo: string | null
+    asiento_contable_id: number | null
+    transaccion_reversa_de: number | null
+    es_reversible: boolean
     descripcion: string | null
     created_at: string | null
 }
@@ -85,6 +91,15 @@ export interface LedgerAccountStatement {
 export interface DebtListItem {
     id: number
     estado: string
+    estado_pre_disputa: string | null
+    disputa: {
+        motivo: string | null
+        resolucion: string | null
+        abierta_por_id: number | null
+        resuelta_por_id: number | null
+        abierta_at: string | null
+        resuelta_at: string | null
+    } | null
     modelo_pago: string
     monto_total: number
     monto_pagado: number

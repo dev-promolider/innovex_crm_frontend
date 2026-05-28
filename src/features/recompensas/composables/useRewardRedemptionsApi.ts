@@ -69,6 +69,10 @@ export function useRewardRedemptionsApi() {
                 searchParams.set('search', filters.search)
             }
 
+            if (filters.membresia_id) {
+                searchParams.set('membresia_id', String(filters.membresia_id))
+            }
+
             const response = await apiClient.get<SuccessResponse<PaginatedPayload<RewardRedemption>>>(
                 `/workspace/admin/recompensas/canjes?${searchParams.toString()}`,
                 { headers: authHeaders() },

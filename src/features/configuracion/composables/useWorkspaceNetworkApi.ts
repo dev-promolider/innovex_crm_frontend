@@ -3,7 +3,6 @@ import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import type {
-    WorkspaceCommissionSimulation,
     WorkspaceNetworkConfiguration,
     WorkspaceNetworkConfigurationPayload,
 } from '../types'
@@ -50,10 +49,8 @@ export function useWorkspaceNetworkApi(options: WorkspaceNetworkApiOptions = {})
     const requestHeaders = () => (isSuperadminScope ? platformHeaders() : authHeaders())
 
     const networkConfiguration = shallowRef<WorkspaceNetworkConfiguration | null>(null)
-    const simulation = shallowRef<WorkspaceCommissionSimulation | null>(null)
     const isLoading = shallowRef(false)
     const isSaving = shallowRef(false)
-    const isSimulating = shallowRef(false)
     const errorMessage = shallowRef('')
     const successMessage = shallowRef('')
 
@@ -105,43 +102,14 @@ export function useWorkspaceNetworkApi(options: WorkspaceNetworkApiOptions = {})
         }
     }
 
-    const simulateCommissions = async (precioKit: number, nivelVendedor: number) => {
-        isSimulating.value = true
-        clearMessages()
-
-        try {
-            const response = await apiClient.post<SuccessResponse<WorkspaceCommissionSimulation>>(
-                `${basePath}/simular`,
-                {
-                    precio_kit: precioKit,
-                    nivel_vendedor: nivelVendedor,
-                },
-                {
-                    headers: requestHeaders(),
-                },
-            )
-
-            simulation.value = response.data.data
-            return response.data.data
-        } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
-        } finally {
-            isSimulating.value = false
-        }
-    }
-
     return {
         networkConfiguration: readonly(networkConfiguration),
-        simulation: readonly(simulation),
         isLoading: readonly(isLoading),
         isSaving: readonly(isSaving),
-        isSimulating: readonly(isSimulating),
         errorMessage: readonly(errorMessage),
         successMessage: readonly(successMessage),
         clearMessages,
         fetchNetworkConfiguration,
         saveNetworkConfiguration,
-        simulateCommissions,
     }
 }

@@ -90,9 +90,9 @@
                     <th>Campaña</th>
                     <th>Fechas</th>
                     <th>Kits</th>
-                    <th>Stock Inicial</th>
-                    <th>Kits Entregados</th>
-                    <th>Progreso</th>
+                    <th>Stock Central</th>
+                    <th>Movido a Red</th>
+                    <th>Colocación</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -110,8 +110,8 @@
                       <span>{{ formatFecha(c.fecha_fin) }}</span>
                     </td>
                     <td class="td-center">{{ kitsMeta[c.id]?.total ?? '—' }}</td>
-                    <td class="td-center">{{ kitsMeta[c.id]?.stockInicial ?? '—' }}</td>
-                    <td class="td-center">{{ kitsMeta[c.id]?.comprometido ?? '—' }}</td>
+                    <td class="td-center">{{ kitsMeta[c.id]?.stockCentral ?? '—' }}</td>
+                    <td class="td-center">{{ kitsMeta[c.id]?.stockMovidoRed ?? '—' }}</td>
                     <td class="td-progress">
                       <div class="progress-bar">
                         <div class="progress-fill"
@@ -197,7 +197,7 @@
             >
               {{ guardando ? 'Procesando...' : 'Finalizar' }}
             </button>
-            <button class="btn-outline" @click="abrirModalCampana(campanaSeleccionada)">✏️ Editar</button>
+            <button class="btn-outline" @click="abrirModalCampana(campanaSeleccionada)">Editar campaña</button>
             <button
               v-if="campanaSeleccionada.estado === 'borrador'"
               class="btn-danger"
@@ -230,36 +230,40 @@
                   <th>Kit</th>
                   <th>Precio</th>
                   <th>Stock Central</th>
-                  <th>Comprometido</th>
-                  <th>Disponible</th>
+                  <th>Reservado</th>
+                  <th>Disp. Central</th>
+                  <th>En Red</th>
+                  <th>Vendidos</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="kits.length === 0">
-                  <td colspan="7" class="empty-state">No hay kits en esta campaña. ¡Crea el primero!</td>
+                  <td colspan="9" class="empty-state">No hay kits en esta campaña. ¡Crea el primero!</td>
                 </tr>
                 <tr v-for="k in kits" :key="k.id">
                   <td>
                     <div class="camp-name">{{ k.nombre }}</div>
                     <div class="camp-desc">{{ k.descripcion ?? '—' }}</div>
                   </td>
-                  <td class="td-center">S/ {{ k.precio_unitario }}</td>
+                  <td class="td-center">{{ formatCurrency(k.precio_unitario) }}</td>
                   <td class="td-center">{{ k.stock_central }}</td>
                   <td class="td-center">{{ k.stock_comprometido }}</td>
                   <td class="td-center">
-                    <span :class="stockDisponible(k) > 0 ? 'stock-ok' : 'stock-agotado'">
-                      {{ stockDisponible(k) }}
+                    <span :class="stockCentralDisponible(k) > 0 ? 'stock-ok' : 'stock-agotado'">
+                      {{ stockCentralDisponible(k) }}
                     </span>
                   </td>
+                  <td class="td-center">{{ stockEnRed(k) }}</td>
+                  <td class="td-center">{{ stockVendido(k) }}</td>
                   <td>
                     <span class="badge" :class="k.activo ? 'estado-activa' : 'estado-borrador'">
                       {{ k.activo ? 'Activo' : 'Inactivo' }}
                     </span>
                   </td>
                   <td class="td-actions">
-                    <button class="btn-action" @click="verContenidoKit(k)" title="Ver contenido">📦</button>
+                    <button class="btn-action" @click="verDetalleKit(k)">Ver detalle</button>
                   </td>
                 </tr>
               </tbody>
@@ -320,7 +324,7 @@
     <div v-if="modalKit" class="modal-overlay" @click.self="modalKit = false">
       <div class="modal modal-lg">
         <div class="modal-header">
-          <h2>Nuevo Kit</h2>
+          <h2>{{ modoEdicionKit ? 'Editar Kit' : 'Nuevo Kit' }}</h2>
           <button class="modal-close" @click="modalKit = false">✕</button>
         </div>
         <div class="modal-body">
@@ -335,21 +339,24 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Precio Unitario (S/) *</label>
+              <label>Precio por kit ({{ currencyCode }}) *</label>
+              <span class="form-help">Monto de venta de un kit completo, no de cada producto individual.</span>
               <input v-model="formKit.precio_unitario" type="number" min="0.01" step="0.01" placeholder="0.00" class="form-input" />
               <span v-if="kitErrors.precio_unitario" class="form-error">{{ kitErrors.precio_unitario }}</span>
             </div>
             <div class="form-group">
-              <label>Stock Inicial *</label>
+              <label>Kits disponibles al inicio *</label>
+              <span class="form-help">Cantidad de kits completos que tendras listos para distribuir.</span>
               <input v-model="formKit.stock_central" type="number" min="0" placeholder="0" class="form-input" />
               <span v-if="kitErrors.stock_central" class="form-error">{{ kitErrors.stock_central }}</span>
             </div>
           </div>
           <div class="form-group">
             <label>Contenido del Kit *</label>
+            <span class="form-help">Indica cuantas unidades de cada producto incluye un solo kit.</span>
             <div v-for="(prod, i) in formKit.productos" :key="i" class="producto-row">
               <input v-model="prod.nombre" type="text" placeholder="Nombre del producto" class="form-input" />
-              <input v-model.number="prod.cantidad" type="number" min="1" placeholder="Cant." class="form-input form-input-sm" />
+              <input v-model.number="prod.cantidad" type="number" min="1" placeholder="Unid./kit" aria-label="Unidades por kit" class="form-input form-input-sm" />
               <button class="btn-remove" @click="eliminarProducto(i)" v-if="formKit.productos.length > 1">✕</button>
             </div>
             <button class="btn-add-producto" @click="agregarProducto">+ Agregar producto</button>
@@ -359,31 +366,80 @@
         <div class="modal-footer">
           <button class="btn-secondary" @click="modalKit = false">Cancelar</button>
           <button class="btn-primary" @click="guardarKit" :disabled="guardando">
-            {{ guardando ? 'Guardando...' : 'Crear Kit' }}
+            {{ guardando ? 'Guardando...' : (modoEdicionKit ? 'Actualizar Kit' : 'Crear Kit') }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ── Modal Ver Contenido Kit ── -->
+    <!-- ── Modal Detalle Kit ── -->
     <div v-if="modalContenido" class="modal-overlay" @click.self="modalContenido = false">
-      <div class="modal modal-sm">
+      <div class="modal modal-lg">
         <div class="modal-header">
-          <h2>📦 {{ kitDetalle?.nombre }}</h2>
+          <h2>Detalle del kit</h2>
           <button class="modal-close" @click="modalContenido = false">✕</button>
         </div>
         <div class="modal-body">
-          <table class="data-table">
-            <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
-            <tbody>
-              <tr v-for="(p, i) in kitDetalle?.contenido_detalle?.productos" :key="i">
-                <td>{{ p.nombre }}</td>
-                <td class="td-center">{{ p.cantidad }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="kit-detail-header">
+            <div>
+              <div class="camp-name">{{ kitDetalle?.nombre }}</div>
+              <div class="camp-desc">{{ kitDetalle?.descripcion ?? 'Sin descripción' }}</div>
+            </div>
+            <span class="badge" :class="kitDetalle?.activo ? 'estado-activa' : 'estado-borrador'">
+              {{ kitDetalle?.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+
+          <div class="kit-detail-grid">
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Precio por kit</span>
+              <strong>{{ formatCurrency(kitDetalle?.precio_unitario ?? 0) }}</strong>
+            </div>
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Stock central</span>
+              <strong>{{ kitDetalle?.stock_central ?? 0 }}</strong>
+            </div>
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Reservado central</span>
+              <strong>{{ kitDetalle?.stock_comprometido ?? 0 }}</strong>
+            </div>
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Disponible central</span>
+              <strong :class="stockCentralDisponible(kitDetalle) > 0 ? 'stock-ok' : 'stock-agotado'">
+                {{ stockCentralDisponible(kitDetalle) }}
+              </strong>
+            </div>
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Stock en red</span>
+              <strong>{{ stockEnRed(kitDetalle) }}</strong>
+            </div>
+            <div class="kit-detail-card">
+              <span class="kit-detail-label">Vendidos</span>
+              <strong>{{ stockVendido(kitDetalle) }}</strong>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Contenido del kit</div>
+            <table class="data-table">
+              <thead><tr><th>Producto</th><th>Unidades por kit</th></tr></thead>
+              <tbody>
+                <tr v-if="detalleProductos.length === 0">
+                  <td colspan="2" class="empty-state">No hay productos configurados para este kit.</td>
+                </tr>
+                <tr v-for="(p, i) in detalleProductos" :key="i">
+                  <td>{{ p.nombre }}</td>
+                  <td class="td-center">{{ p.cantidad }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div class="modal-footer">
+          <button class="btn-outline" @click="editarKitDesdeDetalle" :disabled="guardando">Editar</button>
+          <button class="btn-danger" @click="toggleKitActivo(kitDetalle)" :disabled="guardando">
+            {{ guardando ? 'Procesando...' : (kitDetalle?.activo ? 'Desactivar' : 'Activar') }}
+          </button>
           <button class="btn-secondary" @click="modalContenido = false">Cerrar</button>
         </div>
       </div>
@@ -415,9 +471,11 @@
 import { ref, computed, onMounted } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
+import { useWorkspaceCurrency } from '../../composables/useWorkspaceCurrency'
 
 const API_BASE = 'http://localhost:8000/api'
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
+const { currencyCode, ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
@@ -448,10 +506,13 @@ const campanaSeleccionada = ref<any>(null)
 const kits                = ref<any[]>([])
 const cargandoKits        = ref(false)
 const modalKit            = ref(false)
+const modoEdicionKit      = ref(false)
+const kitEditando         = ref<any>(null)
 const kitErrors           = ref<Record<string, string>>({})
 const modalContenido      = ref(false)
 const kitDetalle          = ref<any>(null)
-const formKit             = ref({ nombre: '', descripcion: '', precio_unitario: '', stock_central: '', productos: [{ nombre: '', cantidad: 1 }] })
+const crearFormKitVacio   = () => ({ nombre: '', descripcion: '', precio_unitario: '', stock_central: '', productos: [{ nombre: '', cantidad: 1 }] })
+const formKit             = ref(crearFormKitVacio())
 
 const opcionesEstado = [
   { value: 'todos',      label: 'Todos',      color: '#4ab8f5' },
@@ -466,13 +527,56 @@ const formatFecha = (f: string | null) => {
   const fecha = new Date(f)
   return isNaN(fecha.getTime()) ? '—' : fecha.toLocaleDateString('es-PE')
 }
+const toDateInputValue = (value: string | null | undefined) => {
+  if (!value) return ''
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+
+  const fecha = new Date(value)
+  return isNaN(fecha.getTime()) ? '' : fecha.toISOString().slice(0, 10)
+}
 const limpiarMensajes = () => {
   errorMsg.value = ''
   successMsg.value = ''
 }
 const contarEstado    = (e: string) => campanas.value.filter(c => c.estado === e).length
-const stockDisponible = (k: any) => k.stock_central - k.stock_comprometido
+const toNumber = (value: unknown) => Number(value ?? 0)
+const stockCentralDisponible = (k: any) => toNumber(k?.stock_central_disponible ?? (toNumber(k?.stock_central) - toNumber(k?.stock_comprometido)))
+const stockEnRed = (k: any) => toNumber(k?.stock_distribuido_disponible) + toNumber(k?.stock_distribuido_comprometido)
+const stockVendido = (k: any) => toNumber(k?.stock_distribuido_vendido)
+const stockMovidoRed = (k: any) => toNumber(k?.stock_distribuido_total ?? (stockEnRed(k) + stockVendido(k)))
 const totalKitsDefinidos = computed(() => Object.values(kitsMeta.value).reduce((a: number, m: any) => a + (m.total ?? 0), 0))
+const normalizarProductosKit = (contenidoDetalle: any) => {
+  const productos = contenidoDetalle?.productos
+
+  if (Array.isArray(productos)) {
+    return productos.map((producto: any) => {
+      if (typeof producto === 'string') {
+        return { nombre: producto, cantidad: 1 }
+      }
+
+      return {
+        nombre: producto?.nombre ?? 'Producto sin nombre',
+        cantidad: Number(producto?.cantidad ?? 1),
+      }
+    })
+  }
+
+  if (productos && typeof productos === 'object') {
+    return Object.entries(productos).map(([nombre, cantidad]) => ({
+      nombre,
+      cantidad: Number(cantidad ?? 1),
+    }))
+  }
+
+  return []
+}
+
+const detalleProductos = computed(() => {
+  return normalizarProductosKit(kitDetalle.value?.contenido_detalle)
+})
 
 const colorProgreso = (pct: number) => {
   if (pct >= 60) return '#22c55e'
@@ -503,10 +607,11 @@ const cargarKitsMeta = async (campanaId: number) => {
     const json = await res.json()
     if (json.status === 'success') {
       const lista: any[] = json.data.data ?? json.data
-      const stockInicial  = lista.reduce((a: number, k: any) => a + (k.stock_central ?? 0), 0)
-      const comprometido  = lista.reduce((a: number, k: any) => a + (k.stock_comprometido ?? 0), 0)
-      const progreso      = stockInicial > 0 ? Math.round((comprometido / stockInicial) * 100) : 0
-      kitsMeta.value[campanaId] = { total: lista.length, stockInicial, comprometido, progreso }
+      const stockCentral = lista.reduce((a: number, k: any) => a + stockCentralDisponible(k), 0)
+      const stockMovidoRedTotal = lista.reduce((a: number, k: any) => a + stockMovidoRed(k), 0)
+      const baseOperativa = stockCentral + stockMovidoRedTotal
+      const progreso = baseOperativa > 0 ? Math.round((stockMovidoRedTotal / baseOperativa) * 100) : 0
+      kitsMeta.value[campanaId] = { total: lista.length, stockCentral, stockMovidoRed: stockMovidoRedTotal, progreso }
     }
   } catch { /* silencioso */ }
 }
@@ -539,7 +644,13 @@ const abrirModalCampana = (campana?: any) => {
   formErrors.value = {}
   if (campana) {
     modoEdicion.value = true; campanaEditando.value = campana
-    formCampana.value = { nombre: campana.nombre, descripcion: campana.descripcion ?? '', estado: campana.estado, fecha_inicio: campana.fecha_inicio ?? '', fecha_fin: campana.fecha_fin ?? '' }
+    formCampana.value = {
+      nombre: campana.nombre,
+      descripcion: campana.descripcion ?? '',
+      estado: campana.estado,
+      fecha_inicio: toDateInputValue(campana.fecha_inicio),
+      fecha_fin: toDateInputValue(campana.fecha_fin),
+    }
   } else {
     modoEdicion.value = false; campanaEditando.value = null
     formCampana.value = { nombre: '', descripcion: '', estado: 'borrador', fecha_inicio: '', fecha_fin: '' }
@@ -655,9 +766,25 @@ const cambiarEstadoCampana = async (accion: 'activar' | 'pausar' | 'finalizar') 
   }
 }
 
-const abrirModalKit = () => {
+const abrirModalKit = (kit?: any) => {
   kitErrors.value = {}
-  formKit.value = { nombre: '', descripcion: '', precio_unitario: '', stock_central: '', productos: [{ nombre: '', cantidad: 1 }] }
+  if (kit) {
+    modoEdicionKit.value = true
+    kitEditando.value = kit
+    formKit.value = {
+      nombre: kit.nombre ?? '',
+      descripcion: kit.descripcion ?? '',
+      precio_unitario: String(kit.precio_unitario ?? ''),
+      stock_central: String(kit.stock_central ?? ''),
+      productos: normalizarProductosKit(kit.contenido_detalle).length > 0
+        ? normalizarProductosKit(kit.contenido_detalle)
+        : [{ nombre: '', cantidad: 1 }],
+    }
+  } else {
+    modoEdicionKit.value = false
+    kitEditando.value = null
+    formKit.value = crearFormKitVacio()
+  }
   modalKit.value = true
 }
 
@@ -673,6 +800,7 @@ const guardarKit = async () => {
   if (productosValidos.length === 0)      { kitErrors.value.contenido_detalle = 'Agrega al menos un producto.'; return }
 
   guardando.value = true
+  limpiarMensajes()
   try {
     const body = {
       campana_id:        campanaSeleccionada.value.id,
@@ -682,22 +810,69 @@ const guardarKit = async () => {
       stock_central:     parseInt(formKit.value.stock_central),
       contenido_detalle: { productos: productosValidos },
     }
-    const res  = await fetch(`${API_BASE}/workspace/admin/kits`, { method: 'POST', headers: hdrs(), body: JSON.stringify(body) })
+    const url = modoEdicionKit.value
+      ? `${API_BASE}/workspace/admin/kits/${kitEditando.value.id}`
+      : `${API_BASE}/workspace/admin/kits`
+    const method = modoEdicionKit.value ? 'PUT' : 'POST'
+    const res  = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(body) })
     const json = await res.json()
     if (res.ok && json.status === 'success') {
       modalKit.value = false
+      successMsg.value = json.message ?? (modoEdicionKit.value ? 'Kit actualizado.' : 'Kit creado.')
       await cargarKits(campanaSeleccionada.value.id)
       await cargarKitsMeta(campanaSeleccionada.value.id)
+      if (modoEdicionKit.value) {
+        kitDetalle.value = json.data
+        modalContenido.value = true
+      }
     }
     else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { kitErrors.value[k] = json.errors[k][0] }) }
-    else { errorMsg.value = json.message ?? 'Error al crear kit.' }
+    else { errorMsg.value = json.message ?? (modoEdicionKit.value ? 'Error al actualizar kit.' : 'Error al crear kit.') }
   } catch { errorMsg.value = 'No se pudo conectar.' }
   finally { guardando.value = false }
 }
 
-const verContenidoKit = (k: any) => { kitDetalle.value = k; modalContenido.value = true }
+const verDetalleKit = (k: any) => { kitDetalle.value = k; modalContenido.value = true }
 
-onMounted(() => cargarCampanas())
+const editarKitDesdeDetalle = () => {
+  if (!kitDetalle.value) return
+
+  modalContenido.value = false
+  abrirModalKit(kitDetalle.value)
+}
+
+const toggleKitActivo = async (kit: any) => {
+  if (!kit?.id || !campanaSeleccionada.value) return
+
+  guardando.value = true
+  limpiarMensajes()
+
+  try {
+    const res = await fetch(`${API_BASE}/workspace/admin/kits/${kit.id}/toggle`, {
+      method: 'POST',
+      headers: hdrsGet(),
+    })
+    const json = await res.json()
+
+    if (res.ok && json.status === 'success') {
+      successMsg.value = json.message ?? 'Estado del kit actualizado.'
+      kitDetalle.value = json.data
+      await cargarKits(campanaSeleccionada.value.id)
+      await cargarKitsMeta(campanaSeleccionada.value.id)
+    } else {
+      errorMsg.value = json.message ?? 'No se pudo actualizar el estado del kit.'
+    }
+  } catch {
+    errorMsg.value = 'No se pudo conectar para actualizar el estado del kit.'
+  } finally {
+    guardando.value = false
+  }
+}
+
+onMounted(async () => {
+  await ensureCurrencyLoaded()
+  await cargarCampanas()
+})
 </script>
 
 <style>
@@ -728,6 +903,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .topbar-center { flex:1; display:flex; justify-content:center; }
 .search-box { display:flex; align-items:center; gap:8px; background:#f4f6f9; border-radius:20px; padding:6px 14px; width:280px; }
 .search-input { border:none; background:transparent; outline:none; font-size:13px; color:#333; width:100%; }
+.form-help { display:block; margin:4px 0 8px; color:#64748b; font-size:12px; line-height:1.4; }
 .topbar-right { display:flex; align-items:center; gap:16px; min-width:220px; justify-content:flex-end; }
 .user-info { display:flex; align-items:center; gap:10px; }
 .user-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); color:white; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
@@ -794,8 +970,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .progress-bar { flex:1; height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden; min-width:60px; }
 .progress-fill { height:100%; border-radius:10px; transition:width 0.3s; }
 .progress-pct { font-size:12px; font-weight:600; color:#555; min-width:32px; }
-.btn-action { background:none; border:none; cursor:pointer; font-size:15px; padding:4px; border-radius:4px; transition:background 0.15s; }
-.btn-action:hover { background:#f0f0f0; }
+.btn-action { background:#eff6ff; border:1px solid #bfdbfe; cursor:pointer; font-size:12px; font-weight:600; color:#1d4ed8; padding:6px 10px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+.btn-action:hover { background:#dbeafe; border-color:#93c5fd; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
 .stock-ok { color:#166534; font-weight:700; }
 .stock-agotado { color:#b91c1c; font-weight:700; }
@@ -821,6 +997,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
 .modal-body p { font-size:14px; color:#555; margin:0; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.section-title { font-size:13px; font-weight:700; color:#334155; margin-bottom:10px; }
 .form-group { display:flex; flex-direction:column; gap:6px; flex:1; }
 .form-group label { font-size:12px; font-weight:600; color:#555; }
 .form-input { border:1px solid #e2e8f0; border-radius:8px; padding:9px 12px; font-size:13px; color:#333; outline:none; width:100%; box-sizing:border-box; }
@@ -833,4 +1010,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-remove { background:none; border:none; cursor:pointer; color:#ef4444; font-size:16px; padding:4px; }
 .btn-add-producto { background:none; border:1px dashed #4ab8f5; color:#1a6ab5; font-size:12px; font-weight:600; padding:7px 14px; border-radius:8px; cursor:pointer; margin-top:4px; }
 .btn-add-producto:hover { background:#eff6ff; }
+.kit-detail-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding-bottom:4px; }
+.kit-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+.kit-detail-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:4px; }
+.kit-detail-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; }
 </style>

@@ -174,11 +174,21 @@ const handleSubmit = () => {
   padding: 28px;
 }
 
+.workspace-profile-form--admin.workspace-profile {
+  padding: 18px;
+}
+
 .workspace-card__header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
+}
+
+.workspace-profile-form--admin .workspace-card__header {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .workspace-eyebrow {
@@ -197,6 +207,11 @@ const handleSubmit = () => {
   color: #1d2433;
 }
 
+.workspace-profile-form--admin .workspace-card__title {
+  font-size: 1.12rem;
+  line-height: 1.15;
+}
+
 .workspace-card__subtitle {
   margin-top: 8px;
   max-width: 56ch;
@@ -205,10 +220,21 @@ const handleSubmit = () => {
   line-height: 1.6;
 }
 
+.workspace-profile-form--admin .workspace-card__subtitle {
+  margin-top: 6px;
+  max-width: 42ch;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .workspace-form {
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+
+.workspace-profile-form--admin .workspace-form {
+  gap: 14px;
 }
 
 .workspace-form__grid {
@@ -217,10 +243,18 @@ const handleSubmit = () => {
   gap: 18px;
 }
 
+.workspace-profile-form--admin .workspace-form__grid {
+  gap: 12px;
+}
+
 .workspace-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.workspace-profile-form--admin .workspace-field {
+  gap: 5px;
 }
 
 .workspace-field--wide {
@@ -235,9 +269,17 @@ const handleSubmit = () => {
   text-transform: uppercase;
 }
 
+.workspace-profile-form--admin .workspace-field__label {
+  font-size: 0.74rem;
+}
+
 .workspace-field__hint {
   color: #6c7a90;
   font-size: 0.78rem;
+}
+
+.workspace-profile-form--admin .workspace-field__hint {
+  font-size: 0.72rem;
 }
 
 .workspace-input,
@@ -250,6 +292,13 @@ const handleSubmit = () => {
   font-size: 0.97rem;
   padding: 0.95rem 1rem;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.workspace-profile-form--admin .workspace-input,
+.workspace-profile-form--admin .workspace-textarea {
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.92rem;
 }
 
 .workspace-input--mono {
@@ -269,10 +318,18 @@ const handleSubmit = () => {
   min-height: 120px;
 }
 
+.workspace-profile-form--admin .workspace-textarea {
+  min-height: 88px;
+}
+
 .workspace-status-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.workspace-profile-form--admin .workspace-status-grid {
+  gap: 10px;
 }
 
 .workspace-status-card {
@@ -285,6 +342,12 @@ const handleSubmit = () => {
   padding: 16px;
   background: rgba(247, 248, 250, 0.92);
   transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.workspace-profile-form--admin .workspace-status-card {
+  border-radius: 14px;
+  padding: 12px;
+  gap: 4px;
 }
 
 .workspace-status-card--active {
@@ -304,15 +367,42 @@ const handleSubmit = () => {
   font-weight: 700;
 }
 
+.workspace-profile-form--admin .workspace-status-card__title {
+  font-size: 0.94rem;
+}
+
 .workspace-status-card__description {
   color: #617086;
   font-size: 0.84rem;
   line-height: 1.5;
 }
 
+.workspace-profile-form--admin .workspace-status-card__description {
+  font-size: 0.79rem;
+  line-height: 1.35;
+}
+
 .workspace-form__actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.workspace-profile-form--admin .workspace-form__actions {
+  margin-top: 2px;
+}
+
+.workspace-profile-form--admin :deep(.workspace-ghost-btn) {
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+}
+
+.workspace-profile-form--admin :deep(.workspace-primary-btn) {
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 0.82rem;
 }
 
 .workspace-loading-block {

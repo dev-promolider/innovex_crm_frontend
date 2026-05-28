@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import AppModal from '@/components/shared/AppModal.vue'
+import Button from 'primevue/button'
+import AppDialog from '@/components/shared/AppDialog.vue'
 
 interface Props {
   open: boolean
@@ -17,13 +18,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <AppModal
+  <AppDialog
     :open="open"
     title="Reset de contrasena"
     :description="temporaryPassword
       ? 'Entrega esta contrasena temporal por un canal seguro. Las sesiones activas del usuario ya fueron revocadas.'
       : `Se generara una contrasena temporal para ${userName} y se cerraran sus sesiones activas.`"
-    size="md"
+    width="md"
     @close="emit('close')"
   >
     <div v-if="temporaryPassword" class="password-result">
@@ -39,12 +40,17 @@ const emit = defineEmits<{
     </div>
 
     <template #footer>
-      <button type="button" class="btn-outline" @click="emit('close')">Cerrar</button>
-      <button v-if="!temporaryPassword" type="button" class="btn-danger" :disabled="loading" @click="emit('confirm')">
-        {{ loading ? 'Generando...' : 'Generar contrasena temporal' }}
-      </button>
+      <Button type="button" label="Cerrar" severity="secondary" outlined @click="emit('close')" />
+      <Button
+        v-if="!temporaryPassword"
+        type="button"
+        :label="loading ? 'Generando...' : 'Generar contrasena temporal'"
+        severity="danger"
+        :disabled="loading"
+        @click="emit('confirm')"
+      />
     </template>
-  </AppModal>
+  </AppDialog>
 </template>
 
 <style scoped>
@@ -82,28 +88,4 @@ const emit = defineEmits<{
   letter-spacing: 0.04em;
 }
 
-.btn-outline,
-.btn-danger {
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.btn-outline {
-  border: 1px solid #d7dee8;
-  background: #fff;
-  color: #334155;
-}
-
-.btn-danger {
-  border: none;
-  background: #b91c1c;
-  color: #fff;
-}
-
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 </style>

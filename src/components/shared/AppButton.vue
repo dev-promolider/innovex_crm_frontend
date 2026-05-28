@@ -105,9 +105,9 @@ const classes = computed(() => [
 }
 
 .app-button--primary {
-  --app-button-shadow: rgba(139, 76, 28, 0.22);
-  background: linear-gradient(135deg, #b87021 0%, #8c4d18 100%);
-  color: #fffdfa;
+  --app-button-shadow: rgba(31, 122, 224, 0.22);
+  background: linear-gradient(135deg, #1f7ae0 0%, #145fbe 100%);
+  color: #fff;
 }
 
 .app-button--secondary {

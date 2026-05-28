@@ -13,6 +13,7 @@ const emit = defineEmits<{
   configure: [empresaId: number]
   activate: [empresaId: number]
   suspend: [empresaId: number]
+  delete: [empresaId: number]
 }>()
 
 const estadoLabel: Record<EmpresaEstado, string> = {
@@ -103,6 +104,13 @@ const companySecondaryText = (empresa: EmpresaListItem) =>
                 @click="emit('suspend', empresa.id)"
               >
                 {{ pendingEmpresaId === empresa.id ? '...' : 'Suspender' }}
+              </button>
+              <button
+                class="btn-rechazar"
+                :disabled="pendingEmpresaId === empresa.id"
+                @click="emit('delete', empresa.id)"
+              >
+                {{ pendingEmpresaId === empresa.id ? '...' : 'Eliminar' }}
               </button>
             </div>
           </td>

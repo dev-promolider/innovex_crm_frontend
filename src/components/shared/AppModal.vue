@@ -98,7 +98,11 @@ onBeforeUnmount(() => {
 }
 
 .modal-xl {
-  width: 1040px;
+  width: min(1040px, calc(100vw - 36px));
+}
+
+.modal-xl .modal-body {
+  padding-top: 16px;
 }
 
 .modal-header {

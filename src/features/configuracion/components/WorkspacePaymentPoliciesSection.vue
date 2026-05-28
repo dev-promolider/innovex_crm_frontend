@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, watch } from 'vue'
 import { CalendarClock, CreditCard, History, RefreshCw, Save, X } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
+import { formatDateTime } from '@/utils/formatters'
 import { useWorkspacePaymentPoliciesApi } from '../composables/useWorkspacePaymentPoliciesApi'
 import type { WorkspacePaymentModel, WorkspacePaymentPolicyPayload } from '../types'
 
@@ -74,7 +75,7 @@ const refreshAll = async () => {
 
 const formatDate = (value: string | null) => {
   if (!value) return 'Sin fecha'
-  return new Date(value).toLocaleString('es-PE')
+  return formatDateTime(value)
 }
 
 onMounted(async () => {

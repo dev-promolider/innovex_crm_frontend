@@ -127,11 +127,36 @@ export function useEmpresasApi() {
         clearMessages()
 
         try {
+            const formData = new FormData()
+            
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value === undefined || value === null) {
+                    return
+                }
+
+                if (key === 'primer_admin') {
+                    Object.entries(value as Record<string, any>).forEach(([subKey, subValue]) => {
+                        if (subValue !== undefined && subValue !== null) {
+                            formData.append(`primer_admin[${subKey}]`, String(subValue))
+                        }
+                    })
+                } else if (key === 'logo') {
+                    if (value instanceof File) {
+                        formData.append('logo', value)
+                    }
+                } else {
+                    formData.append(key, String(value))
+                }
+            })
+
             const response = await apiClient.post<SuccessResponse<CreateEmpresaResult>>(
                 '/superadmin/empresas',
-                payload,
+                formData,
                 {
-                    headers: authHeaders(),
+                    headers: {
+                        ...authHeaders(),
+                        'Content-Type': 'multipart/form-data',
+                    },
                 },
             )
 
@@ -199,6 +224,32 @@ export function useEmpresasApi() {
         }
     }
 
+    const deleteEmpresa = async (empresaId: number) => {
+        mutatingEmpresaId.value = empresaId
+        clearMessages()
+
+        try {
+            const response = await apiClient.delete<SuccessResponse<null>>(
+                `/superadmin/empresas/${empresaId}`,
+                {
+                    headers: authHeaders(),
+                },
+            )
+
+            successMessage.value = response.data.message ?? 'Empresa eliminada completamente.'
+            
+            if (empresaDetail.value?.id === empresaId) {
+                empresaDetail.value = null
+            }
+            await fetchEmpresas(1)
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        } finally {
+            mutatingEmpresaId.value = null
+        }
+    }
+
     return {
         empresas,
         empresaDetail,
@@ -215,5 +266,6 @@ export function useEmpresasApi() {
         createEmpresa,
         activateEmpresa,
         suspendEmpresa,
+        deleteEmpresa,
     }
 }

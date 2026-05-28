@@ -22,6 +22,77 @@ export interface WorkspaceProfile {
     puede_editar_moneda: boolean
 }
 
+export interface WorkspaceFounderUserSummary {
+    id: number
+    nombre: string | null
+    apellido: string | null
+    email: string | null
+    numero_documento: string | null
+}
+
+export interface WorkspaceFounderRankSummary {
+    id: number | null
+    nombre_rango: string | null
+    nivel: number | null
+    es_rango_ingreso: boolean
+}
+
+export interface WorkspaceFounderSummary {
+    membresia_id: number
+    usuario_id: number
+    referente_id: number | null
+    nivel_en_arbol: number
+    estado_validacion: string
+    perfil_web_activo: boolean
+    usuario: WorkspaceFounderUserSummary
+    rango: WorkspaceFounderRankSummary
+}
+
+export interface WorkspaceFounderConfiguration {
+    empresa_id: number
+    estado_empresa: WorkspaceOperationalStatus
+    requiere_fundador_para_activar: boolean
+    puede_registrar: boolean
+    fundador: WorkspaceFounderSummary | null
+    rangos_disponibles: readonly WorkspaceNetworkRank[]
+}
+
+export interface WorkspaceFounderUserCandidate {
+    id: number
+    nombre_completo: string
+    email: string
+    numero_documento: string
+    estado_global: string
+    membresias_activas_count: number
+}
+
+export interface WorkspaceFounderCreateUserPayload {
+    nombre: string
+    apellido: string
+    email: string
+    telefono?: string | null
+    tipo_documento?: string | null
+    numero_documento?: string | null
+    direccion?: string | null
+    password_temporal?: string | null
+}
+
+export interface WorkspaceFounderRegistrationPayload {
+    usuario_id?: number
+    rango_id: number
+    usuario_nuevo?: WorkspaceFounderCreateUserPayload
+}
+
+export interface WorkspaceFounderDeliveryCredentials {
+    email: string
+    password_temporal: string
+    usuario_fue_creado: boolean
+}
+
+export interface WorkspaceFounderRegistrationResult extends WorkspaceFounderSummary {
+    credenciales_entrega: WorkspaceFounderDeliveryCredentials | null
+}
+
 export interface UpdateWorkspaceProfilePayload {
     nombre: string
     nombre_comercial?: string | null
@@ -75,7 +146,7 @@ export interface WorkspaceNetworkRank {
     orden_jerarquico: number
     max_distribuidores_directos: number | null
     limite_kits_credito: number
-    es_rango_raiz: boolean
+    es_rango_ingreso: boolean
     version_configuracion?: number
     accesos_json?: string[] | null
     reglas_comision: WorkspaceCommissionRule[]
@@ -87,37 +158,25 @@ export interface WorkspaceNetworkPreviewLevel {
 }
 
 export interface WorkspaceNetworkConfiguration {
-    profundidad_maxima: number
+    total_niveles: number
+    /** @deprecated Alias legacy de total_niveles */
+    profundidad_maxima?: number
     version_configuracion: number
     rangos: WorkspaceNetworkRank[]
     preview_niveles: WorkspaceNetworkPreviewLevel[]
 }
 
 export interface WorkspaceNetworkConfigurationPayload {
-    profundidad_maxima: number
     motivo_cambio?: string | null
     rangos: Array<{
         nombre_rango: string
         nivel: number
-        orden_jerarquico: number
+        orden_jerarquico?: number
         max_distribuidores_directos?: number | null
         limite_kits_credito: number
-        es_rango_raiz?: boolean
+        es_rango_ingreso?: boolean
         accesos_json?: string[] | null
         reglas_comision?: WorkspaceCommissionRule[]
-    }>
-}
-
-export interface WorkspaceCommissionSimulation {
-    precio_kit: number
-    nivel_vendedor: number
-    total_comisiones: number
-    distribucion: Array<{
-        rango_patrocinador: string
-        nivel_patrocinador: number
-        nivel_objetivo: number
-        porcentaje_comision: number
-        monto_a_recibir: number
     }>
 }
 

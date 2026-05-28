@@ -22,7 +22,20 @@
       </div>
 
       <div v-if="tabActivo === 'Market Places de Premios'" class="card">
-        <p class="section-sub">{{ recompensas.length }} premios registrados</p>
+        <div class="catalog-filters">
+          <p class="section-sub">{{ recompensas.length }} premios registrados</p>
+          <select v-model="filtroTipo" class="filter-select" @change="cargarRecompensas()">
+            <option value="">Todos los tipos</option>
+            <option value="propio">Propio</option>
+            <option value="alianza_estrategica">Alianza</option>
+            <option value="experiencia_vip">VIP</option>
+          </select>
+          <select v-model="filtroActivo" class="filter-select" @change="cargarRecompensas()">
+            <option value="">Todos los estados</option>
+            <option value="1">Activos</option>
+            <option value="0">Inactivos</option>
+          </select>
+        </div>
 
         <div v-if="cargando" class="loading-state">
           <div class="spinner"></div><span>Cargando recompensas...</span>
@@ -95,6 +108,10 @@
         <RewardRedemptionsPanel />
       </div>
 
+      <div v-if="tabActivo === 'Reglas de puntos'" class="card">
+        <MarketplacePointsConfigPanel />
+      </div>
+
       <div v-if="tabActivo === 'Motor Scoring'" class="card">
         <ScoringAdminPanel />
       </div>
@@ -141,6 +158,28 @@
               <input v-model="formPremio.puntaje_minimo_desbloqueo" type="number" min="0" max="1000" placeholder="0" class="form-input" />
             </div>
           </div>
+          <div v-if="formPremio.tipo_premio === 'alianza_estrategica'" class="form-group">
+            <label>Proveedor de alianza</label>
+            <input v-model="formPremio.proveedor_alianza" type="text" placeholder="Ej. Supermercado XYZ" class="form-input" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Disponible desde</label>
+              <input v-model="formPremio.disponible_desde" type="datetime-local" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Disponible hasta</label>
+              <input v-model="formPremio.disponible_hasta" type="datetime-local" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Imagen del premio</label>
+            <input type="file" accept="image/jpeg,image/png,image/webp" class="form-input" @change="onImagenSeleccionada" />
+            <div v-if="imagenPreviewUrl" class="image-preview-card">
+              <img :src="imagenPreviewUrl" alt="Vista previa del premio" class="image-preview" />
+              <span class="form-hint">{{ imagenPremio ? 'Nueva imagen seleccionada' : 'Imagen actual del premio' }}</span>
+            </div>
+          </div>
           <div class="form-group">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
               <input type="checkbox" v-model="formPremio.activo" />
@@ -180,14 +219,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
 import RewardRedemptionsPanel from '@/features/recompensas/components/RewardRedemptionsPanel.vue'
 import ScoringAdminPanel from '@/features/recompensas/components/ScoringAdminPanel.vue'
+import MarketplacePointsConfigPanel from '@/features/recompensas/components/MarketplacePointsConfigPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = 'http://localhost:8000/api'
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
+
+
+const toIsoDateTime = (value: string) => value ? new Date(value).toISOString() : null
+const toLaravelBoolean = (value: boolean) => (value ? '1' : '0')
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
@@ -197,8 +241,10 @@ const cargando     = ref(false)
 const guardando    = ref(false)
 const errorMsg     = ref('')
 const successMsg   = ref('')
-const tabs         = ['Market Places de Premios', 'Canjes Solicitados', 'Motor Scoring']
+const tabs         = ['Market Places de Premios', 'Canjes Solicitados', 'Reglas de puntos', 'Motor Scoring']
 const tabActivo    = ref('Market Places de Premios')
+const filtroTipo   = ref('')
+const filtroActivo = ref('')
 
 // Modal
 const modalPremio  = ref(false)
@@ -207,10 +253,15 @@ const premioEditando = ref<any>(null)
 const modalEliminar = ref(false)
 const premioAEliminar = ref<any>(null)
 const formErrors   = ref<Record<string, string>>({})
+const imagenPremio = ref<File | null>(null)
+const imagenPreviewTemporal = ref('')
 const formPremio   = ref({
   nombre: '', descripcion: '', tipo_premio: 'propio',
-  costo_puntos: '', stock_disponible: '', puntaje_minimo_desbloqueo: '0', activo: true
+  proveedor_alianza: '',
+  costo_puntos: '', stock_disponible: '', puntaje_minimo_desbloqueo: '0',
+  disponible_desde: '', disponible_hasta: '', imagen_url: '', activo: true
 })
+const imagenPreviewUrl = computed(() => imagenPreviewTemporal.value || formPremio.value.imagen_url || '')
 
 // ── Helpers ──
 const labelCategoria = (tipo: string) => ({
@@ -231,12 +282,23 @@ const iconoPremio = (tipo: string) => ({
   experiencia_vip:     '🧴',
 }[tipo] ?? '🎁')
 
+const resetImagenPreviewTemporal = () => {
+  if (imagenPreviewTemporal.value) {
+    URL.revokeObjectURL(imagenPreviewTemporal.value)
+    imagenPreviewTemporal.value = ''
+  }
+}
+
 // ── API ──
 const cargarRecompensas = async () => {
   cargando.value = true
   errorMsg.value = ''
   try {
-    const res  = await fetch(`${API_BASE}/workspace/admin/recompensas`, { headers: hdrs() })
+    const params = new URLSearchParams()
+    if (filtroTipo.value) params.set('tipo_premio', filtroTipo.value)
+    if (filtroActivo.value !== '') params.set('activo', filtroActivo.value)
+    const query = params.toString()
+    const res  = await fetch(`${API_BASE}/workspace/admin/recompensas${query ? `?${query}` : ''}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (json.status === 'success') {
@@ -255,7 +317,9 @@ const abrirModalNuevo = () => {
   modoEdicion.value   = false
   premioEditando.value = null
   formErrors.value    = {}
-  formPremio.value    = { nombre: '', descripcion: '', tipo_premio: 'propio', costo_puntos: '', stock_disponible: '', puntaje_minimo_desbloqueo: '0', activo: true }
+  resetImagenPreviewTemporal()
+  formPremio.value    = { nombre: '', descripcion: '', tipo_premio: 'propio', proveedor_alianza: '', costo_puntos: '', stock_disponible: '', puntaje_minimo_desbloqueo: '0', disponible_desde: '', disponible_hasta: '', imagen_url: '', activo: true }
+  imagenPremio.value = null
   modalPremio.value   = true
 }
 
@@ -263,15 +327,21 @@ const abrirModalEditar = (r: any) => {
   modoEdicion.value   = true
   premioEditando.value = r
   formErrors.value    = {}
+  resetImagenPreviewTemporal()
   formPremio.value    = {
     nombre:                    r.nombre,
     descripcion:               r.descripcion ?? '',
     tipo_premio:               r.tipo_premio,
     costo_puntos:              String(r.costo_puntos),
     stock_disponible:          r.stock_disponible !== null ? String(r.stock_disponible) : '',
+    proveedor_alianza:         r.proveedor_alianza ?? '',
     puntaje_minimo_desbloqueo: String(r.puntaje_minimo_desbloqueo ?? 0),
+    disponible_desde:          r.disponible_desde ? r.disponible_desde.slice(0, 16) : '',
+    disponible_hasta:          r.disponible_hasta ? r.disponible_hasta.slice(0, 16) : '',
+    imagen_url:                r.imagen_url ?? '',
     activo:                    r.activo,
   }
+  imagenPremio.value = null
   modalPremio.value = true
 }
 
@@ -291,15 +361,33 @@ const guardarPremio = async () => {
       nombre:                    formPremio.value.nombre,
       descripcion:               formPremio.value.descripcion,
       tipo_premio:               formPremio.value.tipo_premio,
+      proveedor_alianza:         formPremio.value.proveedor_alianza || null,
       costo_puntos:              Number(formPremio.value.costo_puntos),
       stock_disponible:          formPremio.value.stock_disponible !== '' ? Number(formPremio.value.stock_disponible) : null,
       puntaje_minimo_desbloqueo: Number(formPremio.value.puntaje_minimo_desbloqueo),
+      disponible_desde:          toIsoDateTime(formPremio.value.disponible_desde),
+      disponible_hasta:          toIsoDateTime(formPremio.value.disponible_hasta),
       activo:                    formPremio.value.activo,
     }
 
     const url    = modoEdicion.value ? `${API_BASE}/workspace/admin/recompensas/${premioEditando.value.id}` : `${API_BASE}/workspace/admin/recompensas`
-    const method = modoEdicion.value ? 'PUT' : 'POST'
-    const res    = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(body) })
+
+    let res: Response
+    if (imagenPremio.value) {
+      const formData = new FormData()
+      Object.entries(body).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, key === 'activo' ? toLaravelBoolean(Boolean(value)) : String(value))
+        }
+      })
+      formData.append('imagen', imagenPremio.value)
+      if (modoEdicion.value) {
+        formData.append('_method', 'PUT')
+      }
+      res = await fetch(url, { method: 'POST', headers: authHeaders(), body: formData })
+    } else {
+      res = await fetch(url, { method: modoEdicion.value ? 'PUT' : 'POST', headers: hdrs(), body: JSON.stringify(body) })
+    }
     const json   = await res.json()
 
     if (res.ok && json.status === 'success') {
@@ -364,7 +452,18 @@ const eliminarPremio = async () => {
   }
 }
 
+const onImagenSeleccionada = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  resetImagenPreviewTemporal()
+  imagenPremio.value = input.files?.[0] ?? null
+
+  if (imagenPremio.value) {
+    imagenPreviewTemporal.value = URL.createObjectURL(imagenPremio.value)
+  }
+}
+
 onMounted(() => cargarRecompensas())
+onBeforeUnmount(() => resetImagenPreviewTemporal())
 </script>
 
 <style>
@@ -469,5 +568,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .form-textarea { resize:vertical; min-height:70px; }
 .form-row { display:flex; gap:12px; }
 .form-error { font-size:11px; color:#ef4444; }
+.form-hint { font-size:12px; color:#64748b; }
+.image-preview-card { display:flex; flex-direction:column; gap:8px; margin-top:10px; padding:12px; border:1px solid #e2e8f0; border-radius:10px; background:#f8fafc; }
+.image-preview { width:100%; max-height:180px; object-fit:contain; border-radius:8px; background:#fff; border:1px solid #e2e8f0; }
 .confirm-text { margin:0; font-size:14px; color:#475569; line-height:1.6; }
 </style>

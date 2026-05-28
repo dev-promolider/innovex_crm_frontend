@@ -150,6 +150,36 @@ export function useDeudasApi() {
         }
     }
 
+    const abrirDisputa = async (debtId: number, motivo: string) => {
+        try {
+            await apiClient.post(
+                `/workspace/admin/finanzas/deudas/${debtId}/disputa`,
+                { motivo },
+                { headers: authHeaders() },
+            )
+            await selectDebt(debtId)
+            await fetchDebts(pagination.current_page)
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        }
+    }
+
+    const resolverDisputa = async (debtId: number, resolucion: string) => {
+        try {
+            await apiClient.post(
+                `/workspace/admin/finanzas/deudas/${debtId}/resolver-disputa`,
+                { resolucion },
+                { headers: authHeaders() },
+            )
+            await selectDebt(debtId)
+            await fetchDebts(pagination.current_page)
+        } catch (error) {
+            errorMessage.value = normalizeErrorMessage(error)
+            throw error
+        }
+    }
+
     const selectDebt = async (debtId: number) => {
         selectedDebtId.value = debtId
         const selectedDebt = debts.value.find((debt) => debt.id === debtId) ?? null
@@ -215,5 +245,7 @@ export function useDeudasApi() {
         fetchDebtDetail,
         fetchAccountStatement,
         selectDebt,
+        abrirDisputa,
+        resolverDisputa,
     }
 }

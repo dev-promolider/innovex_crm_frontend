@@ -80,7 +80,7 @@ export interface CreatedEmpresaPrimerAdmin {
     nombre: string
     apellido: string
     email: string
-    password_temporal: string
+    password_temporal: string | null
 }
 
 export interface CreateEmpresaResult {
@@ -92,7 +92,7 @@ export interface CreateEmpresaPayload {
     nombre: string
     nombre_comercial?: string
     ruc_nit?: string
-    logo_url?: string
+    logo?: File
     color_primario?: string
     color_secundario?: string
     moneda_iso?: string
