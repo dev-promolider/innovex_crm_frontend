@@ -6,12 +6,14 @@ import { primaryNavigation, secondaryNavigation } from '../app/navigation'
 import { useAuthenticatedSession } from '../composables/useAuthenticatedSession'
 import AppIcon from './layout/AppIcon.vue'
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
 		isOpen?: boolean
+		brandLogoSrc?: string
 	}>(),
 	{
 		isOpen: false,
+		brandLogoSrc: '',
 	},
 )
 
@@ -40,6 +42,8 @@ const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceCont
 const visiblePrimaryNavigation = computed(() => primaryNavigation.filter(canShowItem))
 const visibleSecondaryNavigation = computed(() => secondaryNavigation.filter(canShowItem))
 
+const resolvedBrandLogo = computed(() => props.brandLogoSrc?.trim() || logo)
+
 const handleNavigate = () => emit('navigate')
 const handleLogout = () => emit('logout')
 </script>
@@ -47,7 +51,7 @@ const handleLogout = () => emit('logout')
 <template>
 	<aside class="app-sidebar" :class="{ 'app-sidebar--open': isOpen }">
 		<div class="app-sidebar__brand">
-			<img :src="logo" :alt="t('common.appName')" class="app-sidebar__logo" />
+			<img :src="resolvedBrandLogo" :alt="t('common.appName')" class="app-sidebar__logo" />
 		</div>
 
 		<div class="app-sidebar__section">{{ t('common.general') }}</div>

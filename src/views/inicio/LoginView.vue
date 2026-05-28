@@ -129,7 +129,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "@/app/apiClient";
-import { hydrateAuthenticatedSession } from "@/composables/useAuthenticatedSession";
+import { hydrateAuthenticatedSession, setWorkspaceContext, setWorkspaceLogo } from "@/composables/useAuthenticatedSession";
 
 import recaptchaLogoUrl from "../../assets/RecaptchaLogo.png";
 import logoInnovexUrl from "../../assets/logo-innovex.png";
@@ -202,17 +202,17 @@ const handleLogin = async () => {
     const isSuperadmin = Boolean(data.data.user.es_superadmin);
 
     if (data.data.lobby && data.data.lobby.length > 0) {
-      localStorage.setItem("empresa_id", String(data.data.lobby[0].empresa_id));
-      localStorage.setItem("workspace_role", String(panelWorkspace?.rol ?? ""));
+      setWorkspaceContext(String(data.data.lobby[0].empresa_id), String(panelWorkspace?.rol ?? "") as "administrador_empresa" | "administrador_financiero" | "");
+      setWorkspaceLogo(typeof panelWorkspace?.logo === "string" ? panelWorkspace.logo : null);
     } else if (panelWorkspace?.empresa_id) {
-      localStorage.setItem("empresa_id", String(panelWorkspace.empresa_id));
-      localStorage.setItem("workspace_role", String(panelWorkspace.rol ?? ""));
+      setWorkspaceContext(String(panelWorkspace.empresa_id), String(panelWorkspace.rol ?? "") as "administrador_empresa" | "administrador_financiero" | "");
+      setWorkspaceLogo(typeof panelWorkspace.logo === "string" ? panelWorkspace.logo : null);
     } else if (isSuperadmin) {
-      localStorage.removeItem("empresa_id");
-      localStorage.removeItem("workspace_role");
+      setWorkspaceContext(null);
+      setWorkspaceLogo(null);
     } else {
-      localStorage.removeItem("empresa_id");
-      localStorage.removeItem("workspace_role");
+      setWorkspaceContext(null);
+      setWorkspaceLogo(null);
       throw new Error("Tu cuenta no tiene acceso a ningun workspace del panel web.");
     }
 

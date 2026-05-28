@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { primaryNavigation, secondaryNavigation, type NavigationItem } from '../../app/navigation'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
+import { useWorkspaceBranding } from '../../composables/useWorkspaceBranding'
 import NavBar from '../NavBar.vue'
 import AppTopbar from './AppTopbar.vue'
 
@@ -23,6 +24,7 @@ withDefaults(
 )
 
 const { userName, userEmail, userInitial, logout } = useAuthenticatedSession()
+const { workspaceLogo } = useWorkspaceBranding()
 const { t } = useI18n()
 const route = useRoute()
 
@@ -49,7 +51,7 @@ const toggleSidebar = () => {
 
 <template>
   <div class="app-shell">
-    <NavBar :is-open="sidebarOpen" @navigate="closeSidebar" @logout="logout" />
+    <NavBar :is-open="sidebarOpen" :brand-logo-src="workspaceLogo" @navigate="closeSidebar" @logout="logout" />
 
     <button
       type="button"

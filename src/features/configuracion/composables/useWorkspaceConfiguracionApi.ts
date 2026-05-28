@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
+import { setWorkspaceLogo } from '@/composables/useAuthenticatedSession'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import type { UsuarioListItem } from '@/features/usuarios/types'
 import type {
@@ -95,6 +96,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             )
 
             profile.value = response.data.data
+            if (!isSuperadminScope) {
+                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+            }
         } catch (error) {
             errorMessage.value = normalizeErrorMessage(error)
             throw error
@@ -209,6 +213,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             )
 
             profile.value = response.data.data
+            if (!isSuperadminScope) {
+                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+            }
             successMessage.value = response.data.message ?? 'Configuracion actualizada correctamente.'
 
             return response.data.data
@@ -270,6 +277,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
             profile.value = response.data.data
             logoPreview.value = null
+            if (!isSuperadminScope) {
+                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+            }
             successMessage.value = response.data.message ?? 'Logo guardado correctamente.'
 
             return response.data.data

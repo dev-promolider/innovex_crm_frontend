@@ -11,6 +11,7 @@ const userName = shallowRef(localStorage.getItem('user_nombre') ?? 'Admin')
 const userEmail = shallowRef(localStorage.getItem('user_email') ?? '')
 const isSuperadmin = shallowRef(localStorage.getItem('user_es_superadmin') === 'true')
 const workspaceRole = shallowRef((localStorage.getItem('workspace_role') ?? '') as PanelRole | '')
+const workspaceLogo = shallowRef(localStorage.getItem('workspace_logo') ?? '')
 
 const persistItem = (key: string, value: string) => {
   localStorage.setItem(key, value)
@@ -27,6 +28,7 @@ export function hydrateAuthenticatedSession() {
   userEmail.value = localStorage.getItem('user_email') ?? ''
   isSuperadmin.value = localStorage.getItem('user_es_superadmin') === 'true'
   workspaceRole.value = (localStorage.getItem('workspace_role') ?? '') as PanelRole | ''
+  workspaceLogo.value = localStorage.getItem('workspace_logo') ?? ''
 }
 
 export function updateAuthenticatedUserProfile(profile: { nombre?: string | null; email?: string | null }) {
@@ -51,6 +53,20 @@ export function clearAuthenticatedSession() {
   userEmail.value = ''
   isSuperadmin.value = false
   workspaceRole.value = ''
+  workspaceLogo.value = ''
+}
+
+export function setWorkspaceLogo(nextLogoUrl: string | null) {
+  const normalizedLogoUrl = typeof nextLogoUrl === 'string' ? nextLogoUrl.trim() : ''
+
+  if (normalizedLogoUrl.length > 0) {
+    persistItem('workspace_logo', normalizedLogoUrl)
+    workspaceLogo.value = normalizedLogoUrl
+    return
+  }
+
+  removeItem('workspace_logo')
+  workspaceLogo.value = ''
 }
 
 export function setWorkspaceContext(nextEmpresaId: string | null, nextWorkspaceRole: PanelRole | '' = '') {
@@ -60,6 +76,7 @@ export function setWorkspaceContext(nextEmpresaId: string | null, nextWorkspaceR
   } else {
     removeItem('empresa_id')
     empresaId.value = ''
+    setWorkspaceLogo(null)
   }
 
   if (nextWorkspaceRole.length > 0) {
@@ -104,6 +121,7 @@ export function useAuthenticatedSession() {
     userEmail,
     isSuperadmin,
     workspaceRole,
+    workspaceLogo,
     hasPanelAccess,
     isWorkspaceAdmin,
     isFinancialAdmin,
