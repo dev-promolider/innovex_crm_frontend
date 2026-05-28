@@ -3,6 +3,7 @@ import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { setWorkspaceLogo } from '@/composables/useAuthenticatedSession'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { resolveMediaUrl } from '../../../utils/media'
 import type { UsuarioListItem } from '@/features/usuarios/types'
 import type {
     WorkspaceFounderConfiguration,
@@ -31,6 +32,33 @@ interface PaginationPayload<T> {
 interface WorkspaceConfiguracionApiOptions {
     empresaId?: number
 }
+
+const normalizeLogoVariants = <T extends { thumbnail?: string | null; lobby_card?: string | null; original?: string | null } | null | undefined>(
+    variants: T,
+) => {
+    if (!variants) {
+        return variants ?? null
+    }
+
+    return {
+        ...variants,
+        thumbnail: resolveMediaUrl(variants.thumbnail) ?? null,
+        lobby_card: resolveMediaUrl(variants.lobby_card) ?? null,
+        original: resolveMediaUrl(variants.original) ?? null,
+    }
+}
+
+const normalizeWorkspaceProfile = (nextProfile: WorkspaceProfile): WorkspaceProfile => ({
+    ...nextProfile,
+    logo_url: resolveMediaUrl(nextProfile.logo_url),
+    logo_variantes: normalizeLogoVariants(nextProfile.logo_variantes),
+})
+
+const normalizeWorkspaceLogoPreview = (preview: WorkspaceLogoPreview): WorkspaceLogoPreview => ({
+    ...preview,
+    logo_url: resolveMediaUrl(preview.logo_url),
+    logo_variantes: normalizeLogoVariants(preview.logo_variantes),
+})
 
 const normalizeErrorMessage = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
@@ -95,9 +123,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
                 },
             )
 
-            profile.value = response.data.data
+            profile.value = normalizeWorkspaceProfile(response.data.data)
             if (!isSuperadminScope) {
-                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+                setWorkspaceLogo(profile.value.logo_url ?? profile.value.logo_variantes?.lobby_card ?? null)
             }
         } catch (error) {
             errorMessage.value = normalizeErrorMessage(error)
@@ -212,9 +240,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
                 },
             )
 
-            profile.value = response.data.data
+            profile.value = normalizeWorkspaceProfile(response.data.data)
             if (!isSuperadminScope) {
-                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+                setWorkspaceLogo(profile.value.logo_url ?? profile.value.logo_variantes?.lobby_card ?? null)
             }
             successMessage.value = response.data.message ?? 'Configuracion actualizada correctamente.'
 
@@ -246,10 +274,10 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
                 },
             )
 
-            logoPreview.value = response.data.data
+            logoPreview.value = normalizeWorkspaceLogoPreview(response.data.data)
             successMessage.value = response.data.message ?? 'Vista previa del logo generada.'
 
-            return response.data.data
+            return logoPreview.value
         } catch (error) {
             errorMessage.value = normalizeErrorMessage(error)
             throw error
@@ -275,14 +303,14 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
                 },
             )
 
-            profile.value = response.data.data
+            profile.value = normalizeWorkspaceProfile(response.data.data)
             logoPreview.value = null
             if (!isSuperadminScope) {
-                setWorkspaceLogo(response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null)
+                setWorkspaceLogo(profile.value.logo_url ?? profile.value.logo_variantes?.lobby_card ?? null)
             }
             successMessage.value = response.data.message ?? 'Logo guardado correctamente.'
 
-            return response.data.data
+            return profile.value
         } catch (error) {
             errorMessage.value = normalizeErrorMessage(error)
             throw error

@@ -1,5 +1,6 @@
 import { computed, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
+import { resolveMediaUrl } from '../utils/media'
 
 type HeaderMap = Record<string, string>
 
@@ -57,7 +58,7 @@ export function clearAuthenticatedSession() {
 }
 
 export function setWorkspaceLogo(nextLogoUrl: string | null) {
-  const normalizedLogoUrl = typeof nextLogoUrl === 'string' ? nextLogoUrl.trim() : ''
+  const normalizedLogoUrl = resolveMediaUrl(nextLogoUrl) ?? ''
 
   if (normalizedLogoUrl.length > 0) {
     persistItem('workspace_logo', normalizedLogoUrl)

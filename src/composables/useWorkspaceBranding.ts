@@ -1,6 +1,7 @@
 import { readonly, shallowRef, watch } from 'vue'
 import apiClient from '@/app/apiClient'
 import { setWorkspaceLogo, useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { resolveMediaUrl } from '../utils/media'
 
 interface WorkspaceProfileResponse {
     status: string
@@ -34,7 +35,9 @@ export function useWorkspaceBranding() {
                 headers: authHeaders(),
             })
 
-            const nextLogo = response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null
+            const nextLogo = resolveMediaUrl(
+                response.data.data.logo_url ?? response.data.data.logo_variantes?.lobby_card ?? null,
+            )
             setWorkspaceLogo(nextLogo)
 
             return nextLogo
