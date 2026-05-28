@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { API_BASE_URL } from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import NetworkTreeNode from './NetworkTreeNode.vue'
-
-const API_BASE = 'http://127.0.0.1:8000/api'
 
 export interface TreeNode {
   id: number
@@ -54,7 +53,7 @@ const cargarArbol = async () => {
 
   try {
     const res = await fetch(
-      `${API_BASE}/workspace/admin/distribuidores/arbol${params.toString() ? `?${params}` : ''}`,
+      `${API_BASE_URL}/workspace/admin/distribuidores/arbol${params.toString() ? `?${params}` : ''}`,
       { headers: hdrs() },
     )
     const json = await res.json()
