@@ -220,13 +220,14 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
 import RewardRedemptionsPanel from '@/features/recompensas/components/RewardRedemptionsPanel.vue'
 import ScoringAdminPanel from '@/features/recompensas/components/ScoringAdminPanel.vue'
 import MarketplacePointsConfigPanel from '@/features/recompensas/components/MarketplacePointsConfigPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 
 

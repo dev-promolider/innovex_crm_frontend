@@ -469,11 +469,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 import { useWorkspaceCurrency } from '../../composables/useWorkspaceCurrency'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 const { currencyCode, ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 

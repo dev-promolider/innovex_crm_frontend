@@ -276,13 +276,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive, watch, onBeforeUnmount } from 'vue'
+import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
 import AppModal from '../../components/shared/AppModal.vue'
 import NetworkTreePanel from '@/features/distribuidores/components/NetworkTreePanel.vue'
 import SponsorChangeQueuePanel from '@/features/distribuidores/components/SponsorChangeQueuePanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })

@@ -305,12 +305,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { API_BASE_URL } from '@/app/apiClient'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
 import InventoryMovementsPanel from '@/features/inventario/components/InventoryMovementsPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
 const { ensureCurrencyLoaded, formatCurrency } = useWorkspaceCurrency()
 

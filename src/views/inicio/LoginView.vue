@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { API_BASE_URL } from "@/app/apiClient";
 import { hydrateAuthenticatedSession } from "@/composables/useAuthenticatedSession";
 
 import recaptchaLogoUrl from "../../assets/RecaptchaLogo.png";
@@ -163,7 +164,7 @@ const handleLogin = async () => {
       navigator.userAgent + screen.width + screen.height + navigator.language,
     ).substring(0, 64);
 
-    const response = await fetch("http://localhost:8000/api/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
