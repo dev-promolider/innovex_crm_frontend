@@ -259,7 +259,18 @@
                     </div>
                     <div>
                       <dt>GPS firma</dt>
-                      <dd>{{ gpsFirma(detalleSolicitud) }}</dd>
+                      <dd>
+                        <a
+                          v-if="gpsFirmaUrl(detalleSolicitud)"
+                          class="gps-signature-link"
+                          :href="gpsFirmaUrl(detalleSolicitud) ?? undefined"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {{ gpsFirma(detalleSolicitud) }}
+                        </a>
+                        <span v-else>{{ gpsFirma(detalleSolicitud) }}</span>
+                      </dd>
                     </div>
                   </dl>
                 </section>
@@ -372,6 +383,12 @@ const gpsFirma = (detalle: any) => {
   const lng = detalle?.contrato?.gps_longitud
   if (lat == null || lng == null) return 'No registrado'
   return `${lat}, ${lng}`
+}
+const gpsFirmaUrl = (detalle: any) => {
+  const lat = detalle?.contrato?.gps_latitud
+  const lng = detalle?.contrato?.gps_longitud
+  if (lat == null || lng == null) return null
+  return `https://www.google.com/maps?q=${lat},${lng}`
 }
 
 // ── Filtrados ──
@@ -707,6 +724,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .request-definition-list div { display:flex; flex-direction:column; gap:4px; }
 .request-definition-list dt { font-size:11px; font-weight:700; color:#8c5f2c; text-transform:uppercase; letter-spacing:0.08em; }
 .request-definition-list dd { margin:0; font-size:12px; color:#374151; word-break:break-word; }
+.gps-signature-link { color:#0f5f90; font-weight:700; text-decoration:none; }
+.gps-signature-link:hover { text-decoration:underline; }
 .detail-state { padding:24px 0; }
 .inventory-placeholder { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:#64748b; background:linear-gradient(135deg,#fffaf2,#ffffff); border:1px dashed #e2c78f; border-radius:16px; padding:24px; }
 .inventory-placeholder__icon { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff1d6; color:#8c5f2c; font-size:24px; font-weight:700; }
