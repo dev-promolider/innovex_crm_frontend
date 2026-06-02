@@ -17,6 +17,7 @@ import MetricasView from '../views/metricas/MetricasView.vue'
 import ConfiguracionView from '../views/configuracion/ConfiguracionView.vue'
 import PerfilView from '../views/perfil/PerfilView.vue'
 import UsuariosView from '../views/usuarios/UsuariosView.vue'
+import PrivacidadView from '../views/privacidad/PrivacidadView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -131,6 +132,11 @@ const router = createRouter({
       name: 'configuracion',
       component: ConfiguracionView,
       meta: { requiresAuth: true, requiresWorkspaceContext: true }
+    },
+    {
+      path: '/privacidad',
+      name: 'privacidad',
+      component: PrivacidadView
     },
   ]
 })
