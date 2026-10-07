@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import AppSearchInput from '../shared/AppSearchInput.vue'
+
+type NotificationItem = {
+  id: number | string
+  icon: 'notification'
+  title: string
+  message: string
+  relativeTime: string
+  read: boolean
+}
 
 withDefaults(
   defineProps<{
@@ -32,6 +41,42 @@ defineEmits<{
 const { t } = useI18n()
 const searchQuery = shallowRef('')
 const router = useRouter()
+const notificationsOpen = shallowRef(false)
+const notificationMenu = ref<HTMLElement | null>(null)
+const notificationButton = ref<HTMLButtonElement | null>(null)
+const notifications = ref<NotificationItem[]>([])
+const unreadCount = computed(() => notifications.value.filter((notification) => !notification.read).length)
+
+const closeNotifications = () => {
+  notificationsOpen.value = false
+}
+
+const closeOnOutsideClick = (event: PointerEvent) => {
+  if (event.target instanceof Node && !notificationMenu.value?.contains(event.target)) {
+    closeNotifications()
+  }
+}
+
+const closeOnEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && notificationsOpen.value) {
+    closeNotifications()
+    notificationButton.value?.focus()
+  }
+}
+
+const markAllAsRead = () => {
+  notifications.value = notifications.value.map((notification) => ({ ...notification, read: true }))
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', closeOnOutsideClick)
+  document.addEventListener('keydown', closeOnEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', closeOnOutsideClick)
+  document.removeEventListener('keydown', closeOnEscape)
+})
 
 const goToProfile = () => {
   router.push({ name: 'perfil' })
@@ -68,10 +113,58 @@ const goToProfile = () => {
     </div>
 
     <div class="app-topbar__right">
-      <button type="button" class="app-topbar__notifications" :aria-label="t('common.notifications')">
-        <AppIcon name="notification" :size="18" />
-        <span class="app-topbar__badge">{{ notificationCount }}</span>
-      </button>
+      <div ref="notificationMenu" class="app-topbar__notification-menu">
+        <button
+          ref="notificationButton"
+          type="button"
+          class="app-topbar__notifications"
+          aria-label="Notificaciones"
+          aria-controls="app-topbar-notifications-panel"
+          :aria-expanded="notificationsOpen"
+          @click="notificationsOpen = !notificationsOpen"
+        >
+          <AppIcon name="notification" :size="18" />
+          <span v-if="unreadCount > 0" class="app-topbar__badge">{{ unreadCount }}</span>
+        </button>
+
+        <section
+          v-if="notificationsOpen"
+          id="app-topbar-notifications-panel"
+          class="app-topbar__notifications-panel"
+          aria-labelledby="app-topbar-notifications-title"
+        >
+          <h2 id="app-topbar-notifications-title" class="app-topbar__notifications-title">Notificaciones</h2>
+
+          <ul v-if="notifications.length" class="app-topbar__notification-list">
+            <li v-for="notification in notifications" :key="notification.id" class="app-topbar__notification-item">
+              <span class="app-topbar__notification-icon" aria-hidden="true">
+                <AppIcon :name="notification.icon" :size="18" />
+              </span>
+              <div class="app-topbar__notification-copy">
+                <strong>{{ notification.title }}</strong>
+                <p>{{ notification.message }}</p>
+                <time>{{ notification.relativeTime }}</time>
+              </div>
+            </li>
+          </ul>
+
+          <div v-else class="app-topbar__notifications-empty">
+            <span class="app-topbar__notifications-empty-icon" aria-hidden="true">
+              <AppIcon name="notification" :size="22" />
+            </span>
+            <p>No tienes notificaciones nuevas</p>
+          </div>
+
+          <button
+            v-if="unreadCount > 0"
+            type="button"
+            class="app-topbar__mark-read"
+            @click="markAllAsRead"
+          >
+            Marcar todas como leídas
+          </button>
+        </section>
+      </div>
 
       <button
         type="button"
@@ -293,6 +386,126 @@ const goToProfile = () => {
    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
 }
 
+.app-topbar__notifications:focus-visible,
+.app-topbar__mark-read:focus-visible {
+  outline: 2px solid #2263e5;
+  outline-offset: 3px;
+}
+
+.app-topbar__notification-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.app-topbar__notifications-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 200;
+  width: min(360px, calc(100vw - 48px));
+  max-height: min(420px, calc(100vh - 110px));
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #172b40;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+}
+
+.app-topbar__notifications-title {
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e8edf3;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.app-topbar__notification-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 0 0;
+  list-style: none;
+}
+
+.app-topbar__notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.app-topbar__notification-icon,
+.app-topbar__notifications-empty-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #edf4fa;
+  color: #365c7d;
+}
+
+.app-topbar__notification-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.app-topbar__notification-copy {
+  min-width: 0;
+}
+
+.app-topbar__notification-copy strong {
+  display: block;
+  font-size: 13px;
+}
+
+.app-topbar__notification-copy p {
+  margin: 3px 0 5px;
+  color: #53677c;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.app-topbar__notification-copy time {
+  color: #75869a;
+  font-size: 11px;
+}
+
+.app-topbar__notifications-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 8px 18px;
+  color: #53677c;
+  text-align: center;
+}
+
+.app-topbar__notifications-empty-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.app-topbar__notifications-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.app-topbar__mark-read {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #294765;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .app-topbar__badge {
    position: absolute;
    top: -4px;
@@ -308,6 +521,12 @@ const goToProfile = () => {
   color: #ffffff;
   font-size: 10px;
    font-weight: 700;
+}
+
+@media (min-width: 1024px) and (hover: none) {
+  .app-topbar__menu {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 1100px) {
@@ -352,6 +571,12 @@ const goToProfile = () => {
      padding: 4px;
      background: transparent;
      box-shadow: none;
+   }
+
+   .app-topbar__notifications-panel {
+     right: -14px;
+     width: min(360px, calc(100vw - 24px));
+     max-height: calc(100vh - 110px);
    }
 }
 </style>

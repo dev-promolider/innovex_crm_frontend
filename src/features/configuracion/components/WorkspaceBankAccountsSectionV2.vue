@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, shallowRef } from 'vue'
-import { Building2, ChevronDown, CreditCard, Eye, Pencil, Plus, RefreshCw, Trash2, Wallet } from 'lucide-vue-next'
+import { Building2, ChevronDown, CreditCard, Eye, Pencil, Plus, Trash2, Wallet } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
 import { useWorkspaceBankAccountsApi } from '../composables/useWorkspaceBankAccountsApi'
 import type { WorkspaceBankAccount, WorkspaceBankAccountPayload } from '../types'
@@ -9,6 +9,10 @@ import WorkspaceBankAccountDialogV2 from './WorkspaceBankAccountDialogV2.vue'
 const props = defineProps<{
   companyName: string
   empresaId?: number
+}>()
+
+const emit = defineEmits<{
+  completionLoaded: [hasAccounts: boolean]
 }>()
 
 const {
@@ -37,6 +41,11 @@ const currencySummary = computed(() => {
 })
 
 const isExpanded = (accountId: number) => expandedAccountIds.has(accountId)
+
+const refreshAccounts = async () => {
+  await fetchBankAccounts()
+  emit('completionLoaded', bankAccounts.value.length > 0)
+}
 
 const toggleAccountPanel = (accountId: number) => {
   if (expandedAccountIds.has(accountId)) {
@@ -82,6 +91,7 @@ const handleSubmit = async (payload: WorkspaceBankAccountPayload) => {
       await createBankAccount(payload)
     }
 
+    emit('completionLoaded', bankAccounts.value.length > 0)
     dialogOpen.value = false
     editingAccount.value = null
     ensureExpandedAccounts()
@@ -97,6 +107,7 @@ const handleDelete = async (account: WorkspaceBankAccount) => {
 
   try {
     await deleteBankAccount(account.id)
+    emit('completionLoaded', bankAccounts.value.length > 0)
     expandedAccountIds.delete(account.id)
     ensureExpandedAccounts()
   } catch {
@@ -105,7 +116,7 @@ const handleDelete = async (account: WorkspaceBankAccount) => {
 }
 
 onMounted(async () => {
-  await fetchBankAccounts()
+  await refreshAccounts()
   ensureExpandedAccounts()
 })
 </script>
@@ -115,16 +126,10 @@ onMounted(async () => {
     <header class="bank-v2__toolbar">
       <div class="bank-v2__toolbar-copy">
         <p class="bank-v2__eyebrow">Cuentas bancarias</p>
-        <h3 class="bank-v2__title">Recaudacion y depositos</h3>
+        <h3 class="bank-v2__title">Recaudación y depósitos</h3>
       </div>
 
       <div class="bank-v2__toolbar-actions">
-        <AppButton variant="ghost" size="sm" :disabled="isLoading" @click="fetchBankAccounts">
-          <template #leading>
-            <RefreshCw class="size-4" />
-          </template>
-          {{ isLoading ? 'Cargando...' : 'Actualizar' }}
-        </AppButton>
         <AppButton variant="primary" size="sm" @click="openCreateDialog">
           <template #leading>
             <Plus class="size-4" />
@@ -167,7 +172,7 @@ onMounted(async () => {
         <div>
           <h4 class="bank-v2__panel-title">Cuentas registradas</h4>
           <p class="bank-v2__panel-desc">
-            Alias, numeros de cuenta, visibilidad movil e instrucciones de pago para {{ companyName }}.
+            Alias, números de cuenta, visibilidad móvil e instrucciones de pago para {{ companyName }}.
           </p>
         </div>
       </div>
@@ -176,6 +181,7 @@ onMounted(async () => {
 
       <div v-else-if="bankAccounts.length === 0" class="bank-v2__empty">
         <p>No hay cuentas registradas.</p>
+        <p>Los distribuidores verán estas cuentas al registrar un pago.</p>
         <AppButton variant="primary" size="sm" @click="openCreateDialog">
           <template #leading>
             <Plus class="size-4" />
@@ -258,7 +264,7 @@ onMounted(async () => {
               <div class="bank-v2__detail-item">
                 <span class="bank-v2__detail-label">Estado comercial</span>
                 <strong class="bank-v2__detail-value">
-                  {{ account.activa ? 'Disponible para nuevas ventas' : 'Fuera de operacion' }}
+                  {{ account.activa ? 'Disponible para nuevas ventas' : 'Fuera de operación' }}
                 </strong>
               </div>
             </div>

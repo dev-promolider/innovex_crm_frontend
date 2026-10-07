@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
+import DatePicker from '@/components/shared/DatePicker.vue'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import { formatDateTime } from '@/utils/formatters'
@@ -66,6 +67,19 @@ const { ensureCurrencyLoaded, formatCurrency: formatMoney } = useWorkspaceCurren
 const formatDate = (value: string | null | undefined) =>
   formatDateTime(value)
 
+const updateDateFrom = (value: string) => {
+  filters.desde = value
+  if (value && filters.hasta && filters.hasta < value) {
+    filters.hasta = ''
+  }
+  void loadCommissions(1)
+}
+
+const updateDateTo = (value: string) => {
+  filters.hasta = value
+  void loadCommissions(1)
+}
+
 const totalAmount = computed(() =>
   Object.values(totalsByState.value).reduce((acc, item) => acc + item.monto, 0),
 )
@@ -125,8 +139,25 @@ onMounted(() => {
         <option value="retenida">Retenida</option>
         <option value="cancelada">Cancelada</option>
       </select>
-      <input v-model="filters.desde" class="admin-input" type="date" @change="loadCommissions(1)" />
-      <input v-model="filters.hasta" class="admin-input" type="date" @change="loadCommissions(1)" />
+      <DatePicker
+        id="commissions-date-from"
+        class="commission-date-picker"
+        :model-value="filters.desde"
+        label="Desde"
+        :range-start="filters.desde"
+        :range-end="filters.hasta"
+        @update:model-value="updateDateFrom"
+      />
+      <DatePicker
+        id="commissions-date-to"
+        class="commission-date-picker"
+        :model-value="filters.hasta"
+        label="Hasta"
+        :min="filters.desde"
+        :range-start="filters.desde"
+        :range-end="filters.hasta"
+        @update:model-value="updateDateTo"
+      />
       <input v-model="filters.membresia_id" class="admin-input" type="number" min="1" placeholder="ID membresía" @change="loadCommissions(1)" />
       <input v-model="filters.campana_id" class="admin-input" type="number" min="1" placeholder="ID campaña" @change="loadCommissions(1)" />
     </div>
@@ -242,6 +273,12 @@ onMounted(() => {
 .commission-summary {
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.commission-filters > .commission-date-picker {
+  flex: 1 1 165px;
+  width: auto;
+  min-width: 165px;
 }
 
 .admin-input {

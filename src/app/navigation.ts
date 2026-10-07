@@ -4,6 +4,8 @@ export type NavigationIconName =
   | 'campaigns'
   | 'leaders'
   | 'approvals'
+  | 'contracts'
+  | 'metrics'
   | 'users'
   | 'validation'
   | 'inventory'
@@ -31,9 +33,9 @@ export const primaryNavigation: NavigationItem[] = [
   { to: '/validacion', labelKey: 'nav.validation.label', icon: 'validation', descriptionKey: 'nav.validation.description', requiresWorkspaceContext: true },
   { to: '/inventario', labelKey: 'nav.inventory.label', icon: 'inventory', descriptionKey: 'nav.inventory.description', requiresWorkspaceContext: true },
   { to: '/deudas', labelKey: 'nav.debts.label', icon: 'debts', descriptionKey: 'nav.debts.description', requiresWorkspaceContext: true },
-  { to: '/contratos', labelKey: 'nav.contracts.label', icon: 'reports', descriptionKey: 'nav.contracts.description', requiresWorkspaceContext: true },
+  { to: '/contratos', labelKey: 'nav.contracts.label', icon: 'contracts', descriptionKey: 'nav.contracts.description', requiresWorkspaceContext: true },
   { to: '/recompensas', labelKey: 'nav.rewards.label', icon: 'rewards', descriptionKey: 'nav.rewards.description', requiresWorkspaceContext: true },
-  { to: '/metricas', labelKey: 'nav.metrics.label', icon: 'reports', descriptionKey: 'nav.metrics.description', requiresWorkspaceContext: true },
+  { to: '/metricas', labelKey: 'nav.metrics.label', icon: 'metrics', descriptionKey: 'nav.metrics.description', requiresWorkspaceContext: true },
   { to: '/reportes', labelKey: 'nav.reports.label', icon: 'reports', descriptionKey: 'nav.reports.description', requiresWorkspaceContext: true },
 ]
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { primaryNavigation, secondaryNavigation, type NavigationItem } from '../../app/navigation'
@@ -29,6 +29,9 @@ const { t } = useI18n()
 const route = useRoute()
 
 const sidebarOpen = shallowRef(false)
+const sidebarPinned = ref(false)
+const sidebarPinStorageKey = 'innovex:sidebar-pinned'
+let stopPersistingPin: (() => void) | undefined
 
 const navigationItems = computed(() => [...primaryNavigation, ...secondaryNavigation])
 
@@ -47,11 +50,41 @@ const closeSidebar = () => {
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
+
+const toggleSidebarPin = () => {
+  sidebarPinned.value = !sidebarPinned.value
+  sidebarOpen.value = false
+}
+
+onMounted(() => {
+  try {
+    sidebarPinned.value = window.localStorage.getItem(sidebarPinStorageKey) === 'true'
+  } catch (error) {
+    console.warn('No se pudo leer la preferencia de fijado del menú lateral.', error)
+  }
+
+  stopPersistingPin = watch(sidebarPinned, (pinned) => {
+    try {
+      window.localStorage.setItem(sidebarPinStorageKey, String(pinned))
+    } catch (error) {
+      console.warn('No se pudo guardar la preferencia de fijado del menú lateral.', error)
+    }
+  })
+})
+
+onBeforeUnmount(() => stopPersistingPin?.())
 </script>
 
 <template>
-  <div class="app-shell">
-    <NavBar :is-open="sidebarOpen" :brand-logo-src="workspaceLogo" @navigate="closeSidebar" @logout="logout" />
+  <div class="app-shell" :class="{ 'app-shell--sidebar-pinned': sidebarPinned }">
+    <NavBar
+      :is-open="sidebarOpen"
+      :is-pinned="sidebarPinned"
+      :brand-logo-src="workspaceLogo"
+      @navigate="closeSidebar"
+      @logout="logout"
+      @toggle-pin="toggleSidebarPin"
+    />
 
     <button
       type="button"
@@ -126,6 +159,36 @@ const toggleSidebar = () => {
   .app-shell__overlay--active {
     opacity: 1;
     pointer-events: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell__main {
+    margin-left: 72px;
+    transition: margin-left 200ms ease;
+  }
+
+  .app-shell--sidebar-pinned .app-shell__main {
+    margin-left: var(--shell-sidebar-width);
+  }
+}
+
+@media (min-width: 1024px) and (hover: none) {
+  .app-shell__overlay--active {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 180;
+    border: 0;
+    padding: 0;
+    background: rgba(9, 16, 27, 0.32);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell__main,
+  .app-shell__overlay {
+    transition: none !important;
   }
 }
 </style>

@@ -4,12 +4,22 @@ import AppModal from '@/components/shared/AppModal.vue'
 import type { WorkspaceBankAccount, WorkspaceBankAccountPayload } from '../types'
 
 const bankOptions = [
-  { value: 'BCP', label: 'Banco de Credito del Peru' },
-  { value: 'BBVA', label: 'BBVA' },
-  { value: 'INTERBANK', label: 'Interbank' },
-  { value: 'SCOTIABANK', label: 'Scotiabank' },
-  { value: 'BANBIF', label: 'BanBif' },
-  { value: 'PICHINCHA', label: 'Banco Pichincha' },
+  { value: 'BCV', label: '🇻🇪 Banco Central de Venezuela' },
+  { value: 'BDV', label: '🇻🇪 Banco de Venezuela' },
+  { value: 'BOD', label: '🇻🇪 Banco Occidental de Descuento' },
+  { value: 'BNC', label: '🇻🇪 Banco Nacional de Crédito' },
+  { value: 'VENEZOLANO', label: '🇻🇪 Banco Venezolano de Crédito' },
+  { value: 'PROVINCIAL', label: '🇻🇪 Banco Provincial' },
+  { value: 'BANESCO', label: '🇻🇪 Banesco Banco Universal' },
+  { value: 'BFC', label: '🇻🇪 Banco Fondo Común' },
+  { value: 'BANDES', label: '🇻🇪 Banco de Desarrollo Económico y Social' },
+  { value: 'DEL SUR', label: '🇻🇪 Banco del Sur' },
+  { value: 'BCP', label: '🇵🇪 Banco de Crédito del Perú' },
+  { value: 'BBVA', label: '🇵🇪 BBVA' },
+  { value: 'INTERBANK', label: '🇵🇪 Interbank' },
+  { value: 'SCOTIABANK', label: '🇵🇪 Scotiabank' },
+  { value: 'BANBIF', label: '🇵🇪 BanBif' },
+  { value: 'PICHINCHA', label: '🇵🇪 Banco Pichincha' },
 ] as const
 
 const props = defineProps<{
@@ -26,10 +36,10 @@ const emit = defineEmits<{
 
 const form = reactive<WorkspaceBankAccountPayload>({
   alias_cuenta: '',
-  banco_codigo: 'BCP',
+  banco_codigo: 'BDV',
   numero_cuenta_cci: '',
   titular_cuenta: '',
-  moneda_iso: 'PEN',
+  moneda_iso: 'VES',
   instrucciones_pago: '',
   mostrar_numero_completo: false,
   activa: true,
@@ -37,10 +47,10 @@ const form = reactive<WorkspaceBankAccountPayload>({
 
 const resetForm = () => {
   form.alias_cuenta = ''
-  form.banco_codigo = 'BCP'
+  form.banco_codigo = 'BDV'
   form.numero_cuenta_cci = ''
   form.titular_cuenta = props.companyName
-  form.moneda_iso = 'PEN'
+  form.moneda_iso = 'VES'
   form.instrucciones_pago = ''
   form.mostrar_numero_completo = false
   form.activa = true
@@ -110,10 +120,11 @@ const handleSubmit = () => {
         <label class="bank-dialog__field">
           <span class="bank-dialog__label">Moneda</span>
           <select v-model="form.moneda_iso" class="bank-dialog__input">
-            <option value="PEN">PEN</option>
-            <option value="USD">USD</option>
-            <option value="COP">COP</option>
-            <option value="MXN">MXN</option>
+            <option value="VES">VES - Bolívar Venezolano (Bs)</option>
+            <option value="USD">USD - Dólar Estadounidense ($)</option>
+            <option value="PEN">PEN - Sol Peruano (S/)</option>
+            <option value="COP">COP - Peso Colombiano (COP$)</option>
+            <option value="MXN">MXN - Peso Mexicano (MX$)</option>
           </select>
         </label>
 

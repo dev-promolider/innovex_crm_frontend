@@ -35,12 +35,23 @@
               <h3 class="section-title white">Formato de Exportación</h3>
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Fecha Desde</label>
-                  <div class="date-field"><input type="date" v-model="fechaDesde" class="date-input" /><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                  <DatePicker
+                    id="reports-date-from"
+                    v-model="fechaDesde"
+                    label="Fecha Desde"
+                    :range-start="fechaDesde"
+                    :range-end="fechaHasta"
+                  />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Fecha Hasta</label>
-                  <div class="date-field"><input type="date" v-model="fechaHasta" class="date-input" /><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7eb8e8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                  <DatePicker
+                    id="reports-date-to"
+                    v-model="fechaHasta"
+                    label="Fecha Hasta"
+                    :min="fechaDesde"
+                    :range-start="fechaDesde"
+                    :range-end="fechaHasta"
+                  />
                 </div>
               </div>
               <div class="form-row">
@@ -105,12 +116,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppShell from '../../components/layout/AppShell.vue'
+import DatePicker from '../../components/shared/DatePicker.vue'
 import { useAnalyticsApi } from '@/features/analytics/composables/useAnalyticsApi'
 
 const fechaDesde = ref('')
 const fechaHasta = ref('')
+watch(fechaDesde, (desde) => {
+  if (desde && fechaHasta.value && fechaHasta.value < desde) {
+    fechaHasta.value = ''
+  }
+})
 const formatoSeleccionado = ref('CSV')
 const formatos = ['CSV', 'XLSX (Excel)', 'PDF']
 const tipoSeleccionado = ref('ventas')

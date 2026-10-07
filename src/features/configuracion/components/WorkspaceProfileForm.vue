@@ -18,7 +18,7 @@ const emit = defineEmits<{
 const form = reactive<UpdateWorkspaceProfilePayload>({
   nombre: '',
   nombre_comercial: '',
-  moneda_iso: 'PEN',
+  moneda_iso: 'VES',
   estado: 'activa',
   mensaje_estado_operativo: '',
 })
@@ -32,7 +32,7 @@ watch(
 
     form.nombre = profile.nombre
     form.nombre_comercial = profile.nombre_comercial ?? ''
-    form.moneda_iso = profile.moneda_iso ?? 'PEN'
+    form.moneda_iso = profile.moneda_iso ?? 'VES'
     form.estado = profile.estado_operativo === 'configuracion' ? 'activa' : profile.estado_operativo
     form.mensaje_estado_operativo = profile.mensaje_estado_operativo ?? ''
   },
@@ -117,11 +117,11 @@ const handleSubmit = () => {
             class="workspace-input workspace-input--mono"
             type="text"
             maxlength="3"
-            placeholder="PEN"
+            placeholder="VES"
             :disabled="props.profile?.moneda_bloqueada"
           />
           <span class="workspace-field__hint">
-            {{ props.profile?.moneda_bloqueada ? 'Bloqueada por operaciones registradas.' : 'Usa codigo ISO de 3 letras.' }}
+            {{ props.profile?.moneda_bloqueada ? 'Bloqueada por operaciones registradas.' : 'Usa codigo ISO de 3 letras (VES, USD, PEN, EUR).' }}
           </span>
         </label>
 

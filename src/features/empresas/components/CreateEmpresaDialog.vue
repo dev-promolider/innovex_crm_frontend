@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import AppModal from '@/components/shared/AppModal.vue'
+import PhoneInput from '@/components/shared/PhoneInput.vue'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
+import { countries } from '@/utils/countries'
 import type { CreateEmpresaPayload, CreateEmpresaResult } from '../types'
 
 interface Props {
@@ -69,8 +71,20 @@ const planDescriptions: Record<string, string> = {
 }
 
 const planDescription = computed(() => planDescriptions[form.plan_saas] ?? '')
+const phoneDefaultCountry = computed(() =>
+  form.moneda_iso === 'VES' || form.zona_horaria === 'America/Caracas' ? 'VE' : 'PE',
+)
 
 const emailIsValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)
+
+const getNationalPhoneDigits = (value: string) => {
+  const digits = value.replace(/\D/g, '')
+  const matchingCountry = [...countries]
+    .filter((country) => value.startsWith(country.prefijo))
+    .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]
+
+  return matchingCountry ? digits.slice(matchingCountry.prefijo.length - 1) : digits
+}
 
 const validateField = (field: string) => {
   const value = String(form[field as keyof typeof form] ?? '').trim()
@@ -86,6 +100,16 @@ const validateField = (field: string) => {
     case 'email_contacto':
       if (value && !emailIsValid(value)) message = 'Escribe un correo electrónico válido.'
       break
+    case 'telefono_contacto':
+    case 'admin_telefono': {
+      const phoneDigits = getNationalPhoneDigits(value)
+      if (field === 'admin_telefono' && !value) {
+        message = 'El teléfono del administrador es obligatorio.'
+      } else if (value && (phoneDigits.length < 6 || phoneDigits.length > 12)) {
+        message = 'El teléfono debe tener entre 6 y 12 dígitos.'
+      }
+      break
+    }
     case 'max_distribuidores':
       if (value && (!/^\d+$/.test(value) || Number(value) < 1 || !Number.isSafeInteger(Number(value)))) {
         message = 'Ingresa un entero positivo o deja el campo vacío para indicar sin límite.'
@@ -100,9 +124,6 @@ const validateField = (field: string) => {
     case 'admin_email':
       if (!value) message = 'El correo del administrador es obligatorio.'
       else if (!emailIsValid(value)) message = 'Escribe un correo electrónico válido.'
-      break
-    case 'admin_telefono':
-      if (!value) message = 'El teléfono del administrador es obligatorio.'
       break
     case 'admin_tipo_documento':
       if (!value) message = 'Selecciona un tipo de documento.'
@@ -178,7 +199,7 @@ const fieldError = (field: string) => fieldErrors[field] ?? ''
 
 const focusFirstInvalidField = async () => {
   await nextTick()
-  document.querySelector<HTMLElement>('.create-empresa [aria-invalid="true"]')?.focus()
+  document.querySelector<HTMLElement>('.create-empresa [aria-invalid="true"], .create-empresa .phone-input.is-invalid input')?.focus()
 }
 
 const revokeLogoPreview = () => {
@@ -489,7 +510,7 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group">
                 <label class="form-label" for="empresa-telefono">Teléfono</label>
-                <input id="empresa-telefono" v-model="form.telefono_contacto" class="form-input" :class="{ 'is-invalid': fieldError('telefono_contacto') }" type="tel" placeholder="Teléfono de contacto" :aria-invalid="Boolean(fieldError('telefono_contacto'))" :aria-describedby="fieldError('telefono_contacto') ? 'empresa-telefono-error' : undefined" @input="handleFieldInput('telefono_contacto')" />
+                <PhoneInput id="empresa-telefono" v-model="form.telefono_contacto" :default-country="phoneDefaultCountry" :invalid="Boolean(fieldError('telefono_contacto'))" @update:model-value="handleFieldInput('telefono_contacto')" @focusout="validateField('telefono_contacto')" />
                 <p v-if="fieldError('telefono_contacto')" id="empresa-telefono-error" class="field-error">{{ fieldError('telefono_contacto') }}</p>
               </div>
 
@@ -584,7 +605,7 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group">
                 <label class="form-label" for="admin-telefono">Teléfono <span class="required-mark">*</span></label>
-                <input id="admin-telefono" v-model="form.admin_telefono" class="form-input" :class="{ 'is-invalid': fieldError('admin_telefono') }" type="tel" placeholder="Teléfono de acceso" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_telefono'))" :aria-describedby="fieldError('admin_telefono') ? 'admin-telefono-error' : undefined" @input="handleFieldInput('admin_telefono')" @blur="validateField('admin_telefono')" />
+                <PhoneInput id="admin-telefono" v-model="form.admin_telefono" :default-country="phoneDefaultCountry" required :invalid="Boolean(fieldError('admin_telefono'))" @update:model-value="handleFieldInput('admin_telefono')" @focusout="validateField('admin_telefono')" />
                 <p v-if="fieldError('admin_telefono')" id="admin-telefono-error" class="field-error">{{ fieldError('admin_telefono') }}</p>
               </div>
 

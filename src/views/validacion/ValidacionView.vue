@@ -82,10 +82,21 @@
 
             <div class="filter-section">
               <label class="filter-label">Rango de Fechas</label>
-              <label class="date-label">Fecha inicio</label>
-              <input type="date" v-model="fechaInicio" class="date-input" />
-              <label class="date-label" style="margin-top:8px">Fecha fin</label>
-              <input type="date" v-model="fechaFin" class="date-input" />
+              <DatePicker
+                id="validation-filter-start-date"
+                v-model="fechaInicio"
+                label="Fecha inicio"
+                :range-start="fechaInicio"
+                :range-end="fechaFin"
+              />
+              <DatePicker
+                id="validation-filter-end-date"
+                v-model="fechaFin"
+                label="Fecha fin"
+                :min="fechaInicio"
+                :range-start="fechaInicio"
+                :range-end="fechaFin"
+              />
             </div>
 
           </aside>
@@ -297,12 +308,13 @@
 </template>
 
 <script setup lang="ts">
-import { shallowRef, computed, onMounted } from 'vue'
+import { shallowRef, computed, onMounted, watch } from 'vue'
 import { API_BASE_URL } from '@/app/apiClient'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
 import BankValidationPanel from '@/features/validacion/components/BankValidationPanel.vue'
 import SaleReceiptModal from '@/features/validacion/components/SaleReceiptModal.vue'
+import DatePicker from '@/components/shared/DatePicker.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = API_BASE_URL
@@ -324,6 +336,11 @@ const busqueda    = shallowRef('')
 const filtroEstado   = shallowRef('todos')
 const fechaInicio    = shallowRef('')
 const fechaFin       = shallowRef('')
+watch(fechaInicio, (inicio) => {
+  if (inicio && fechaFin.value && fechaFin.value < inicio) {
+    fechaFin.value = ''
+  }
+})
 const meta = shallowRef({ total: 0, current_page: 1, last_page: 1 })
 
 const modalRechazar     = shallowRef(false)

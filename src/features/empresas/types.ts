@@ -80,7 +80,7 @@ export interface CreatedEmpresaPrimerAdmin {
     nombre: string
     apellido: string
     email: string
-    password_temporal: string | null
+    password_temporal?: string | null
 }
 
 export interface CreateEmpresaResult {

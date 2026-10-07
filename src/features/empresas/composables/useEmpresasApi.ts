@@ -54,6 +54,24 @@ const normalizeErrorMessage = (error: unknown): string => {
     return 'No fue posible completar la operacion.'
 }
 
+const extractValidationErrors = (error: unknown): Record<string, string> => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 422) {
+        return {}
+    }
+
+    const responseErrors = error.response.data?.errors
+    if (!responseErrors || typeof responseErrors !== 'object') {
+        return {}
+    }
+
+    return Object.fromEntries(
+        Object.entries(responseErrors).flatMap(([field, messages]) => {
+            const message = Array.isArray(messages) ? messages[0] : messages
+            return typeof message === 'string' ? [[field, message]] : []
+        }),
+    )
+}
+
 export function useEmpresasApi() {
     const { authHeaders } = useAuthenticatedSession()
 
@@ -65,11 +83,13 @@ export function useEmpresasApi() {
     const mutatingEmpresaId = shallowRef<number | null>(null)
     const errorMessage = shallowRef('')
     const successMessage = shallowRef('')
+    const createValidationErrors = shallowRef<Record<string, string>>({})
     const pagination = reactive<EmpresasPaginationMeta>(defaultPagination())
 
     const clearMessages = () => {
         errorMessage.value = ''
         successMessage.value = ''
+        createValidationErrors.value = {}
     }
 
     const applyPagination = (payload: PaginationPayload<EmpresaListItem>) => {
@@ -125,6 +145,7 @@ export function useEmpresasApi() {
     const createEmpresa = async (payload: CreateEmpresaPayload) => {
         isCreating.value = true
         clearMessages()
+        createValidationErrors.value = {}
 
         try {
             const formData = new FormData()
@@ -165,6 +186,7 @@ export function useEmpresasApi() {
 
             return response.data.data
         } catch (error) {
+            createValidationErrors.value = extractValidationErrors(error)
             errorMessage.value = normalizeErrorMessage(error)
             throw error
         } finally {
@@ -259,6 +281,7 @@ export function useEmpresasApi() {
         mutatingEmpresaId,
         errorMessage,
         successMessage,
+        createValidationErrors,
         pagination,
         clearMessages,
         fetchEmpresas,
