@@ -16,6 +16,7 @@ const {
   mutatingEmpresaId,
   errorMessage,
   successMessage,
+  createValidationErrors,
   pagination,
   clearMessages,
   fetchEmpresas,
@@ -36,6 +37,7 @@ const deleteDialogOpen = shallowRef(false)
 const configDialogOpen = shallowRef(false)
 const selectedEmpresaId = shallowRef<number | null>(null)
 const latestProvisioningResult = shallowRef<CreateEmpresaResult | null>(null)
+const createSuccessResult = shallowRef<CreateEmpresaResult | null>(null)
 
 const filteredEmpresas = computed(() => {
   const normalizedSearch = filters.search.trim().toLowerCase()
@@ -91,7 +93,15 @@ const loadPage = async (page = 1) => {
 const openCreateDialog = () => {
   clearMessages()
   latestProvisioningResult.value = null
+  createSuccessResult.value = null
   createDialogOpen.value = true
+}
+
+const handleCreateDialogOpen = (isOpen: boolean) => {
+  if (!isOpen && isCreating.value) return
+
+  createDialogOpen.value = isOpen
+  if (!isOpen) createSuccessResult.value = null
 }
 
 const openEmpresaConfig = (empresaId: number) => {
@@ -132,8 +142,14 @@ const handleDeleteEmpresa = async () => {
 const handleCreateEmpresa = async (payload: Parameters<typeof createEmpresa>[0]) => {
   try {
     const createdEmpresa = await createEmpresa(payload)
-    latestProvisioningResult.value = createdEmpresa
-    createDialogOpen.value = false
+    createSuccessResult.value = createdEmpresa
+    latestProvisioningResult.value = {
+      ...createdEmpresa,
+      primer_admin: {
+        ...createdEmpresa.primer_admin,
+        password_temporal: null,
+      },
+    }
   } catch {
     return
   }
@@ -260,22 +276,13 @@ onMounted(async () => {
           {{ latestProvisioningResult.primer_admin.nombre }} {{ latestProvisioningResult.primer_admin.apellido }} ya puede entrar al panel.
         </h3>
         <p class="provisioning-card__copy">
-          <template v-if="latestProvisioningResult.primer_admin.password_temporal">
-            Guarda estas credenciales temporales antes de cerrar esta vista. Luego continua con la configuracion inicial del workspace.
-          </template>
-          <template v-else>
-            Se reutilizo cuenta global existente. No se genero password temporal nuevo.
-          </template>
+          Continúa con la configuración inicial del workspace.
         </p>
       </div>
 
       <div class="provisioning-card__credentials">
         <p><strong>Empresa:</strong> {{ latestProvisioningResult.empresa.nombre }}</p>
         <p><strong>Correo:</strong> {{ latestProvisioningResult.primer_admin.email }}</p>
-        <p>
-          <strong>Password temporal:</strong>
-          {{ latestProvisioningResult.primer_admin.password_temporal ?? 'Cuenta existente reutilizada' }}
-        </p>
       </div>
 
       <div class="provisioning-card__actions">
@@ -344,8 +351,11 @@ onMounted(async () => {
       </div>
 
       <CreateEmpresaDialog
-        v-model:open="createDialogOpen"
+        :open="createDialogOpen"
         :submitting="isCreating"
+        :server-errors="createValidationErrors"
+        :success-result="createSuccessResult"
+        @update:open="handleCreateDialogOpen"
         @submit="handleCreateEmpresa"
       />
 

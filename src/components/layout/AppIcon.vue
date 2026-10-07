@@ -83,9 +83,8 @@ withDefaults(
     stroke="currentColor"
     stroke-width="2"
   >
-    <path d="M9 11l3 3L22 4" />
-    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-    <path d="M7 12h5" />
+    <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" />
+    <path d="m9 12 2 2 4-4" />
   </svg>
 
   <svg
@@ -143,6 +142,19 @@ withDefaults(
   </svg>
 
   <svg
+    v-else-if="name === 'contracts'"
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M8 13h8M8 17h5" />
+  </svg>
+
+  <svg
     v-else-if="name === 'rewards'"
     :width="size"
     :height="size"
@@ -164,10 +176,26 @@ withDefaults(
     stroke="currentColor"
     stroke-width="2"
   >
-    <line x1="8" y1="6" x2="21" y2="6" />
-    <line x1="8" y1="12" x2="21" y2="12" />
-    <line x1="8" y1="18" x2="21" y2="18" />
-    <line x1="3" y1="6" x2="3.01" y2="6" />
+    <path d="M3 3v18h18" />
+    <rect x="7" y="12" width="3" height="6" />
+    <rect x="14" y="7" width="3" height="11" />
+  </svg>
+
+  <svg
+    v-else-if="name === 'metrics'"
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
+    <path d="M3 3v18h18" />
+    <path d="m7 14 4-4 4 3 5-7" />
+    <circle cx="7" cy="14" r="1" />
+    <circle cx="11" cy="10" r="1" />
+    <circle cx="15" cy="13" r="1" />
+    <circle cx="20" cy="6" r="1" />
   </svg>
 
   <svg

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { Check, ChevronDown, Plus, RefreshCw, Save } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
 import { useWorkspaceNetworkApi } from '../composables/useWorkspaceNetworkApi'
@@ -11,6 +11,11 @@ const props = withDefaults(defineProps<{
 }>(), {
   compact: false,
 })
+
+const emit = defineEmits<{
+  completionLoaded: [hasRanks: boolean]
+  dirtyChange: [isDirty: boolean]
+}>()
 
 interface EditableRank {
   localId: string
@@ -55,6 +60,7 @@ const {
   isSaving,
   errorMessage,
   successMessage,
+  validationErrors,
   clearMessages,
   fetchNetworkConfiguration,
   saveNetworkConfiguration,
@@ -64,6 +70,7 @@ const form = reactive({
   motivo_cambio: '',
   rangos: [] as EditableRank[],
 })
+const savedSnapshot = ref('')
 
 const expandedRankIds = reactive(new Set<string>())
 const accessPanelOpenIds = reactive(new Set<string>())
@@ -91,7 +98,7 @@ const accessOptions: readonly AccessOption[] = [
     slug: 'acceso_reportes_equipo',
     label: 'Ver equipo y reportes',
     description: 'Expone métricas del equipo, miembros directos y vistas operativas ligadas a red comercial.',
-    badge: 'Analitica',
+    badge: 'Analítica',
   },
   {
     slug: 'acceso_promociones_exclusivas',
@@ -111,6 +118,35 @@ const normalizedDepth = computed(() => Math.max(1, totalLevels.value))
 
 const sortedRanks = computed(() =>
   [...form.rangos].sort((left, right) => left.nivel - right.nivel),
+)
+
+const validationMessagesFor = (field: string): readonly string[] =>
+  validationErrors.value[field] ?? []
+
+const rankFieldMessages = (rank: EditableRank, field: string): readonly string[] => {
+  const rankIndex = sortedRanks.value.indexOf(rank)
+  return rankIndex < 0 ? [] : validationMessagesFor(`rangos.${rankIndex}.${field}`)
+}
+
+const rankSectionMessages = (rank: EditableRank): string[] => {
+  const rankIndex = sortedRanks.value.indexOf(rank)
+  if (rankIndex < 0) {
+    return []
+  }
+
+  const fieldPrefix = `rangos.${rankIndex}.`
+  const inlineFields = ['nombre_rango', 'max_distribuidores_directos', 'limite_kits_credito']
+
+  return Object.entries(validationErrors.value)
+    .filter(([field]) => field.startsWith(fieldPrefix)
+      && !inlineFields.includes(field.slice(fieldPrefix.length)))
+    .flatMap(([, messages]) => messages)
+}
+
+const networkSectionMessages = computed(() =>
+  Object.entries(validationErrors.value)
+    .filter(([field]) => field !== 'motivo_cambio' && !/^rangos\.\d+\./.test(field))
+    .flatMap(([, messages]) => messages),
 )
 
 const displayRanks = computed(() => [...sortedRanks.value].reverse())
@@ -341,6 +377,7 @@ const setRuleLevel = (rank: EditableRank, rule: EditableRank['reglas_comision'][
 }
 
 const normalizePayload = (): WorkspaceNetworkConfigurationPayload => ({
+  profundidad_maxima: normalizedDepth.value,
   motivo_cambio: form.motivo_cambio.trim() || null,
   rangos: sortedRanks.value.map((rank, index) => ({
     nombre_rango: rank.nombre_rango.trim(),
@@ -361,16 +398,35 @@ const normalizePayload = (): WorkspaceNetworkConfigurationPayload => ({
   })),
 })
 
+const isDirty = computed(() => savedSnapshot.value !== ''
+  && JSON.stringify(normalizePayload()) !== savedSnapshot.value)
+
+watch(isDirty, (value) => emit('dirtyChange', value), { immediate: true })
+
+const refreshNetwork = async () => {
+  await fetchNetworkConfiguration()
+  await nextTick()
+  savedSnapshot.value = JSON.stringify(normalizePayload())
+  emit('completionLoaded', (networkConfiguration.value?.rangos.length ?? 0) > 0)
+}
+
 const handleSave = async () => {
+  if (totalLevels.value < 1) {
+    return
+  }
+
   try {
-    await saveNetworkConfiguration(normalizePayload())
+    const configuration = await saveNetworkConfiguration(normalizePayload())
+    await nextTick()
+    savedSnapshot.value = JSON.stringify(normalizePayload())
+    emit('completionLoaded', configuration.rangos.length > 0)
   } catch {
     return
   }
 }
 
 onMounted(() => {
-  void fetchNetworkConfiguration().catch(() => undefined)
+  void refreshNetwork().catch(() => undefined)
 })
 </script>
 
@@ -379,25 +435,29 @@ onMounted(() => {
     <header class="network-v2__toolbar">
       <div class="network-v2__toolbar-copy">
         <p class="network-v2__eyebrow">Modelo comercial</p>
-        <h3 class="network-v2__title">Niveles comerciales y arbol de patrocinio</h3>
+        <h3 class="network-v2__title">Niveles comerciales y árbol de patrocinio</h3>
         <p class="network-v2__lede">
-          Modelo de subida: N1 es el suelo (ingreso automatico) y el ultimo nivel configurado es la cima comercial. La cascada de comisiones asciende de N hacia N+1.
+          Modelo de subida: N1 es el suelo (ingreso automático) y el último nivel configurado es la cima comercial. La cascada de comisiones asciende de N hacia N+1.
         </p>
       </div>
 
       <div class="network-v2__toolbar-actions">
-        <AppButton variant="ghost" size="sm" :disabled="isLoading" @click="fetchNetworkConfiguration">
+        <AppButton variant="ghost" size="sm" :disabled="isLoading" @click="refreshNetwork">
           <template #leading>
             <RefreshCw class="size-4" />
           </template>
-          {{ isLoading ? 'Cargando...' : 'Actualizar' }}
+          {{ isLoading ? 'Sincronizando...' : 'Sincronizar' }}
         </AppButton>
-        <AppButton variant="primary" size="sm" :disabled="isSaving" @click="handleSave">
+        <AppButton variant="primary" size="sm" :disabled="isSaving || totalLevels < 1" @click="handleSave">
           <template #leading>
-            <Save class="size-4" />
+            <RefreshCw v-if="isSaving" class="size-4 animate-spin" />
+            <Save v-else class="size-4" />
           </template>
           {{ isSaving ? 'Guardando...' : 'Guardar' }}
         </AppButton>
+        <p v-if="totalLevels < 1" class="admin-alert admin-alert--error" role="alert">
+          Agrega al menos un nivel
+        </p>
       </div>
     </header>
 
@@ -434,14 +494,23 @@ onMounted(() => {
         type="text"
         maxlength="500"
         placeholder="Opcional — ej. Ajuste de jerarquía comercial Q2"
+        :aria-invalid="validationMessagesFor('motivo_cambio').length > 0"
       />
+      <span
+        v-for="(message, index) in validationMessagesFor('motivo_cambio')"
+        :key="`motivo-error-${index}`"
+        class="admin-alert admin-alert--error"
+        role="alert"
+      >
+        {{ message }}
+      </span>
     </label>
 
     <section v-if="previewLevels.length > 0" class="network-v2__panel">
       <div class="network-v2__panel-head">
         <div>
           <h4 class="network-v2__panel-title">Secuencia comercial</h4>
-          <p class="network-v2__panel-desc">Un nivel por escalon, de la cima comercial (N{{ normalizedDepth }}) al suelo de ingreso (N1).</p>
+          <p class="network-v2__panel-desc">Un nivel por escalón, de la cima comercial (N{{ normalizedDepth }}) al suelo de ingreso (N1).</p>
         </div>
       </div>
 
@@ -457,7 +526,7 @@ onMounted(() => {
         >
           <span class="network-v2__preview-badge">N{{ level.nivel }}</span>
           <strong>{{ level.nombre }}</strong>
-          <span>{{ level.ingreso ? 'Ingreso / suelo' : level.cima ? 'Cima / maximo' : 'Escalon intermedio' }}</span>
+          <span>{{ level.ingreso ? 'Ingreso / suelo' : level.cima ? 'Cima / máximo' : 'Escalón intermedio' }}</span>
         </article>
       </div>
     </section>
@@ -474,6 +543,12 @@ onMounted(() => {
           </template>
           Agregar nivel
         </AppButton>
+      </div>
+
+      <div v-if="networkSectionMessages.length > 0" class="admin-alert admin-alert--error" role="alert">
+        <p v-for="(message, index) in networkSectionMessages" :key="`network-error-${index}`">
+          {{ message }}
+        </p>
       </div>
 
       <div v-if="form.rangos.length === 0" class="network-v2__empty">
@@ -516,11 +591,17 @@ onMounted(() => {
               <span class="network-v2__meta-pill">N{{ rank.nivel }}</span>
               <span class="network-v2__meta-text">
                 {{ isEntryRank(rank)
-                  ? 'Suelo de carrera: todo distribuidor nuevo ingresa aqui (N1 automatico).'
+                  ? 'Suelo de carrera: todo distribuidor nuevo ingresa aquí (N1 automático).'
                   : isTopRank(rank)
                     ? 'Cima comercial: mayor rango del modelo de subida.'
-                    : 'Escalon intermedio dentro de la jerarquia ascendente.' }}
+                    : 'Escalón intermedio dentro de la jerarquía ascendente.' }}
               </span>
+            </div>
+
+            <div v-if="rankSectionMessages(rank).length > 0" class="admin-alert admin-alert--error" role="alert">
+              <p v-for="(message, index) in rankSectionMessages(rank)" :key="`rank-${rank.localId}-error-${index}`">
+                {{ message }}
+              </p>
             </div>
 
             <div class="network-v2__field-grid network-v2__field-grid--rank">
@@ -532,17 +613,55 @@ onMounted(() => {
                   type="text"
                   maxlength="80"
                   :placeholder="isEntryRank(rank) ? 'Promotor' : isTopRank(rank) ? 'Master' : 'Supervisor'"
+                  :aria-invalid="rankFieldMessages(rank, 'nombre_rango').length > 0"
                 />
+                <span
+                  v-for="(message, index) in rankFieldMessages(rank, 'nombre_rango')"
+                  :key="`rank-${rank.localId}-name-error-${index}`"
+                  class="admin-alert admin-alert--error"
+                  role="alert"
+                >
+                  {{ message }}
+                </span>
               </label>
 
               <label class="network-v2__field network-v2__field--compact">
                 <span class="network-v2__label">Máx. directos</span>
-                <input v-model="rank.max_distribuidores_directos" class="network-v2__input network-v2__input--compact" type="number" min="1" placeholder="Sin tope" />
+                <input
+                  v-model="rank.max_distribuidores_directos"
+                  class="network-v2__input network-v2__input--compact"
+                  type="number"
+                  min="1"
+                  placeholder="Sin tope"
+                  :aria-invalid="rankFieldMessages(rank, 'max_distribuidores_directos').length > 0"
+                />
+                <span
+                  v-for="(message, index) in rankFieldMessages(rank, 'max_distribuidores_directos')"
+                  :key="`rank-${rank.localId}-direct-error-${index}`"
+                  class="admin-alert admin-alert--error"
+                  role="alert"
+                >
+                  {{ message }}
+                </span>
               </label>
 
               <label class="network-v2__field network-v2__field--compact">
                 <span class="network-v2__label">Límite kits</span>
-                <input v-model="rank.limite_kits_credito" class="network-v2__input network-v2__input--compact" type="number" min="0" />
+                <input
+                  v-model="rank.limite_kits_credito"
+                  class="network-v2__input network-v2__input--compact"
+                  type="number"
+                  min="0"
+                  :aria-invalid="rankFieldMessages(rank, 'limite_kits_credito').length > 0"
+                />
+                <span
+                  v-for="(message, index) in rankFieldMessages(rank, 'limite_kits_credito')"
+                  :key="`rank-${rank.localId}-kits-error-${index}`"
+                  class="admin-alert admin-alert--error"
+                  role="alert"
+                >
+                  {{ message }}
+                </span>
               </label>
 
               <div class="network-v2__field network-v2__field--full">

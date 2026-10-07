@@ -37,24 +37,24 @@
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
           </div>
-          <div class="kpi-card kpi-orange">
+          <div class="kpi-card" :class="ventasPendientes > 0 ? 'kpi-orange' : 'kpi-neutral'">
             <div class="kpi-info">
               <span class="kpi-label">Ventas Pendientes Validación</span>
-              <span class="kpi-value">{{ ventasPendientes }} ventas</span>
+              <span class="kpi-value">{{ ventasPendientes }} <small>ventas</small></span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           </div>
-          <div class="kpi-card kpi-red">
+          <div class="kpi-card" :class="deudaTotal > 0 ? 'kpi-red' : 'kpi-neutral'">
             <div class="kpi-info">
               <span class="kpi-label">Cartera pendiente registrada</span>
               <span class="kpi-value">{{ formatCurrency(deudaTotal) }}</span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
           </div>
-          <div class="kpi-card kpi-dark">
+          <div class="kpi-card" :class="lideresActivos > 0 ? 'kpi-green' : 'kpi-neutral'">
             <div class="kpi-info">
               <span class="kpi-label">Distribuidores activos</span>
-              <span class="kpi-value">{{ lideresActivos }} distribuidores</span>
+              <span class="kpi-value">{{ lideresActivos }} <small>distribuidores</small></span>
             </div>
             <div class="kpi-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           </div>
@@ -91,21 +91,24 @@
             <div class="chart-header">
               <div>
                 <h3 class="chart-title">Pendientes analíticos</h3>
-                <p class="chart-subtitle">Lo que aún no debe mostrarse como métrica consolidada.</p>
+                <p class="chart-subtitle">Aún no hay datos para este período.</p>
               </div>
             </div>
             <div class="pending-list">
               <div class="pending-item">
+                <span class="pending-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 5-7"/></svg></span>
                 <strong>Series históricas</strong>
-                <span>Falta endpoint para tendencias de ventas validadas por período.</span>
+                <span>Aún no hay datos para este período.</span>
               </div>
               <div class="pending-item">
+                <span class="pending-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                 <strong>Rendimiento por campaña</strong>
-                <span>No existe agregado confiable para participación comercial por campaña.</span>
+                <span>Aún no hay datos para este período.</span>
               </div>
               <div class="pending-item">
+                <span class="pending-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg></span>
                 <strong>Exportación consolidada</strong>
-                <span>Hoy solo se exporta la actividad visible en tabla, no un reporte ejecutivo.</span>
+                <span>Aún no hay datos para este período.</span>
               </div>
             </div>
           </div>
@@ -139,12 +142,23 @@
                 <input v-model="filtroLider" type="text" placeholder="Nombre del líder..." class="filtro-input" />
               </div>
               <div class="filtro-group">
-                <label>Fecha desde</label>
-                <input v-model="filtroFechaDesde" type="date" class="filtro-input" />
+                <DatePicker
+                  id="dashboard-date-from"
+                  v-model="filtroFechaDesde"
+                  label="Fecha desde"
+                  :range-start="filtroFechaDesde"
+                  :range-end="filtroFechaHasta"
+                />
               </div>
               <div class="filtro-group">
-                <label>Fecha hasta</label>
-                <input v-model="filtroFechaHasta" type="date" class="filtro-input" />
+                <DatePicker
+                  id="dashboard-date-to"
+                  v-model="filtroFechaHasta"
+                  label="Fecha hasta"
+                  :min="filtroFechaDesde"
+                  :range-start="filtroFechaDesde"
+                  :range-end="filtroFechaHasta"
+                />
               </div>
               <div class="filtro-group" style="align-self:flex-end">
                 <button class="btn-outline" @click="limpiarFiltros">Limpiar</button>
@@ -164,7 +178,12 @@
               </thead>
               <tbody>
                 <tr v-if="tablaFiltrada.length === 0">
-                  <td colspan="5" class="empty-state">No hay actividad reciente.</td>
+                  <td colspan="5" class="empty-state">
+                    <div class="empty-state-content">
+                      <span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+                      <span>No hay actividad reciente.</span>
+                    </div>
+                  </td>
                 </tr>
                 <tr v-for="row in tablaFiltrada.slice((paginaActual-1)*porPagina, paginaActual*porPagina)" :key="row.id">
                   <td class="td-time">{{ row.time }}</td>
@@ -198,10 +217,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { API_BASE_URL } from '@/app/apiClient'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import AppShell from '../../components/layout/AppShell.vue'
+import DatePicker from '../../components/shared/DatePicker.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 
 const API_BASE = API_BASE_URL
@@ -225,6 +245,11 @@ const filtroAccion    = ref('todos')
 const filtroLider     = ref('')
 const filtroFechaDesde = ref('')
 const filtroFechaHasta = ref('')
+watch(filtroFechaDesde, (desde) => {
+  if (desde && filtroFechaHasta.value && filtroFechaHasta.value < desde) {
+    filtroFechaHasta.value = ''
+  }
+})
 const mostrarFiltros  = ref(false)
 const paginaActual    = ref(1)
 const porPagina       = 10
@@ -344,7 +369,7 @@ onMounted(() => {
 .topbar { background:#fff; height:62px; display:flex; align-items:center; padding:0 18px; gap:10px; border-bottom:1px solid #e8eaed; position:sticky; top:0; z-index:100; width:100%; box-sizing:border-box; }
 .menu-btn { display:none; background:none; border:none; cursor:pointer; color:#555; padding:4px; flex-shrink:0; }
 .topbar-left { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-.breadcrumb { font-size:12px; color:#aaa; white-space:nowrap; }
+.breadcrumb { font-size:12px; color:#526579; white-space:nowrap; }
 .breadcrumb strong { color:#333; }
 .topbar-center { flex:1; display:flex; justify-content:center; min-width:0; }
 .search-box { display:flex; align-items:center; gap:7px; background:#f5f6f8; border-radius:18px; padding:5px 14px; width:100%; max-width:340px; border:1px solid #e8eaed; }
@@ -357,41 +382,46 @@ onMounted(() => {
 .user-email { font-size:10px; color:#999; line-height:1.3; }
 .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#666; padding:5px; flex-shrink:0; }
 .notif-badge { position:absolute; top:1px; right:1px; background:#ef4444; color:white; font-size:8px; width:13px; height:13px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; }
-.page-body { padding:18px 20px; display:flex; flex-direction:column; gap:14px; width:100%; box-sizing:border-box; }
-.page-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.page-body { padding:24px 24px 168px; display:flex; flex-direction:column; gap:16px; width:100%; box-sizing:border-box; }
+.page-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
 .page-title { font-size:22px; font-weight:700; color:#1a1a1a; margin:0 0 2px; }
-.page-subtitle { font-size:12px; color:#999; margin:0; }
+.page-subtitle { font-size:12px; color:#64748b; margin:0; }
 .page-actions { display:flex; gap:8px; }
 .btn-outline { display:flex; align-items:center; gap:5px; padding:7px 14px; border:1.5px solid #ddd; border-radius:8px; background:white; font-size:12px; font-weight:600; color:#555; cursor:pointer; white-space:nowrap; }
 .btn-outline:hover { border-color:#4ab8f5; color:#4ab8f5; }
 .btn-outline:disabled { opacity:0.5; cursor:not-allowed; }
 .btn-primary { display:flex; align-items:center; gap:5px; padding:7px 14px; border:none; border-radius:8px; background:linear-gradient(135deg,#4ab8f5,#1a6ab5); font-size:12px; font-weight:600; color:white; cursor:pointer; white-space:nowrap; }
-.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-close { background:none; border:none; cursor:pointer; font-size:16px; }
-.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; width:100%; }
-.kpi-card { border-radius:16px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; color:white; min-width:0; min-height:88px; }
-.kpi-blue   { background:linear-gradient(135deg,#0d2d6b,#1250b0); }
-.kpi-orange { background:linear-gradient(135deg,#7c2d00,#b84500); }
-.kpi-red    { background:linear-gradient(135deg,#4a0000,#8b0000); border:2px solid #ef4444; }
-.kpi-dark   { background:linear-gradient(135deg,#0d1117,#1c2433); }
-.kpi-label  { font-size:10px; opacity:0.85; display:block; margin-bottom:8px; line-height:1.3; }
-.kpi-value  { font-size:24px; font-weight:700; display:block; }
-.kpi-icon   { opacity:0.65; flex-shrink:0; margin-left:8px; }
-.charts-row { display:grid; grid-template-columns:1fr 260px; gap:12px; width:100%; }
-.chart-card { background:white; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.07); min-width:0; overflow:hidden; }
-.chart-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px; flex-wrap:wrap; }
-.chart-title { font-size:14px; font-weight:700; color:#1a1a1a; margin:0 0 2px; }
-.chart-subtitle { font-size:10px; color:#aaa; margin:0; }
+.kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; width:100%; }
+.kpi-card { position:relative; overflow:hidden; border:1px solid #e2e8f0; border-radius:16px; padding:20px; display:flex; align-items:center; justify-content:space-between; color:#172b40; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,0.06); min-width:0; min-height:104px; }
+.kpi-card::before { content:""; position:absolute; inset:0 0 auto; height:3px; background:var(--kpi-accent); }
+.kpi-blue { --kpi-accent:#2563eb; --kpi-icon-background:#eff6ff; }
+.kpi-orange { --kpi-accent:#a85b08; --kpi-icon-background:#fff7ed; }
+.kpi-red { --kpi-accent:#b42318; --kpi-icon-background:#fef2f2; }
+.kpi-green { --kpi-accent:#15803d; --kpi-icon-background:#f0fdf4; }
+.kpi-neutral { --kpi-accent:#64748b; --kpi-icon-background:#f1f5f9; }
+.kpi-info { min-width:0; }
+.kpi-label { display:block; margin-bottom:8px; color:#526579; font-size:11px; line-height:1.4; }
+.kpi-value { display:block; color:#142337; font-size:30px; font-weight:700; line-height:1.15; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.kpi-value small { color:#526579; font-size:13px; font-weight:600; }
+.kpi-icon { display:grid; place-items:center; width:48px; height:48px; margin-left:16px; flex:0 0 48px; border-radius:50%; color:var(--kpi-accent); background:var(--kpi-icon-background); }
+.charts-row { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,0.9fr); gap:16px; width:100%; }
+.chart-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:24px; box-shadow:0 2px 8px rgba(15,23,42,0.05); min-width:0; overflow:hidden; }
+.chart-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:8px; flex-wrap:wrap; }
+.chart-title { font-size:16px; font-weight:700; color:#172b40; margin:0 0 4px; }
+.chart-subtitle { font-size:12px; line-height:1.5; color:#526579; margin:0; }
 .insight-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-.insight-item { border:1px solid #e5edf6; border-radius:12px; padding:14px; background:#fbfdff; }
+.insight-item { border:1px solid #e5edf6; border-radius:16px; padding:16px; background:#fbfdff; }
 .insight-kicker { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#1d4ed8; margin-bottom:8px; }
 .insight-item strong { display:block; font-size:15px; color:#0f172a; margin-bottom:6px; }
 .insight-item p { margin:0; font-size:12px; color:#64748b; line-height:1.5; }
 .pending-list { display:flex; flex-direction:column; gap:10px; }
-.pending-item { border:1px solid #eceff3; border-radius:12px; padding:12px; background:#f8fafc; }
-.pending-item strong { display:block; font-size:12px; color:#0f172a; margin-bottom:5px; }
-.pending-item span { font-size:11px; color:#64748b; line-height:1.5; }
-.table-card { background:white; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.07); width:100%; overflow:hidden; box-sizing:border-box; }
+.pending-item { display:grid; grid-template-columns:40px minmax(0,1fr); column-gap:12px; row-gap:4px; border:1px solid #e2e8f0; border-radius:14px; padding:16px; background:#f8fafc; }
+.pending-item strong { grid-column:2; grid-row:1; display:block; font-size:13px; color:#172b40; }
+.pending-item > span:last-child { grid-column:2; grid-row:2; font-size:12px; color:#526579; line-height:1.5; }
+.pending-icon { grid-column:1; grid-row:1 / span 2; display:grid; place-items:center; width:40px; height:40px; border-radius:50%; color:#456b8c; background:#eaf2f8; }
+.table-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:24px; box-shadow:0 2px 8px rgba(15,23,42,0.05); width:100%; overflow:hidden; box-sizing:border-box; }
 .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
 .filtros-row { display:flex; align-items:center; gap:8px; }
 .select-filter { border:1px solid #e2e8f0; border-radius:8px; padding:5px 10px; font-size:12px; color:#444; outline:none; background:white; cursor:pointer; }
@@ -400,7 +430,7 @@ onMounted(() => {
 .filtro-group { display:flex; flex-direction:column; gap:4px; }
 .filtro-group label { font-size:11px; font-weight:600; color:#666; }
 .filtro-input { border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px; color:#333; outline:none; }
-.loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:40px; color:#999; font-size:13px; }
+.loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:40px; color:#526579; font-size:13px; }
 .spinner { width:18px; height:18px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
 .spin { animation:spin 0.7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
@@ -411,10 +441,12 @@ onMounted(() => {
 .data-table tbody tr { border-bottom:1px solid #f3f4f6; transition:background 0.15s; }
 .data-table tbody tr:hover { background:#f9fafb; }
 .data-table td { padding:10px 12px; vertical-align:middle; }
-.td-time { color:#999; font-size:11px; white-space:nowrap; }
+.td-time { color:#526579; font-size:11px; white-space:nowrap; }
 .td-leader { font-weight:600; color:#111; white-space:nowrap; }
 .td-desc { color:#666; font-size:11px; }
-.empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
+.empty-state { color:#526579; padding:16px !important; font-size:13px; }
+.empty-state-content { display:grid; justify-items:center; align-content:center; gap:12px; min-height:136px; text-align:center; }
+.empty-state-icon { display:grid; place-items:center; width:48px; height:48px; border-radius:50%; color:#456b8c; background:#edf4fa; }
 .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
 .badge-venta      { background:#dbeafe; color:#1d4ed8; }
 .badge-pago       { background:#fef9c3; color:#92400e; }
@@ -424,13 +456,28 @@ onMounted(() => {
 .badge-confirmado { background:#dbeafe; color:#1e40af; }
 .badge-pendiente  { background:#fef3c7; color:#b45309; }
 .table-footer { display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:1px solid #f3f4f6; flex-wrap:wrap; gap:8px; }
-.table-count { font-size:11px; color:#aaa; }
+.table-count { font-size:11px; color:#526579; }
 .pagination { display:flex; gap:5px; flex-wrap:wrap; }
 .page-btn { padding:4px 11px; border:1px solid #e0e0e0; border-radius:5px; background:white; font-size:11px; cursor:pointer; color:#555; }
-.page-btn:hover { border-color:#4ab8f5; color:#4ab8f5; }
+.page-btn:hover { border-color:#2563eb; color:#1d4ed8; }
 .page-btn:disabled { opacity:0.4; cursor:not-allowed; }
 .page-btn.active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
+.page-body :focus-visible,
+:deep(.app-topbar :focus-visible) { outline:3px solid #1d4ed8; outline-offset:3px; }
+:deep(.app-topbar) { min-height:68px; margin-top:8px; padding:12px 16px; border-radius:16px; box-shadow:0 4px 14px rgba(15,23,42,0.06); }
+.btn-outline, .btn-primary, .select-filter, .filtro-input, .page-btn { min-height:40px; }
+.btn-outline, .btn-primary { border-radius:8px; }
+.select-filter:focus-visible, .filtro-input:focus-visible { border-color:#1d4ed8; }
+@media (prefers-reduced-motion: reduce) {
+  .page-body *, .page-body *::before, .page-body *::after,
+  :deep(.app-topbar), :deep(.app-topbar *) {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:0.01ms !important;
+  }
+}
 @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(2,1fr); } .charts-row { grid-template-columns:1fr; } .insight-grid { grid-template-columns:1fr; } .filtros-grid { grid-template-columns:repeat(2,1fr); } }
-@media (max-width:768px) { .sidebar { transform:translateX(-100%); } .sidebar.sidebar-open { transform:translateX(0); box-shadow:4px 0 24px rgba(0,0,0,0.5); } .main-content { margin-left:0; width:100%; } .menu-btn { display:flex; } .user-details { display:none; } .breadcrumb { display:none; } .page-body { padding:14px; gap:12px; } .page-title { font-size:18px; } .kpi-grid { grid-template-columns:1fr 1fr; gap:10px; } .kpi-value { font-size:20px; } }
-@media (max-width:480px) { .kpi-grid { grid-template-columns:1fr; } .topbar-center { display:none; } .page-header { flex-direction:column; align-items:flex-start; } .filtros-grid { grid-template-columns:1fr; } }
+@media (max-width:768px) { .sidebar { transform:translateX(-100%); } .sidebar.sidebar-open { transform:translateX(0); box-shadow:4px 0 24px rgba(0,0,0,0.5); } .main-content { margin-left:0; width:100%; } .menu-btn { display:flex; } .user-details { display:none; } .breadcrumb { display:none; } .page-body { padding:16px 16px 168px; gap:16px; } .page-title { font-size:18px; } .kpi-grid { grid-template-columns:1fr 1fr; gap:16px; } .kpi-card { padding:16px; } .kpi-value { font-size:28px; } .chart-card, .table-card { padding:16px; } :deep(.app-topbar) { min-height:64px; padding:12px; } }
+@media (max-width:480px) { .kpi-grid { grid-template-columns:1fr; } .topbar-center { display:none; } .page-header { flex-direction:column; align-items:flex-start; } .page-actions { width:100%; flex-wrap:wrap; } .filtros-grid { grid-template-columns:1fr; } }
 </style>

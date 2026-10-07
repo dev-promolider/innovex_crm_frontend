@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
-import { Building2, Landmark, RefreshCw, UserRoundPlus, Wallet, Waypoints } from 'lucide-vue-next'
+import axios from 'axios'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import { Building2, Check, Circle, Landmark, RefreshCw, UserRoundPlus, Wallet, Waypoints } from 'lucide-vue-next'
 import AppModal from '@/components/shared/AppModal.vue'
 import AppButton from '@/components/shared/AppButton.vue'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
@@ -24,8 +25,8 @@ const props = withDefaults(defineProps<{
   open: true,
   empresaId: undefined,
   contextLabel: 'Superadmin company control v2',
-  title: 'Configuracion del workspace',
-  subtitle: 'Version V2 del modulo de configuracion con una capa propia para el detalle de empresa.',
+  title: 'Configuración del workspace',
+  subtitle: 'Versión V2 del módulo de configuración con una capa propia para el detalle de empresa.',
   surface: 'modal',
   showHeader: true,
 })
@@ -72,6 +73,14 @@ const {
 } = useWorkspaceConfiguracionApi({ empresaId: props.empresaId })
 
 const activeTab = reactive({ value: 'empresa' as WorkspaceConfigTabId })
+const bankAccountsComplete = ref<boolean | null>(null)
+const networkComplete = ref<boolean | null>(null)
+const companyHasUnsavedChanges = ref(false)
+const networkHasUnsavedChanges = ref(false)
+const financeHasUnsavedChanges = ref(false)
+const founderError = shallowRef('')
+const founderSuccess = shallowRef('')
+const founderFieldErrors = shallowRef<Record<string, string>>({})
 const isPageSurface = computed(() => props.surface === 'page')
 const isModalSurface = computed(() => props.surface === 'modal')
 const isCompactLayout = computed(() => isModalSurface.value)
@@ -82,6 +91,32 @@ const showFounderTab = computed(() => {
 
   return isWorkspaceAdmin.value
 })
+
+const profileComplete = computed(() => profile.value
+  ? Boolean(profile.value.nombre.trim() && profile.value.moneda_iso)
+  : null)
+
+const tabCompletion = (tabId: WorkspaceConfigTabId): boolean | null => {
+  switch (tabId) {
+    case 'empresa': return profileComplete.value
+    case 'fundador': return founderConfig.value ? Boolean(founderConfig.value.fundador) : null
+    case 'bancos': return bankAccountsComplete.value
+    case 'red': return networkComplete.value
+    case 'finanzas': return null
+  }
+}
+
+const hasUnsavedChanges = computed(() => companyHasUnsavedChanges.value
+  || networkHasUnsavedChanges.value
+  || financeHasUnsavedChanges.value
+  || logoPreview.value !== null)
+
+const requirements = computed(() => [
+  { label: 'Perfil', complete: profileComplete.value },
+  { label: 'Al menos un rango', complete: networkComplete.value },
+  { label: 'Cuenta bancaria', complete: bankAccountsComplete.value },
+  { label: 'Fundador', complete: founderConfig.value ? Boolean(founderConfig.value.fundador) : null },
+])
 
 const tabs = computed(() => {
   const nextTabs: WorkspaceConfigTab[] = [
@@ -104,13 +139,13 @@ const tabs = computed(() => {
     {
       id: 'bancos',
       label: 'Cuentas bancarias',
-      note: 'Recaudacion y visibilidad movil',
+      note: 'Recaudación y visibilidad móvil',
       icon: Landmark,
     },
     {
       id: 'red',
       label: 'Rangos y red',
-      note: 'Jerarquia, cascada y simulacion',
+      note: 'Jerarquía, cascada y simulación',
       icon: Waypoints,
     },
   ]
@@ -118,7 +153,7 @@ const tabs = computed(() => {
   if (props.empresaId == null) {
     nextTabs.push({
       id: 'finanzas',
-      label: 'Politicas de pago',
+      label: 'Políticas de pago',
       note: 'Modelos, cuotas e historial',
       icon: Wallet,
     })
@@ -133,13 +168,42 @@ const refreshProfile = async () => {
   await fetchProfile()
 }
 
+const setBankAccountsCompletion = (hasAccounts: boolean) => {
+  bankAccountsComplete.value = hasAccounts
+}
+
+const setNetworkCompletion = (hasRanks: boolean) => {
+  networkComplete.value = hasRanks
+}
+
+const requestClose = () => {
+  if (hasUnsavedChanges.value && !window.confirm('¿Descartar los cambios?')) {
+    return
+  }
+
+  clearLogoPreview()
+  companyHasUnsavedChanges.value = false
+  networkHasUnsavedChanges.value = false
+  financeHasUnsavedChanges.value = false
+  emit('close')
+}
+
 const refreshFounder = async () => {
   if (!showFounderTab.value) {
     return
   }
 
+  founderError.value = ''
+  founderSuccess.value = ''
+  founderFieldErrors.value = {}
   clearMessages()
-  await fetchFounderConfig()
+
+  try {
+    await fetchFounderConfig()
+  } catch {
+    clearMessages()
+    founderError.value = 'No pudimos cargar el fundador'
+  }
 }
 
 const handleSubmit = async (payload: UpdateWorkspaceProfilePayload) => {
@@ -167,18 +231,55 @@ const handleConfirmLogo = async () => {
 }
 
 const handleFounderSearch = async (query: string) => {
+  founderError.value = ''
   try {
     await searchFounderUsers(query)
   } catch {
-    return
+    clearMessages()
+    founderError.value = 'No pudimos buscar usuarios. Inténtalo nuevamente.'
   }
 }
 
+const getFounderFieldErrors = (error: unknown) => {
+  if (!axios.isAxiosError(error) || error.response?.status !== 422) return {}
+
+  const errors = error.response.data?.errors
+  if (!errors || typeof errors !== 'object') return {}
+
+  return Object.fromEntries(
+    Object.entries(errors).flatMap(([field, messages]) => {
+      const message = Array.isArray(messages) ? messages[0] : undefined
+      return typeof message === 'string' ? [[field, message]] : []
+    }),
+  )
+}
+
+const clearFounderFieldError = (field: string) => {
+  const nextErrors = { ...founderFieldErrors.value }
+  delete nextErrors[field]
+  if (field.startsWith('usuario_nuevo.')) {
+    delete nextErrors[field.slice('usuario_nuevo.'.length)]
+  }
+  founderFieldErrors.value = nextErrors
+  founderError.value = ''
+}
+
 const handleFounderSubmit = async (payload: WorkspaceFounderRegistrationPayload) => {
+  founderError.value = ''
+  founderSuccess.value = ''
+  founderFieldErrors.value = {}
   try {
     await registerFounder(payload)
-  } catch {
-    return
+    founderSuccess.value = 'Fundador registrado correctamente.'
+    clearMessages()
+  } catch (error) {
+    founderFieldErrors.value = getFounderFieldErrors(error)
+    clearMessages()
+    if (founderRegistrationResult.value) {
+      founderError.value = 'No pudimos actualizar los datos del fundador. Reintenta la carga.'
+    } else {
+      founderError.value = 'No pudimos registrar el fundador. Revisa los datos e inténtalo nuevamente.'
+    }
   }
 }
 
@@ -199,13 +300,7 @@ watch(
       return
     }
 
-    if (!founderConfig.value) {
-      await fetchFounderConfig()
-    }
-
-    if (founderUserCandidates.value.length === 0) {
-      await searchFounderUsers('')
-    }
+    await refreshFounder()
   },
   { immediate: true },
 )
@@ -216,10 +311,11 @@ void fetchProfile()
 <template>
   <component
     :is="props.surface === 'modal' ? AppModal : 'section'"
+    class="config-v2-modal"
     v-bind="props.surface === 'modal'
       ? { open: props.open, size: 'xl', title: props.title, description: props.subtitle }
       : { class: 'config-v2-page' }"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <div class="config-v2" :class="{ 'config-v2--modal': isModalSurface, 'config-v2--page': isPageSurface }">
       <header v-if="props.showHeader && (isPageSurface || isModalSurface)" class="config-v2__header">
@@ -229,7 +325,6 @@ void fetchProfile()
             <h1 class="config-v2__title">{{ props.title }}</h1>
             <p class="config-v2__subtitle">{{ props.subtitle }}</p>
           </template>
-          <p v-else-if="isModalSurface" class="config-v2__modal-hint">{{ props.subtitle }}</p>
         </div>
 
         <AppButton variant="ghost" size="sm" class="config-v2__refresh-btn" :disabled="isLoading" @click="refreshProfile">
@@ -240,7 +335,26 @@ void fetchProfile()
         </AppButton>
       </header>
 
-      <nav class="config-v2__tabs" aria-label="Secciones de configuracion">
+      <aside class="config-v2__requirements" aria-label="Requisitos para activar la empresa">
+        <strong>Para activar la empresa</strong>
+        <ul>
+          <li v-for="requirement in requirements" :key="requirement.label">
+            <span
+              class="config-v2__requirement-status"
+              :class="requirement.complete === null ? 'is-unknown' : requirement.complete ? 'is-complete' : 'is-pending'"
+              role="img"
+              :aria-label="requirement.complete === null ? 'Se verifica al abrir la pestaña' : requirement.complete ? 'Completo' : 'Pendiente'"
+              :title="requirement.complete === null ? 'Se verifica al abrir la pestaña' : undefined"
+            >
+              <Check v-if="requirement.complete" aria-hidden="true" />
+              <Circle v-else aria-hidden="true" />
+            </span>
+            <span>{{ requirement.label }}</span>
+          </li>
+        </ul>
+      </aside>
+
+      <nav class="config-v2__tabs" aria-label="Secciones de configuración">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -254,6 +368,16 @@ void fetchProfile()
           <span class="config-v2__tab-copy">
             <span class="config-v2__tab-label">{{ tab.label }}</span>
             <span class="config-v2__tab-note">{{ tab.note }}</span>
+          </span>
+          <span
+            v-if="tabCompletion(tab.id) !== null"
+            class="config-v2__tab-status"
+            :class="tabCompletion(tab.id) ? 'is-complete' : 'is-pending'"
+            role="img"
+            :aria-label="tabCompletion(tab.id) ? 'Completo' : 'Pendiente'"
+          >
+            <Check v-if="tabCompletion(tab.id)" aria-hidden="true" />
+            <Circle v-else aria-hidden="true" />
           </span>
         </button>
       </nav>
@@ -270,7 +394,7 @@ void fetchProfile()
         <button class="admin-alert__close" @click="clearMessages">✕</button>
       </div>
 
-      <p v-if="isLoading && activeTab.value !== 'empresa'" class="config-v2__loading-state">Cargando configuracion...</p>
+      <p v-if="isLoading && activeTab.value !== 'empresa'" class="config-v2__loading-state">Cargando configuración...</p>
 
       <WorkspaceCompanySectionV2
         v-if="activeTab.value === 'empresa'"
@@ -280,8 +404,10 @@ void fetchProfile()
         :saving="isSaving"
         :uploading-logo="isUploadingLogo"
         :confirming-logo="isConfirmingLogo"
+        :has-configured-ranges="networkComplete"
         @refresh="refreshProfile"
         @submit="handleSubmit"
+        @dirty-change="companyHasUnsavedChanges = $event"
         @upload-logo="handleUploadLogo"
         @confirm-logo="handleConfirmLogo"
         @discard-logo-preview="clearLogoPreview"
@@ -295,24 +421,35 @@ void fetchProfile()
         :loading="isFounderLoading"
         :searching-users="isFounderUsersLoading"
         :saving="isFounderSaving"
+        :error-message="founderError"
+        :field-errors="founderFieldErrors"
+        :success-message="founderSuccess"
         @refresh="refreshFounder"
         @search-users="handleFounderSearch"
         @submit="handleFounderSubmit"
+        @go-to-ranks="activeTab.value = 'red'"
+        @clear-field-error="clearFounderFieldError"
       />
 
       <WorkspaceBankAccountsSectionV2
         v-else-if="activeTab.value === 'bancos' && profile"
         :company-name="profile.nombre"
         :empresa-id="props.empresaId"
+        @completion-loaded="setBankAccountsCompletion"
       />
 
       <WorkspaceNetworkSection
         v-if="activeTab.value === 'red'"
         :empresa-id="props.empresaId"
         :compact="isCompactLayout"
+        @completion-loaded="setNetworkCompletion"
+        @dirty-change="networkHasUnsavedChanges = $event"
       />
 
-      <WorkspacePaymentPoliciesSection v-if="activeTab.value === 'finanzas' && props.empresaId == null" />
+      <WorkspacePaymentPoliciesSection
+        v-if="activeTab.value === 'finanzas' && props.empresaId == null"
+        @dirty-change="financeHasUnsavedChanges = $event"
+      />
 
       <p
         v-else-if="activeTab.value === 'bancos' && !profile"
@@ -412,12 +549,85 @@ void fetchProfile()
   border-radius: 10px;
 }
 
-.config-v2__modal-hint {
+.config-v2-modal :deep(.modal-title) {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.config-v2__requirements {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+}
+
+.config-v2__requirements > strong {
+  flex: 0 0 auto;
+  color: #17314f;
+}
+
+.config-v2__requirements ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin: 0;
-  max-width: 52ch;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: #60758d;
+  padding: 0;
+  list-style: none;
+}
+
+.config-v2__requirements li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.config-v2__requirement-status,
+.config-v2__tab-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.config-v2__tab-status {
+  margin-left: auto;
+}
+
+.config-v2__requirement-status svg,
+.config-v2__tab-status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.config-v2__requirement-status.is-complete,
+.config-v2__tab-status.is-complete {
+  color: #15803d;
+}
+
+.config-v2__requirement-status.is-pending,
+.config-v2__tab-status.is-pending {
+  color: #b45309;
+}
+
+.config-v2__requirement-status.is-unknown {
+  color: #94a3b8;
+}
+
+.config-v2__tab-status.is-pending svg {
+  width: 9px;
+  height: 9px;
+  fill: currentColor;
+}
+
+.config-v2__tab:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
 }
 
 .config-v2__tabs {

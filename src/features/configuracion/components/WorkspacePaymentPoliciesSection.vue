@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { CalendarClock, CreditCard, History, RefreshCw, Save, X } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
 import { formatDateTime } from '@/utils/formatters'
@@ -20,6 +20,10 @@ const {
   updatePolicy,
 } = useWorkspacePaymentPoliciesApi()
 
+const emit = defineEmits<{
+  dirtyChange: [isDirty: boolean]
+}>()
+
 const form = reactive({
   modelo_pago: 'bullet' as WorkspacePaymentModel,
   dias_plazo_bullet: '7',
@@ -29,6 +33,7 @@ const form = reactive({
   tolerancia_pago_horas: '24',
   motivo_cambio: '',
 })
+const savedSnapshot = ref('')
 
 const isBulletModel = computed(() => form.modelo_pago === 'bullet')
 
@@ -60,9 +65,16 @@ const normalizePayload = (): WorkspacePaymentPolicyPayload => ({
   motivo_cambio: form.motivo_cambio.trim() || null,
 })
 
+const isDirty = computed(() => savedSnapshot.value !== ''
+  && JSON.stringify(normalizePayload()) !== savedSnapshot.value)
+
+watch(isDirty, (value) => emit('dirtyChange', value), { immediate: true })
+
 const handleSave = async () => {
   try {
     await updatePolicy(normalizePayload())
+    await nextTick()
+    savedSnapshot.value = JSON.stringify(normalizePayload())
   } catch {
     return
   }
@@ -71,6 +83,8 @@ const handleSave = async () => {
 const refreshAll = async () => {
   clearMessages()
   await Promise.all([fetchPolicy(), fetchHistory()])
+  await nextTick()
+  savedSnapshot.value = JSON.stringify(normalizePayload())
 }
 
 const formatDate = (value: string | null) => {
@@ -87,10 +101,10 @@ onMounted(async () => {
   <div class="payments-section">
     <header class="payments-section__header">
       <div>
-        <p class="payments-section__eyebrow">Politica financiera</p>
+        <p class="payments-section__eyebrow">Política financiera</p>
         <h2 class="payments-section__title">Modelo de pagos del workspace</h2>
         <p class="payments-section__subtitle">
-          Administra la modalidad bullet o fraccionada que alimenta la originacion de deuda y conserva trazabilidad de cambios.
+          Administra la modalidad bullet o fraccionada que alimenta la originación de deuda y conserva trazabilidad de cambios.
         </p>
       </div>
 
@@ -99,13 +113,13 @@ onMounted(async () => {
           <template #leading>
             <RefreshCw class="size-4" />
           </template>
-          {{ isLoading || isLoadingHistory ? 'Sincronizando...' : 'Actualizar' }}
+          {{ isLoading || isLoadingHistory ? 'Sincronizando...' : 'Sincronizar' }}
         </AppButton>
         <AppButton variant="primary" class="payments-section__primary-btn" :disabled="isSaving" @click="handleSave">
           <template #leading>
             <Save class="size-4" />
           </template>
-          {{ isSaving ? 'Guardando...' : 'Guardar politica' }}
+          {{ isSaving ? 'Guardando...' : 'Guardar política' }}
         </AppButton>
       </div>
     </header>
@@ -167,24 +181,24 @@ onMounted(async () => {
 
         <div class="payments-editor-card__grid">
           <label v-if="isBulletModel" class="payments-field payments-field--wide">
-            <span class="payments-field__label">Dias plazo bullet</span>
+            <span class="payments-field__label">Días de plazo bullet</span>
             <input v-model="form.dias_plazo_bullet" class="payments-input" type="number" min="1" />
           </label>
 
           <template v-else>
             <label class="payments-field">
-              <span class="payments-field__label">Numero de cuotas</span>
+              <span class="payments-field__label">Número de cuotas</span>
               <input v-model="form.numero_cuotas" class="payments-input" type="number" min="1" />
             </label>
 
             <label class="payments-field">
-              <span class="payments-field__label">Periodicidad en dias</span>
+              <span class="payments-field__label">Periodicidad en días</span>
               <input v-model="form.periodicidad_dias" class="payments-input" type="number" min="1" />
             </label>
           </template>
 
           <label class="payments-field">
-            <span class="payments-field__label">Dias de gracia recepcion</span>
+            <span class="payments-field__label">Días de gracia de recepción</span>
             <input v-model="form.dias_gracia_recepcion" class="payments-input" type="number" min="0" />
           </label>
 
@@ -195,7 +209,7 @@ onMounted(async () => {
 
           <label class="payments-field payments-field--wide">
             <span class="payments-field__label">Motivo del cambio</span>
-            <textarea v-model="form.motivo_cambio" class="payments-input payments-input--textarea" maxlength="500" placeholder="Deja trazabilidad del ajuste operativo que estas realizando." />
+            <textarea v-model="form.motivo_cambio" class="payments-input payments-input--textarea" maxlength="500" placeholder="Deja trazabilidad del ajuste operativo que estás realizando." />
           </label>
         </div>
       </section>
@@ -203,14 +217,14 @@ onMounted(async () => {
       <aside class="payments-history-card">
         <div class="payments-history-card__header">
           <div>
-            <p class="payments-section__eyebrow">Auditoria</p>
+            <p class="payments-section__eyebrow">Auditoría</p>
             <h3 class="payments-history-card__title">Historial de configuraciones</h3>
           </div>
           <span class="payments-history-card__meta">{{ isLoadingHistory ? 'Cargando...' : `${history.length} cambios` }}</span>
         </div>
 
         <div v-if="history.length === 0" class="payments-empty-state">
-          Aun no hay cambios auditados en las politicas de pago.
+          Aún no hay cambios auditados en las políticas de pago.
         </div>
 
         <div v-else class="payments-history-list">
@@ -224,8 +238,8 @@ onMounted(async () => {
               <span>Por: {{ entry.cambiado_por || 'Sistema' }}</span>
               <span v-if="entry.snapshot">
                 {{ entry.snapshot.modelo_pago === 'bullet'
-                  ? `${entry.snapshot.dias_plazo_bullet ?? 0} dias`
-                  : `${entry.snapshot.numero_cuotas ?? 0} cuotas / ${entry.snapshot.periodicidad_dias ?? 0} dias` }}
+                  ? `${entry.snapshot.dias_plazo_bullet ?? 0} días`
+                  : `${entry.snapshot.numero_cuotas ?? 0} cuotas / ${entry.snapshot.periodicidad_dias ?? 0} días` }}
               </span>
             </div>
           </article>

@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/inicio/LoginView.vue'
+import ForgotPasswordView from '../views/inicio/ForgotPasswordView.vue'
+import ResetPasswordView from '../views/inicio/ResetPasswordView.vue'
 import DashboardView from '../views/dashboard/DashboardView.vue'
 import EmpresaWorkspaceView from '../views/empresas/EmpresaWorkspaceView.vue'
 import EmpresaWorkspaceViewV2 from '../views/empresas/EmpresaWorkspaceViewV2.vue'
@@ -26,6 +28,16 @@ const router = createRouter({
       path: '/',
       name: 'login',
       component: LoginView
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordView
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: ResetPasswordView
     },
     {
       path: '/dashboard',

@@ -16,26 +16,22 @@ interface EmptySuccessResponse {
 }
 
 const normalizeErrorMessage = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const responseMessage = error.response?.data?.message
-    if (typeof responseMessage === 'string' && responseMessage.length > 0) {
-      return responseMessage
-    }
+  if (axios.isAxiosError(error) && error.response?.status === 422) return ''
+  return 'No pudimos completar la solicitud. Inténtalo nuevamente.'
+}
 
-    const validationErrors = error.response?.data?.errors
-    if (validationErrors && typeof validationErrors === 'object') {
-      const firstGroup = Object.values(validationErrors)[0]
-      if (Array.isArray(firstGroup) && typeof firstGroup[0] === 'string') {
-        return firstGroup[0]
-      }
-    }
-  }
+const extractFieldErrors = (error: unknown): Record<string, string> => {
+  if (!axios.isAxiosError(error) || error.response?.status !== 422) return {}
 
-  if (error instanceof Error) {
-    return error.message
-  }
+  const validationErrors = error.response.data?.errors
+  if (!validationErrors || typeof validationErrors !== 'object') return {}
 
-  return 'No fue posible completar la operacion.'
+  return Object.fromEntries(
+    Object.entries(validationErrors).flatMap(([field, messages]) => {
+      const message = Array.isArray(messages) ? messages[0] : undefined
+      return typeof message === 'string' ? [[field, message]] : []
+    }),
+  )
 }
 
 export function useProfileApi() {
@@ -47,22 +43,27 @@ export function useProfileApi() {
   const isSavingPassword = shallowRef(false)
   const profileErrorMessage = shallowRef('')
   const profileSuccessMessage = shallowRef('')
+  const profileFieldErrors = shallowRef<Record<string, string>>({})
   const passwordErrorMessage = shallowRef('')
   const passwordSuccessMessage = shallowRef('')
+  const passwordFieldErrors = shallowRef<Record<string, string>>({})
 
   const clearProfileMessages = () => {
     profileErrorMessage.value = ''
     profileSuccessMessage.value = ''
+    profileFieldErrors.value = {}
   }
 
   const clearPasswordMessages = () => {
     passwordErrorMessage.value = ''
     passwordSuccessMessage.value = ''
+    passwordFieldErrors.value = {}
   }
 
   const fetchProfile = async () => {
     isLoading.value = true
     profileErrorMessage.value = ''
+    profileFieldErrors.value = {}
 
     try {
       const response = await apiClient.get<SuccessResponse<UserProfile>>('/auth/perfil', {
@@ -72,7 +73,7 @@ export function useProfileApi() {
       profile.value = response.data.data
       return response.data.data
     } catch (error) {
-      profileErrorMessage.value = normalizeErrorMessage(error)
+      profileErrorMessage.value = 'No pudimos cargar tu perfil'
       throw error
     } finally {
       isLoading.value = false
@@ -97,6 +98,7 @@ export function useProfileApi() {
 
       return response.data.data
     } catch (error) {
+      profileFieldErrors.value = extractFieldErrors(error)
       profileErrorMessage.value = normalizeErrorMessage(error)
       throw error
     } finally {
@@ -113,8 +115,9 @@ export function useProfileApi() {
         headers: platformHeaders(),
       })
 
-      passwordSuccessMessage.value = response.data.message ?? 'Contrasena actualizada correctamente.'
+      passwordSuccessMessage.value = response.data.message ?? 'Contraseña actualizada correctamente.'
     } catch (error) {
+      passwordFieldErrors.value = extractFieldErrors(error)
       passwordErrorMessage.value = normalizeErrorMessage(error)
       throw error
     } finally {
@@ -129,8 +132,10 @@ export function useProfileApi() {
     isSavingPassword,
     profileErrorMessage,
     profileSuccessMessage,
+    profileFieldErrors,
     passwordErrorMessage,
     passwordSuccessMessage,
+    passwordFieldErrors,
     clearProfileMessages,
     clearPasswordMessages,
     fetchProfile,

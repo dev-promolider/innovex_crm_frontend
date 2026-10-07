@@ -28,6 +28,7 @@ const currencySymbols: Record<string, string> = {
     PYG: 'Gs',
     UYU: '$U',
     USD: '$',
+    VES: 'Bs.',
 }
 
 const normalizeCurrencyCode = (value: unknown) => {

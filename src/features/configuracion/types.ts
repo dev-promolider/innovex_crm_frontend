@@ -167,6 +167,7 @@ export interface WorkspaceNetworkConfiguration {
 }
 
 export interface WorkspaceNetworkConfigurationPayload {
+    profundidad_maxima: number
     motivo_cambio?: string | null
     rangos: Array<{
         nombre_rango: string

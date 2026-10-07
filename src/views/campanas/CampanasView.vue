@@ -55,10 +55,21 @@
             </div>
             <div class="filter-section">
               <label class="filter-label">Rango de Fechas</label>
-              <label class="date-label">Fecha inicio</label>
-              <input type="date" v-model="fechaInicio" class="date-input" />
-              <label class="date-label" style="margin-top:8px">Fecha fin</label>
-              <input type="date" v-model="fechaFin" class="date-input" />
+              <DatePicker
+                id="campaign-filter-start-date"
+                v-model="fechaInicio"
+                label="Fecha inicio"
+                :range-start="fechaInicio"
+                :range-end="fechaFin"
+              />
+              <DatePicker
+                id="campaign-filter-end-date"
+                v-model="fechaFin"
+                label="Fecha fin"
+                :min="fechaInicio"
+                :range-start="fechaInicio"
+                :range-end="fechaFin"
+              />
             </div>
             <div class="filter-section resumen-box">
               <h4 class="resumen-title">Resumen</h4>
@@ -302,12 +313,29 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Fecha Inicio</label>
-              <input v-model="formCampana.fecha_inicio" type="date" class="form-input" />
+              <DatePicker
+                id="campaign-start-date"
+                :model-value="formCampana.fecha_inicio"
+                @update:model-value="actualizarFechaCampana('fecha_inicio', $event)"
+                label="Fecha Inicio"
+                :invalid="Boolean(formErrors.fecha_inicio)"
+                :error-message="formErrors.fecha_inicio"
+                :range-start="formCampana.fecha_inicio"
+                :range-end="formCampana.fecha_fin"
+              />
             </div>
             <div class="form-group">
-              <label>Fecha Fin</label>
-              <input v-model="formCampana.fecha_fin" type="date" class="form-input" />
+              <DatePicker
+                id="campaign-end-date"
+                :model-value="formCampana.fecha_fin"
+                @update:model-value="actualizarFechaCampana('fecha_fin', $event)"
+                label="Fecha Fin"
+                :min="formCampana.fecha_inicio"
+                :invalid="Boolean(formErrors.fecha_fin)"
+                :error-message="formErrors.fecha_fin"
+                :range-start="formCampana.fecha_inicio"
+                :range-end="formCampana.fecha_fin"
+              />
             </div>
           </div>
         </div>
@@ -468,9 +496,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
+import DatePicker from '../../components/shared/DatePicker.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
 import { useWorkspaceCurrency } from '../../composables/useWorkspaceCurrency'
 
@@ -501,6 +530,24 @@ const modalEliminar    = ref(false)
 const campanaAEliminar = ref<any>(null)
 const formErrors       = ref<Record<string, string>>({})
 const formCampana      = ref({ nombre: '', descripcion: '', estado: 'borrador', fecha_inicio: '', fecha_fin: '' })
+
+watch(() => formCampana.value.fecha_inicio, (fechaInicio) => {
+  if (fechaInicio && formCampana.value.fecha_fin && fechaInicio > formCampana.value.fecha_fin) {
+    formCampana.value.fecha_fin = ''
+    formErrors.value.fecha_fin = ''
+  }
+})
+
+watch(fechaInicio, (inicio) => {
+  if (inicio && fechaFin.value && fechaFin.value < inicio) {
+    fechaFin.value = ''
+  }
+})
+
+const actualizarFechaCampana = (campo: 'fecha_inicio' | 'fecha_fin', fecha: string) => {
+  formCampana.value[campo] = fecha
+  formErrors.value[campo] = ''
+}
 
 // ── Kits state ──
 const campanaSeleccionada = ref<any>(null)

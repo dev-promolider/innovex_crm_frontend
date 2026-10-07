@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import ProfilePage from '@/features/profile/components/ProfilePage.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+
+onMounted(() => window.scrollTo(0, 0))
 </script>
 
 <template>
@@ -34,7 +37,7 @@ const { t } = useI18n()
 }
 
 .perfil-view__hero {
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .perfil-view__eyebrow {
@@ -54,7 +57,7 @@ const { t } = useI18n()
 }
 
 .perfil-view__subtitle {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   max-width: 58ch;
   color: #5d697d;
   font-size: 1rem;
@@ -63,7 +66,7 @@ const { t } = useI18n()
 
 @media (max-width: 768px) {
   .perfil-view {
-    padding: 14px 14px 24px;
+    padding: 16px 16px 24px;
   }
 
   .perfil-view__hero {
