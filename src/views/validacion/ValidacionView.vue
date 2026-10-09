@@ -69,15 +69,7 @@
 
             <div class="filter-section">
               <label class="filter-label">Estado</label>
-              <div class="filter-options">
-                <label v-for="op in opcionesEstado" :key="op.value"
-                  class="filter-radio" :class="{ active: filtroEstado === op.value }"
-                  @click="filtroEstado = op.value">
-                  <input type="radio" v-model="filtroEstado" :value="op.value" />
-                  <span class="radio-dot" :style="{ background: op.color }"></span>
-                  {{ op.label }}
-                </label>
-              </div>
+              <p class="filter-disabled" aria-disabled="true">Mostrando ventas pendientes</p>
             </div>
 
             <div class="filter-section">
@@ -131,8 +123,16 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-if="ventasFiltradas.length === 0">
-                    <td colspan="10" class="empty-state">✅ No hay ventas con este filtro.</td>
+                  <tr v-if="ventasFiltradas.length === 0 && !cargaFallida">
+                    <td colspan="10" class="empty-state">
+                      <div class="empty-state-content">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
+                          <path d="M4 5.5v16M8 7h8M8 11h8" />
+                        </svg>
+                        <span>No hay ventas pendientes.</span>
+                      </div>
+                    </td>
                   </tr>
                   <tr
                     v-for="v in ventasFiltradas"
@@ -157,7 +157,7 @@
                     <td class="td-lider">{{ nombrePatrocinador(v) }}</td>
                     <td class="td-kit">{{ v.kit?.nombre ?? '—' }}</td>
                     <td class="td-monto">{{ formatCurrency(v.monto_total_venta) }}</td>
-                    <td class="td-banco">{{ v.banco ?? 'BCP' }}</td>
+                    <td class="td-banco">{{ v.cuenta_bancaria?.banco_nombre ?? v.banco ?? 'BCP' }}</td>
                     <td class="td-center">
                       <button
                         v-if="v.comprobante_foto_url"
@@ -329,11 +329,11 @@ const pendingBankCount = shallowRef(0)
 const todasVentas = shallowRef<any[]>([])
 const ventas      = shallowRef<any[]>([])
 const cargando    = shallowRef(false)
+const cargaFallida = shallowRef(false)
 const procesando  = shallowRef<number | null>(null)
 const errorMsg    = shallowRef('')
 const successMsg  = shallowRef('')
 const busqueda    = shallowRef('')
-const filtroEstado   = shallowRef('todos')
 const fechaInicio    = shallowRef('')
 const fechaFin       = shallowRef('')
 watch(fechaInicio, (inicio) => {
@@ -354,14 +354,12 @@ const isReceiptModalOpen = shallowRef(false)
 const activeReceiptUrl = shallowRef('')
 const activeReceiptLabel = shallowRef('Comprobante de venta')
 
-const opcionesEstado = [
-  { value: 'todos',     label: 'Todos',      color: '#4ab8f5' },
-  { value: 'pendiente', label: 'Pendiente',  color: '#f59e0b' },
-  { value: 'aprobada',  label: 'Validada',   color: '#22c55e' },
-  { value: 'rechazada', label: 'Rechazada',  color: '#ef4444' },
-]
-
 // ── Helpers ──
+const getLoadErrorMessage = (status: number) =>
+  status === 404
+    ? 'Esta sección todavía no está disponible'
+    : 'No pudimos cargar la información. Inténtalo de nuevo'
+
 const formatFecha = (f: string) => {
   if (!f) return '—'
   const d = new Date(f)
@@ -416,7 +414,6 @@ const contarEstado = (estado: string) => todasVentas.value.filter(v => (v.estado
 // ── Filtrado ──
 const ventasFiltradas = computed(() =>
   ventas.value.filter(v => {
-    const matchEstado  = filtroEstado.value === 'todos' || (v.estado ?? 'pendiente') === filtroEstado.value
     const matchBusq    = !busqueda.value ||
       (v.consumidor_nombre ?? '').toLowerCase().includes(busqueda.value.toLowerCase()) ||
       nombreDistribuidor(v).toLowerCase().includes(busqueda.value.toLowerCase()) ||
@@ -426,18 +423,25 @@ const ventasFiltradas = computed(() =>
     const toDate = fechaFin.value ? new Date(`${fechaFin.value}T23:59:59`) : null
     const matchDesde = !fromDate || !ventaDate || ventaDate >= fromDate
     const matchHasta = !toDate || !ventaDate || ventaDate <= toDate
-    return matchEstado && matchBusq && matchDesde && matchHasta
+    return matchBusq && matchDesde && matchHasta
   })
 )
 
 // ── API ──
 const cargarVentas = async (pagina = 1) => {
   cargando.value = true
+  cargaFallida.value = false
   errorMsg.value = ''
   try {
     const params = new URLSearchParams({ page: String(pagina), per_page: '20' })
-    const res  = await fetch(`${API_BASE}/workspace/admin/ventas?${params.toString()}`, { headers: hdrs() })
+    const res  = await fetch(`${API_BASE}/workspace/admin/ventas/pendientes?${params.toString()}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
+    if (!res.ok) {
+      cargaFallida.value = true
+      errorMsg.value = getLoadErrorMessage(res.status)
+      return
+    }
+
     const json = await res.json()
     if (json.status === 'success') {
       ventas.value      = json.data.data ?? json.data
@@ -460,10 +464,12 @@ const cargarVentas = async (pagina = 1) => {
         await seleccionarVenta(ventas.value[0].id)
       }
     } else {
-      errorMsg.value = json.message ?? 'Error al cargar ventas.'
+      cargaFallida.value = true
+      errorMsg.value = getLoadErrorMessage(res.status)
     }
   } catch {
-    errorMsg.value = 'No se pudo conectar con el servidor.'
+    cargaFallida.value = true
+    errorMsg.value = getLoadErrorMessage(0)
   } finally {
     cargando.value = false
   }
@@ -476,15 +482,20 @@ const seleccionarVenta = async (ventaId: number) => {
   try {
     const res = await fetch(`${API_BASE}/workspace/admin/ventas/${ventaId}`, { headers: hdrs() })
     if (res.status === 401) { cerrarSesion(); return }
+    if (!res.ok) {
+      errorMsg.value = getLoadErrorMessage(res.status)
+      return
+    }
+
     const json = await res.json()
 
     if (json.status === 'success') {
       ventaDetalle.value = json.data
     } else {
-      errorMsg.value = json.message ?? 'No se pudo cargar el detalle de la venta.'
+      errorMsg.value = getLoadErrorMessage(res.status)
     }
   } catch {
-    errorMsg.value = 'No se pudo cargar el detalle de la venta.'
+    errorMsg.value = getLoadErrorMessage(0)
   } finally {
     cargandoDetalle.value = false
   }
@@ -501,10 +512,10 @@ const aprobar = async (v: any) => {
       setTimeout(() => { successMsg.value = '' }, 3000)
       await cargarVentas(meta.value.current_page)
     } else {
-      errorMsg.value = json.message ?? 'Error al aprobar.'
+      errorMsg.value = 'No pudimos aprobar la venta. Inténtalo de nuevo.'
     }
   } catch {
-    errorMsg.value = 'No se pudo conectar.'
+    errorMsg.value = 'No pudimos aprobar la venta. Inténtalo de nuevo.'
   } finally {
     procesando.value = null
   }
@@ -534,10 +545,10 @@ const rechazar = async () => {
       setTimeout(() => { successMsg.value = '' }, 3000)
       await cargarVentas(meta.value.current_page)
     } else {
-      errorMsg.value = json.message ?? 'Error al rechazar.'
+      errorMsg.value = 'No pudimos rechazar la venta. Inténtalo de nuevo.'
     }
   } catch {
-    errorMsg.value = 'No se pudo conectar.'
+    errorMsg.value = 'No pudimos rechazar la venta. Inténtalo de nuevo.'
   } finally {
     procesando.value = null
   }
@@ -597,6 +608,7 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .counter-badge { font-size:13px; font-weight:700; }
 .filter-section { margin-bottom:16px; }
 .filter-label { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
+.filter-disabled { margin:0; color:#7a8598; font-size:13px; cursor:not-allowed; }
 .filter-options { display:flex; flex-direction:column; gap:6px; }
 .filter-radio { display:flex; align-items:center; gap:8px; font-size:13px; color:#444; cursor:pointer; padding:5px 8px; border-radius:6px; transition:background 0.15s; }
 .filter-radio input { display:none; }
@@ -660,6 +672,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-rechazar { display:flex; align-items:center; gap:3px; padding:4px 10px; border:none; border-radius:6px; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; cursor:pointer; }
 .btn-rechazar:hover { background:#fecaca; }
 .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
+.empty-state-content { display:flex; align-items:center; justify-content:center; gap:10px; }
+.empty-state-content svg { flex-shrink:0; }
 .admin-page-btn--active { background:#1a6ab5; color:white; border-color:#1a6ab5; }
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
