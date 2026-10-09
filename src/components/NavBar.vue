@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import logo from '../assets/logo.png'
+import logoInnovex from '../assets/logo-innovex.png'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { primaryNavigation, secondaryNavigation } from '../app/navigation'
@@ -45,7 +45,10 @@ const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceCont
 const visiblePrimaryNavigation = computed(() => primaryNavigation.filter(canShowItem))
 const visibleSecondaryNavigation = computed(() => secondaryNavigation.filter(canShowItem))
 
-const resolvedBrandLogo = computed(() => props.brandLogoSrc?.trim() || logo)
+const hasBrandLogoError = ref(false)
+const resolvedBrandLogo = computed(
+	() => (props.brandLogoSrc?.trim() && !hasBrandLogoError.value ? props.brandLogoSrc.trim() : logoInnovex),
+)
 const pointerExpanded = ref(false)
 const focusWithin = ref(false)
 const escapeCollapsed = ref(false)
@@ -56,6 +59,21 @@ const isExpanded = computed(
 let openTimer: ReturnType<typeof setTimeout> | undefined
 let closeTimer: ReturnType<typeof setTimeout> | undefined
 let scrollTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+	() => props.brandLogoSrc,
+	() => {
+		hasBrandLogoError.value = false
+	},
+)
+
+const handleBrandLogoError = (event: Event) => {
+	const image = event.currentTarget
+	if (!(image instanceof HTMLImageElement)) return
+
+	console.warn('No se pudo cargar el logo del workspace:', image.src)
+	hasBrandLogoError.value = true
+}
 
 const supportsDesktopHover = () =>
 	typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px) and (hover: hover)').matches
@@ -167,7 +185,12 @@ const handleLogout = () => emit('logout')
 		@keydown="handleKeydown"
 	>
 		<div class="app-sidebar__brand">
-			<img :src="resolvedBrandLogo" :alt="t('common.appName')" class="app-sidebar__logo" />
+			<img
+				:src="resolvedBrandLogo"
+				:alt="t('common.appName')"
+				class="app-sidebar__logo"
+				@error="handleBrandLogoError"
+			/>
 			<button
 				v-if="isExpanded"
 				type="button"
