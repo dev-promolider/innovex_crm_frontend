@@ -284,41 +284,63 @@
       </div>
 
     <!-- ── Modal Crear/Editar Campaña ── -->
-    <div v-if="modalCampana" class="modal-overlay" @click.self="modalCampana = false">
-      <div class="modal">
+    <div v-if="modalCampana" class="modal-overlay modal-overlay--campaign" @click.self="modalCampana = false">
+      <div class="modal modal-campaign" role="dialog" aria-modal="true" aria-labelledby="campaign-modal-title">
         <div class="modal-header">
-          <h2>{{ modoEdicion ? 'Editar Campaña' : 'Nueva Campaña' }}</h2>
-          <button class="modal-close" @click="modalCampana = false">✕</button>
+          <div class="modal-header__content">
+            <h2 id="campaign-modal-title">{{ modoEdicion ? 'Editar Campaña' : 'Nueva Campaña' }}</h2>
+            <div v-if="campaignFormError" class="campaign-form-alert" role="alert">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4m0 4h.01" />
+              </svg>
+              <span>{{ campaignFormError }}</span>
+            </div>
+          </div>
+          <button type="button" class="modal-close" aria-label="Cerrar" @click="modalCampana = false">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body campaign-modal-body">
+          <div v-if="!modoEdicion" class="campaign-draft-note">
+            <span class="badge estado-borrador">Borrador</span>
+            <span>Se crea en borrador. Podrás activarla cuando tenga al menos un kit activo</span>
+          </div>
+          <div v-else class="campaign-current-state">
+            <span class="form-label">Estado actual</span>
+            <span class="badge" :class="`estado-${formCampana.estado}`">
+              {{ opcionesEstado.find((op) => op.value === formCampana.estado)?.label ?? formCampana.estado }}
+            </span>
+          </div>
           <div class="form-group">
             <label>Nombre *</label>
-            <input v-model="formCampana.nombre" type="text" placeholder="Nombre de la campaña" class="form-input" />
+            <input
+              id="campaign-name"
+              v-model="formCampana.nombre"
+              type="text"
+              placeholder="Nombre de la campaña"
+              class="form-input"
+              :aria-invalid="Boolean(formErrors.nombre)"
+              @input="limpiarErrorCampo('nombre')"
+            />
             <span v-if="formErrors.nombre" class="form-error">{{ formErrors.nombre }}</span>
           </div>
           <div class="form-group">
             <label>Descripción</label>
-            <textarea v-model="formCampana.descripcion" placeholder="Descripción opcional" class="form-input form-textarea"></textarea>
+            <textarea
+              id="campaign-description"
+              v-model="formCampana.descripcion"
+              placeholder="Descripción opcional"
+              class="form-input form-textarea"
+              @input="limpiarErrorCampo('descripcion')"
+            ></textarea>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Estado *</label>
-              <select v-model="formCampana.estado" class="form-input">
-                <option value="borrador">Borrador</option>
-                <option value="activa">Activa</option>
-                <option value="pausada">Pausada</option>
-                <option value="finalizada">Finalizada</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
+          <div class="form-row campaign-date-row">
             <div class="form-group">
               <DatePicker
                 id="campaign-start-date"
                 :model-value="formCampana.fecha_inicio"
                 @update:model-value="actualizarFechaCampana('fecha_inicio', $event)"
                 label="Fecha Inicio"
-                :invalid="Boolean(formErrors.fecha_inicio)"
+                :invalid="Boolean(formErrors.fecha_inicio || formErrors.fecha_rango)"
                 :error-message="formErrors.fecha_inicio"
                 :range-start="formCampana.fecha_inicio"
                 :range-end="formCampana.fecha_fin"
@@ -331,17 +353,20 @@
                 @update:model-value="actualizarFechaCampana('fecha_fin', $event)"
                 label="Fecha Fin"
                 :min="formCampana.fecha_inicio"
-                :invalid="Boolean(formErrors.fecha_fin)"
+                :invalid="Boolean(formErrors.fecha_fin || formErrors.fecha_rango)"
                 :error-message="formErrors.fecha_fin"
                 :range-start="formCampana.fecha_inicio"
                 :range-end="formCampana.fecha_fin"
               />
             </div>
           </div>
+          <span v-if="formErrors.fecha_rango" class="form-error campaign-date-error">
+            {{ formErrors.fecha_rango }}
+          </span>
         </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="modalCampana = false">Cancelar</button>
-          <button class="btn-primary" @click="guardarCampana" :disabled="guardando">
+        <div class="modal-footer campaign-modal-footer">
+          <button type="button" class="btn-secondary" @click="modalCampana = false">Cancelar</button>
+          <button type="button" class="btn-primary" @click="guardarCampana" :disabled="guardando">
             {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear') }}
           </button>
         </div>
@@ -496,7 +521,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
 import DatePicker from '../../components/shared/DatePicker.vue'
@@ -529,6 +554,7 @@ const campanaEditando  = ref<any>(null)
 const modalEliminar    = ref(false)
 const campanaAEliminar = ref<any>(null)
 const formErrors       = ref<Record<string, string>>({})
+const campaignFormError = ref('')
 const formCampana      = ref({ nombre: '', descripcion: '', estado: 'borrador', fecha_inicio: '', fecha_fin: '' })
 
 watch(() => formCampana.value.fecha_inicio, (fechaInicio) => {
@@ -547,6 +573,55 @@ watch(fechaInicio, (inicio) => {
 const actualizarFechaCampana = (campo: 'fecha_inicio' | 'fecha_fin', fecha: string) => {
   formCampana.value[campo] = fecha
   formErrors.value[campo] = ''
+  formErrors.value.fecha_rango = ''
+  campaignFormError.value = ''
+}
+
+const limpiarErrorCampo = (campo: string) => {
+  delete formErrors.value[campo]
+  campaignFormError.value = ''
+}
+
+const getCampaignErrorText = (errors: Record<string, unknown>) =>
+  Object.values(errors)
+    .flatMap((value) => Array.isArray(value) ? value : [value])
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+
+const getConflictingCampaignName = (message: string) => {
+  const patterns = [
+    /(?:cruz|superpuest|solap).{0,100}?(?:campaña\s+)?["'“]([^"'”]+)["'”]/i,
+    /campaña(?:\s+existente)?\s*[:\-]\s*["'“]([^"'”]+)["'”]/i,
+    /campaña(?:\s+existente)?\s*[:\-]\s*([^.;]+)/i,
+    /(?:con|contra)\s+(?:la\s+)?campaña\s+["'“]([^"'”]+)["'”]/i,
+    /campaña\s+(?:llamada|denominada)\s+([^.;]+)/i,
+  ]
+  for (const pattern of patterns) {
+    const match = message.match(pattern)
+    if (match?.[1]) return match[1].trim()
+  }
+  return ''
+}
+
+const getDateOverlapMessage = (message: string) => {
+  const campaignName = getConflictingCampaignName(message)
+  return campaignName
+    ? `Las fechas se cruzan con otra campaña existente. Elige otro rango (Campaña: ${campaignName})`
+    : 'Las fechas se cruzan con otra campaña existente. Elige otro rango'
+}
+
+const focusCampaignError = async (fields: string[]) => {
+  const fieldIds: Record<string, string> = {
+    nombre: 'campaign-name',
+    descripcion: 'campaign-description',
+    fecha_inicio: 'campaign-start-date',
+    fecha_fin: 'campaign-end-date',
+    fecha_rango: 'campaign-start-date',
+  }
+  const field = ['nombre', 'descripcion', 'fecha_inicio', 'fecha_fin', 'fecha_rango']
+    .find((key) => fields.includes(key))
+  await nextTick()
+  document.getElementById((field ? fieldIds[field] : undefined) ?? 'campaign-name')?.focus()
 }
 
 // ── Kits state ──
@@ -690,6 +765,8 @@ const cambiarPagina = (p: number) => cargarCampanas(p)
 
 const abrirModalCampana = (campana?: any) => {
   formErrors.value = {}
+  campaignFormError.value = ''
+  errorMsg.value = ''
   if (campana) {
     modoEdicion.value = true; campanaEditando.value = campana
     formCampana.value = {
@@ -708,23 +785,62 @@ const abrirModalCampana = (campana?: any) => {
 
 const guardarCampana = async () => {
   formErrors.value = {}
-  if (!formCampana.value.nombre.trim()) { formErrors.value.nombre = 'El nombre es obligatorio.'; return }
+  campaignFormError.value = ''
+  if (!formCampana.value.nombre.trim()) {
+    formErrors.value.nombre = 'El nombre es obligatorio.'
+    campaignFormError.value = 'Revisa los campos marcados antes de guardar.'
+    await focusCampaignError(['nombre'])
+    return
+  }
   guardando.value = true
   limpiarMensajes()
   try {
     const url    = modoEdicion.value ? `${API_BASE}/workspace/admin/campanas/${campanaEditando.value.id}` : `${API_BASE}/workspace/admin/campanas`
     const method = modoEdicion.value ? 'PUT' : 'POST'
-    const res    = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(formCampana.value) })
+    const payload = {
+      ...formCampana.value,
+      estado: modoEdicion.value ? formCampana.value.estado : 'borrador',
+    }
+    const res    = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(payload) })
     const json   = await res.json()
     if (res.ok && json.status === 'success') {
       modalCampana.value = false
+      campaignFormError.value = ''
       successMsg.value = json.message ?? 'Campaña guardada correctamente.'
       if (campanaSeleccionada.value) campanaSeleccionada.value = json.data
       await cargarCampanas(meta.value.current_page)
     }
-    else if (res.status === 422 && json.errors) { Object.keys(json.errors).forEach(k => { formErrors.value[k] = json.errors[k][0] }) }
-    else { errorMsg.value = json.message ?? 'Error al guardar.' }
-  } catch { errorMsg.value = 'No se pudo conectar.' }
+    else {
+      errorMsg.value = ''
+      const responseErrors: Record<string, unknown> =
+        json.errors && typeof json.errors === 'object' ? json.errors : {}
+      for (const [field, value] of Object.entries(responseErrors)) {
+        const firstError = Array.isArray(value) ? value[0] : value
+        if (typeof firstError === 'string') formErrors.value[field] = firstError
+      }
+
+      const backendMessage = typeof json.message === 'string' ? json.message : ''
+      const combinedErrorText = `${backendMessage} ${getCampaignErrorText(responseErrors)}`
+      const isDateOverlap = /cruz|superpuest|solap|overlap/i.test(combinedErrorText)
+      if (isDateOverlap) {
+        formErrors.value.fecha_inicio = ''
+        formErrors.value.fecha_fin = ''
+        formErrors.value.fecha_rango = getDateOverlapMessage(combinedErrorText)
+        campaignFormError.value = formErrors.value.fecha_rango
+      } else {
+        campaignFormError.value =
+          getCampaignErrorText(responseErrors)
+          || backendMessage
+          || 'No se pudo guardar la campaña. Inténtalo de nuevo.'
+      }
+
+      const invalidFields = Object.keys(formErrors.value).filter((field) => Boolean(formErrors.value[field]))
+      if (invalidFields.length > 0) await focusCampaignError(invalidFields)
+    }
+  } catch {
+    errorMsg.value = ''
+    campaignFormError.value = 'No se pudo conectar. Inténtalo de nuevo.'
+  }
   finally { guardando.value = false }
 }
 
@@ -978,8 +1094,8 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .btn-secondary { padding:9px 18px; border:1px solid #ddd; border-radius:8px; background:white; font-size:13px; font-weight:600; color:#555; cursor:pointer; }
 .btn-danger { padding:9px 18px; border:none; border-radius:8px; background:#ef4444; font-size:13px; font-weight:600; color:white; cursor:pointer; }
 .btn-danger:disabled { opacity:0.6; cursor:not-allowed; }
-.alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-.alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-error { position:relative; z-index:2201; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+.alert-success { position:relative; z-index:2201; background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .alert-close { background:none; border:none; cursor:pointer; color:#b91c1c; font-size:16px; }
 .content-layout { display:flex; gap:20px; align-items:flex-start; }
 .filters-panel { width:200px; flex-shrink:0; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
@@ -1036,15 +1152,29 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .spinner { width:20px; height:20px; border:2px solid #e2e8f0; border-top-color:#4ab8f5; border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal-overlay--campaign { z-index:2100; box-sizing:border-box; padding:12px; }
 .modal { background:white; border-radius:12px; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal-campaign { display:flex; flex-direction:column; overflow:hidden; max-height:90vh; max-height:90dvh; }
+.modal-campaign .modal-header { flex:0 0 auto; }
 .modal-lg { width:560px; }
 .modal-sm { width:380px; }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
+.modal-header__content { display:flex; min-width:0; flex:1; flex-direction:column; gap:12px; }
 .modal-header h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:0; }
 .modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:#999; }
 .modal-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.campaign-modal-body { min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; }
 .modal-body p { font-size:14px; color:#555; margin:0; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px; }
+.campaign-modal-footer { position:sticky; bottom:0; flex:0 0 auto; border-top:1px solid #e2e8f0; padding-top:14px; background:#fff; }
+.campaign-form-alert { display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border:1px solid #fecaca; border-radius:8px; background:#fef2f2; color:#b91c1c; font-size:13px; line-height:1.4; }
+.campaign-form-alert svg { flex:0 0 auto; margin-top:1px; }
+.campaign-draft-note { display:flex; align-items:flex-start; gap:10px; color:#64748b; font-size:12px; line-height:1.45; }
+.campaign-draft-note .badge { flex:0 0 auto; }
+.campaign-current-state { display:flex; align-items:center; gap:10px; }
+.campaign-current-state .form-label { color:#555; font-size:12px; font-weight:600; }
+.campaign-date-row .form-group { min-width:0; }
+.campaign-date-error { display:block; margin-top:-8px; }
 .section-title { font-size:13px; font-weight:700; color:#334155; margin-bottom:10px; }
 .form-group { display:flex; flex-direction:column; gap:6px; flex:1; }
 .form-group label { font-size:12px; font-weight:600; color:#555; }
@@ -1062,4 +1192,14 @@ html, body, #app { margin:0!important; padding:0!important; height:100%!importan
 .kit-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
 .kit-detail-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:4px; }
 .kit-detail-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; }
+@media (max-width:640px) {
+  .modal-overlay--campaign { align-items:center; padding:8px; }
+  .modal-campaign { width:100%; max-width:100%; max-height:calc(100vh - 16px); max-height:calc(100dvh - 16px); }
+  .campaign-modal-body { padding:16px; }
+  .campaign-date-row { flex-direction:column; gap:14px; }
+  .campaign-date-row .form-group { width:100%; }
+  .campaign-modal-footer { padding:12px 16px calc(80px + env(safe-area-inset-bottom)); }
+  .campaign-modal-footer .btn-secondary,
+  .campaign-modal-footer .btn-primary { min-width:0; flex:1; justify-content:center; padding-right:10px; padding-left:10px; }
+}
 </style>
