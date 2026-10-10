@@ -1,36 +1,13 @@
-import axios from 'axios'
 import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import type { PaginatedPayload, RewardRedemption, RewardRedemptionFilters } from '../types'
 
 interface SuccessResponse<T> {
     status: string
     message?: string
     data: T
-}
-
-const normalizeErrorMessage = (error: unknown): string => {
-    if (axios.isAxiosError(error)) {
-        const responseMessage = error.response?.data?.message
-        if (typeof responseMessage === 'string' && responseMessage.length > 0) {
-            return responseMessage
-        }
-
-        const validationErrors = error.response?.data?.errors
-        if (validationErrors && typeof validationErrors === 'object') {
-            const firstGroup = Object.values(validationErrors)[0]
-            if (Array.isArray(firstGroup) && typeof firstGroup[0] === 'string') {
-                return firstGroup[0]
-            }
-        }
-    }
-
-    if (error instanceof Error) {
-        return error.message
-    }
-
-    return 'No fue posible completar la operacion sobre canjes.'
 }
 
 export function useRewardRedemptionsApi() {
@@ -40,6 +17,7 @@ export function useRewardRedemptionsApi() {
     const isLoading = shallowRef(false)
     const isUpdating = shallowRef<number | null>(null)
     const errorMessage = shallowRef('')
+    const detailErrorMessage = shallowRef('')
     const successMessage = shallowRef('')
     const pagination = shallowRef({
         total: 0,
@@ -56,6 +34,7 @@ export function useRewardRedemptionsApi() {
     const fetchRedemptions = async (filters: RewardRedemptionFilters = {}) => {
         isLoading.value = true
         errorMessage.value = ''
+        detailErrorMessage.value = ''
 
         try {
             const searchParams = new URLSearchParams()
@@ -86,20 +65,26 @@ export function useRewardRedemptionsApi() {
                 per_page: response.data.data.per_page ?? 20,
             }
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
+            redemptions.value = []
+            pagination.value = { total: 0, current_page: 1, last_page: 1, per_page: 20 }
+            errorMessage.value = getApiErrorMessage(error)
         } finally {
             isLoading.value = false
         }
     }
 
     const fetchRedemption = async (id: number) => {
-        const response = await apiClient.get<SuccessResponse<RewardRedemption>>(
-            `/workspace/admin/recompensas/canjes/${id}`,
-            { headers: authHeaders() },
-        )
-
-        return response.data.data
+        detailErrorMessage.value = ''
+        try {
+            const response = await apiClient.get<SuccessResponse<RewardRedemption>>(
+                `/workspace/admin/recompensas/canjes/${id}`,
+                { headers: authHeaders() },
+            )
+            return response.data.data
+        } catch (error) {
+            detailErrorMessage.value = getApiErrorMessage(error)
+            return null
+        }
     }
 
     const deliverRedemption = async (id: number) => {
@@ -116,8 +101,7 @@ export function useRewardRedemptionsApi() {
             successMessage.value = response.data.message ?? 'Canje entregado.'
             return response.data.data
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
+            errorMessage.value = getApiErrorMessage(error)
         } finally {
             isUpdating.value = null
         }
@@ -137,8 +121,7 @@ export function useRewardRedemptionsApi() {
             successMessage.value = response.data.message ?? 'Canje cancelado.'
             return response.data.data
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
+            errorMessage.value = getApiErrorMessage(error)
         } finally {
             isUpdating.value = null
         }
@@ -149,6 +132,7 @@ export function useRewardRedemptionsApi() {
         isLoading: readonly(isLoading),
         isUpdating: readonly(isUpdating),
         errorMessage: readonly(errorMessage),
+        detailErrorMessage: readonly(detailErrorMessage),
         successMessage: readonly(successMessage),
         pagination: readonly(pagination),
         clearMessages,

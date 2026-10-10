@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef, watch } from 'vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import { useScoringAdminApi } from '../composables/useScoringAdminApi'
 import type { ScoringRole, UpdateScoringConfigurationPayload } from '../types'
 
@@ -116,9 +117,10 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="errorMessage || localError" class="inline-error">{{ localError || errorMessage }}</div>
+    <div v-if="localError && !errorMessage" class="inline-error">{{ localError }}</div>
     <div v-if="successMessage" class="inline-success">{{ successMessage }}</div>
     <div v-if="isLoading" class="panel-state">Cargando configuracion y evaluaciones...</div>
+    <ApiErrorState v-else-if="errorMessage" :message="errorMessage" :retrying="isLoading" @retry="loadAll" />
 
     <template v-else-if="currentConfiguration">
       <div class="summary-grid">

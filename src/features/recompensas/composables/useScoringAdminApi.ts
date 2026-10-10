@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import type {
     PaginatedPayload,
     ScoringConfiguration,
@@ -15,29 +15,6 @@ interface SuccessResponse<T> {
     status: string
     message?: string
     data: T
-}
-
-const normalizeErrorMessage = (error: unknown): string => {
-    if (axios.isAxiosError(error)) {
-        const responseMessage = error.response?.data?.message
-        if (typeof responseMessage === 'string' && responseMessage.length > 0) {
-            return responseMessage
-        }
-
-        const validationErrors = error.response?.data?.errors
-        if (validationErrors && typeof validationErrors === 'object') {
-            const firstGroup = Object.values(validationErrors)[0]
-            if (Array.isArray(firstGroup) && typeof firstGroup[0] === 'string') {
-                return firstGroup[0]
-            }
-        }
-    }
-
-    if (error instanceof Error) {
-        return error.message
-    }
-
-    return 'No fue posible cargar la configuracion de scoring.'
 }
 
 export function useScoringAdminApi() {
@@ -93,8 +70,10 @@ export function useScoringAdminApi() {
         try {
             await Promise.all([fetchConfigurations(), fetchHistory(), fetchEvaluations()])
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
+            configurations.value = null
+            history.value = []
+            evaluations.value = []
+            errorMessage.value = getApiErrorMessage(error)
         } finally {
             isLoading.value = false
         }
@@ -116,8 +95,7 @@ export function useScoringAdminApi() {
 
             return response.data.data
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
-            throw error
+            errorMessage.value = getApiErrorMessage(error)
         } finally {
             isSaving.value = false
         }

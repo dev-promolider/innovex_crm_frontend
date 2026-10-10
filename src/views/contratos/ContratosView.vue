@@ -2,7 +2,9 @@
 import { computed, onMounted, reactive, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import AppShell from '@/components/layout/AppShell.vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import { formatDateTime } from '@/utils/formatters'
 
 interface ContractItem {
@@ -56,9 +58,12 @@ interface SuccessResponse<T> {
 const { authHeaders } = useAuthenticatedSession()
 const isLoading = shallowRef(false)
 const isDetailLoading = shallowRef(false)
-const errorMessage = shallowRef('')
+const contractsError = shallowRef('')
+const detailError = shallowRef('')
+const templateError = shallowRef('')
 const contracts = shallowRef<ContractItem[]>([])
 const selectedContract = shallowRef<ContractItem | null>(null)
+const selectedContractId = shallowRef<number | null>(null)
 const templateClauses = shallowRef<string[]>([])
 const filters = reactive({ search: '', estado: 'todos' })
 const pagination = reactive({ current_page: 1, last_page: 1, total: 0 })
@@ -138,7 +143,7 @@ const stateBadgeClass = (value: string) => ({
 
 const loadContracts = async (page = 1) => {
   isLoading.value = true
-  errorMessage.value = ''
+  contractsError.value = ''
 
   try {
     const response = await apiClient.get<SuccessResponse<Pagination<ContractItem>>>('/workspace/admin/contratos', {
@@ -164,37 +169,53 @@ const loadContracts = async (page = 1) => {
       await selectContract(contractToSelect.id)
     } else {
       selectedContract.value = null
+      selectedContractId.value = null
     }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'No se pudieron cargar contratos.'
+    contracts.value = []
+    selectedContract.value = null
+    selectedContractId.value = null
+    pagination.current_page = 1
+    pagination.last_page = 1
+    pagination.total = 0
+    contractsError.value = getApiErrorMessage(error)
   } finally {
     isLoading.value = false
   }
 }
 
 const loadTemplate = async () => {
+  templateError.value = ''
   try {
     const response = await apiClient.get<SuccessResponse<{ clausulas: string[] }>>('/workspace/admin/contratos/plantilla', {
       headers: authHeaders(),
     })
     templateClauses.value = response.data.data.clausulas ?? []
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'No se pudo cargar la plantilla contractual.'
+    templateClauses.value = []
+    templateError.value = getApiErrorMessage(error)
   }
 }
 
 const selectContract = async (contractId: number) => {
+  selectedContractId.value = contractId
   isDetailLoading.value = true
+  detailError.value = ''
   try {
     const response = await apiClient.get<SuccessResponse<ContractItem>>(`/workspace/admin/contratos/${contractId}`, {
       headers: authHeaders(),
     })
     selectedContract.value = response.data.data
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'No se pudo cargar el contrato.'
+    selectedContract.value = null
+    detailError.value = getApiErrorMessage(error)
   } finally {
     isDetailLoading.value = false
   }
+}
+
+const retrySelectedContract = () => {
+  if (selectedContractId.value !== null) void selectContract(selectedContractId.value)
 }
 
 onMounted(async () => {
@@ -218,10 +239,6 @@ onMounted(async () => {
           {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
         </button>
       </header>
-
-      <div v-if="errorMessage" class="alert-error contracts-alert">
-        {{ errorMessage }}
-      </div>
 
       <section class="content-layout">
         <aside class="filters-panel">
@@ -280,7 +297,13 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="table-wrap">
+          <ApiErrorState
+            v-if="contractsError"
+            :message="contractsError"
+            :retrying="isLoading"
+            @retry="loadContracts(pagination.current_page)"
+          />
+          <div v-else class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
@@ -333,7 +356,7 @@ onMounted(async () => {
             </table>
           </div>
 
-          <div v-if="pagination.last_page > 1" class="pagination">
+          <div v-if="!contractsError && pagination.last_page > 1" class="pagination">
             <button class="page-btn" :disabled="pagination.current_page === 1" @click="loadContracts(pagination.current_page - 1)">‹</button>
             <span class="page-info">Página {{ pagination.current_page }} de {{ pagination.last_page }}</span>
             <button class="page-btn" :disabled="pagination.current_page === pagination.last_page" @click="loadContracts(pagination.current_page + 1)">›</button>
@@ -344,6 +367,12 @@ onMounted(async () => {
       <section class="detail-layout">
         <article class="detail-card detail-card--primary">
           <div v-if="isDetailLoading" class="empty-state">Cargando detalle...</div>
+          <ApiErrorState
+            v-else-if="detailError"
+            :message="detailError"
+            :retrying="isDetailLoading"
+            @retry="retrySelectedContract"
+          />
           <template v-else-if="selectedContract">
             <div class="detail-header">
               <div>
@@ -389,7 +418,12 @@ onMounted(async () => {
         <article class="detail-card">
           <h3 class="detail-title">Plantilla vigente</h3>
           <p class="detail-subtitle">Cláusulas centralizadas desde backend. Solo lectura en esta versión.</p>
-          <ol class="clauses-list">
+          <ApiErrorState
+            v-if="templateError"
+            :message="templateError"
+            @retry="loadTemplate"
+          />
+          <ol v-else class="clauses-list">
             <li v-for="(clause, index) in templateClauses" :key="`${index}-${clause}`">{{ clause }}</li>
           </ol>
         </article>

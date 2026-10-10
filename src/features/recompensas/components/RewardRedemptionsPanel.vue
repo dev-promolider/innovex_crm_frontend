@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef } from 'vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import { useRewardRedemptionsApi } from '../composables/useRewardRedemptionsApi'
 import type { RewardRedemption } from '../types'
 
@@ -8,6 +9,7 @@ const {
   isLoading,
   isUpdating,
   errorMessage,
+  detailErrorMessage,
   successMessage,
   pagination,
   fetchRedemptions,
@@ -77,6 +79,10 @@ const selectRedemption = async (id: number) => {
   selectedRedemption.value = await fetchRedemption(id)
 }
 
+const retrySelectedRedemption = () => {
+  if (selectedId.value !== null) void selectRedemption(selectedId.value)
+}
+
 const confirmDelivery = async () => {
   if (!selectedRedemption.value) {
     return
@@ -135,12 +141,18 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="errorMessage || localError" class="inline-error">{{ localError || errorMessage }}</div>
+    <div v-if="localError" class="inline-error">{{ localError }}</div>
     <div v-if="successMessage" class="inline-success">{{ successMessage }}</div>
 
     <div class="panel-grid">
       <section class="panel-table">
         <div v-if="isLoading" class="panel-state">Cargando canjes...</div>
+        <ApiErrorState
+          v-else-if="errorMessage"
+          :message="errorMessage"
+          :retrying="isLoading"
+          @retry="loadRedemptions(pagination.current_page)"
+        />
         <div v-else-if="redemptions.length === 0" class="panel-state">No hay canjes para este filtro.</div>
         <div v-else class="table-wrap">
           <table class="data-table">
@@ -183,7 +195,12 @@ onMounted(() => {
       </section>
 
       <aside class="panel-detail">
-        <div v-if="!selectedRedemption" class="panel-state">Selecciona un canje para revisar datos y operar.</div>
+        <ApiErrorState
+          v-if="detailErrorMessage"
+          :message="detailErrorMessage"
+          @retry="retrySelectedRedemption"
+        />
+        <div v-else-if="!selectedRedemption" class="panel-state">Selecciona un canje para revisar datos y operar.</div>
         <template v-else>
           <div class="detail-hero">
             <span class="detail-label">Estado actual</span>

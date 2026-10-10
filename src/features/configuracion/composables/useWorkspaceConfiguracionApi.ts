@@ -3,6 +3,7 @@ import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { setWorkspaceLogo } from '@/composables/useAuthenticatedSession'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import { resolveMediaUrl } from '../../../utils/media'
 import type { UsuarioListItem } from '@/features/usuarios/types'
 import type {
@@ -96,6 +97,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
     const founderConfig = shallowRef<WorkspaceFounderConfiguration | null>(null)
     const founderUserCandidates = shallowRef<WorkspaceFounderUserCandidate[]>([])
     const founderRegistrationResult = shallowRef<WorkspaceFounderRegistrationResult | null>(null)
+    const founderErrorMessage = shallowRef('')
     const isLoading = shallowRef(false)
     const isSaving = shallowRef(false)
     const isUploadingLogo = shallowRef(false)
@@ -137,7 +139,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
     const fetchFounderConfig = async () => {
         isFounderLoading.value = true
-        errorMessage.value = ''
+        founderErrorMessage.value = ''
 
         try {
             const response = await apiClient.get<SuccessResponse<WorkspaceFounderConfiguration>>(
@@ -150,7 +152,10 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             founderConfig.value = response.data.data
             return response.data.data
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
+            founderConfig.value = null
+            founderErrorMessage.value = getApiErrorMessage(error, {
+                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
+            })
             throw error
         } finally {
             isFounderLoading.value = false
@@ -159,7 +164,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
     const searchFounderUsers = async (search = '') => {
         isFounderUsersLoading.value = true
-        errorMessage.value = ''
+        founderErrorMessage.value = ''
 
         try {
             const response = isSuperadminScope
@@ -195,7 +200,10 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
             return founderUserCandidates.value
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
+            founderUserCandidates.value = []
+            founderErrorMessage.value = getApiErrorMessage(error, {
+                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
+            })
             throw error
         } finally {
             isFounderUsersLoading.value = false
@@ -205,6 +213,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
     const registerFounder = async (payload: WorkspaceFounderRegistrationPayload) => {
         isFounderSaving.value = true
         clearMessages()
+        founderErrorMessage.value = ''
 
         try {
             const response = await apiClient.post<SuccessResponse<WorkspaceFounderRegistrationResult>>(
@@ -220,7 +229,9 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             await fetchFounderConfig()
             return response.data.data
         } catch (error) {
-            errorMessage.value = normalizeErrorMessage(error)
+            founderErrorMessage.value = getApiErrorMessage(error, {
+                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
+            })
             throw error
         } finally {
             isFounderSaving.value = false
@@ -329,6 +340,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
         founderConfig: readonly(founderConfig),
         founderUserCandidates: readonly(founderUserCandidates),
         founderRegistrationResult: readonly(founderRegistrationResult),
+        founderErrorMessage: readonly(founderErrorMessage),
         isLoading: readonly(isLoading),
         isSaving: readonly(isSaving),
         isUploadingLogo: readonly(isUploadingLogo),

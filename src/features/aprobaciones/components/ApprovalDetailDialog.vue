@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import AppModal from '@/components/shared/AppModal.vue'
 import { formatDateTime } from '@/utils/formatters'
 import type { ApprovalDetail } from '../types'
@@ -8,6 +9,7 @@ interface Props {
   open: boolean
   detail: ApprovalDetail | null
   loading: boolean
+  errorMessage: string
   mutatingApprovalId: number | null
 }
 
@@ -15,6 +17,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   close: []
+  retry: []
   approve: [approvalId: number]
   reject: [approvalId: number, motivo: string]
   suspend: [approvalId: number, motivo: string]
@@ -71,6 +74,8 @@ const yesNo = (value: boolean) => value ? 'Sí' : 'No'
       <div class="spinner" />
       <span>Cargando expediente de aprobacion...</span>
     </div>
+
+    <ApiErrorState v-else-if="errorMessage" :message="errorMessage" :retrying="loading" @retry="emit('retry')" />
 
     <div v-else-if="detail" class="detail-layout">
       <section class="card-surface summary-card">
