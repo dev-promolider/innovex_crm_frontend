@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { reactive, readonly, ref, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import type {
   ApprovalDetail,
   ApprovalListItem,
@@ -33,29 +33,6 @@ const defaultPagination = (): ApprovalPaginationMeta => ({
   total: 0,
 })
 
-const normalizeErrorMessage = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const responseMessage = error.response?.data?.message
-    if (typeof responseMessage === 'string' && responseMessage.length > 0) {
-      return responseMessage
-    }
-
-    const validationErrors = error.response?.data?.errors
-    if (validationErrors && typeof validationErrors === 'object') {
-      const firstGroup = Object.values(validationErrors)[0]
-      if (Array.isArray(firstGroup) && typeof firstGroup[0] === 'string') {
-        return firstGroup[0]
-      }
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'No fue posible completar la operacion.'
-}
-
 export function useWorkspaceApprovalsApi() {
   const { authHeaders } = useAuthenticatedSession()
 
@@ -66,6 +43,7 @@ export function useWorkspaceApprovalsApi() {
   const isDetailLoading = shallowRef(false)
   const mutatingApprovalId = shallowRef<number | null>(null)
   const errorMessage = shallowRef('')
+  const detailErrorMessage = shallowRef('')
   const successMessage = shallowRef('')
   const pagination = reactive<ApprovalPaginationMeta>(defaultPagination())
 
@@ -84,6 +62,7 @@ export function useWorkspaceApprovalsApi() {
   const fetchApprovals = async (page = 1, filter: ApprovalQueueFilter = activeFilter.value) => {
     isLoading.value = true
     errorMessage.value = ''
+    detailErrorMessage.value = ''
     activeFilter.value = filter
 
     try {
@@ -102,8 +81,12 @@ export function useWorkspaceApprovalsApi() {
       applyPagination(response.data.data)
       activeFilter.value = response.data.meta?.filtro ?? filter
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
-      throw error
+      approvals.value = []
+      pagination.current_page = 1
+      pagination.last_page = 1
+      pagination.per_page = 20
+      pagination.total = 0
+      errorMessage.value = getApiErrorMessage(error)
     } finally {
       isLoading.value = false
     }
@@ -111,7 +94,7 @@ export function useWorkspaceApprovalsApi() {
 
   const fetchApprovalDetail = async (approvalId: number) => {
     isDetailLoading.value = true
-    errorMessage.value = ''
+    detailErrorMessage.value = ''
 
     try {
       const response = await apiClient.get<SuccessResponse<ApprovalDetail>>(
@@ -124,9 +107,8 @@ export function useWorkspaceApprovalsApi() {
       approvalDetail.value = response.data.data
       return response.data.data
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
       approvalDetail.value = null
-      throw error
+      detailErrorMessage.value = getApiErrorMessage(error)
     } finally {
       isDetailLoading.value = false
     }
@@ -153,7 +135,7 @@ export function useWorkspaceApprovalsApi() {
       successMessage.value = response.data.message ?? 'Solicitud aprobada correctamente.'
       await refresh(approvalId)
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error)
       throw error
     } finally {
       mutatingApprovalId.value = null
@@ -174,7 +156,7 @@ export function useWorkspaceApprovalsApi() {
       successMessage.value = response.data.message ?? 'Solicitud rechazada correctamente.'
       await refresh(approvalId)
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error)
       throw error
     } finally {
       mutatingApprovalId.value = null
@@ -195,7 +177,7 @@ export function useWorkspaceApprovalsApi() {
       successMessage.value = response.data.message ?? 'Distribuidor suspendido correctamente.'
       await refresh(approvalId)
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error)
       throw error
     } finally {
       mutatingApprovalId.value = null
@@ -216,7 +198,7 @@ export function useWorkspaceApprovalsApi() {
       successMessage.value = response.data.message ?? 'Distribuidor reactivado correctamente.'
       await refresh(approvalId)
     } catch (error) {
-      errorMessage.value = normalizeErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error)
       throw error
     } finally {
       mutatingApprovalId.value = null
@@ -231,6 +213,7 @@ export function useWorkspaceApprovalsApi() {
     isDetailLoading: readonly(isDetailLoading),
     mutatingApprovalId: readonly(mutatingApprovalId),
     errorMessage: readonly(errorMessage),
+    detailErrorMessage: readonly(detailErrorMessage),
     successMessage: readonly(successMessage),
     pagination: readonly(pagination),
     clearMessages,

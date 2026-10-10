@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, shallowRef } from 'vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import ApprovalDetailDialog from './ApprovalDetailDialog.vue'
 import ApprovalsTable from './ApprovalsTable.vue'
 import { useWorkspaceApprovalsApi } from '../composables/useWorkspaceApprovalsApi'
@@ -13,6 +14,7 @@ const {
   isDetailLoading,
   mutatingApprovalId,
   errorMessage,
+  detailErrorMessage,
   successMessage,
   pagination,
   clearMessages,
@@ -75,6 +77,10 @@ const openDetailDialog = async (approvalId: number) => {
   selectedApprovalId.value = approvalId
   detailDialogOpen.value = true
   await fetchApprovalDetail(approvalId)
+}
+
+const retryApprovalDetail = () => {
+  if (selectedApprovalId.value !== null) void fetchApprovalDetail(selectedApprovalId.value)
 }
 
 const closeDetailDialog = () => {
@@ -182,11 +188,6 @@ onMounted(async () => {
       </div>
     </section>
 
-    <div v-if="errorMessage" class="admin-alert admin-alert--error">
-      {{ errorMessage }}
-      <button class="admin-alert__close" @click="clearMessages">✕</button>
-    </div>
-
     <div v-if="successMessage" class="admin-alert admin-alert--success">
       {{ successMessage }}
       <button class="admin-alert__close" @click="clearMessages">✕</button>
@@ -233,14 +234,22 @@ onMounted(async () => {
         </div>
       </div>
 
+      <ApiErrorState
+        v-if="errorMessage"
+        :message="errorMessage"
+        :retrying="isLoading"
+        @retry="loadPage(pagination.current_page)"
+      />
+
       <ApprovalsTable
+        v-if="!errorMessage"
         :approvals="filteredApprovals"
         :loading="isLoading"
         :active-filter="activeFilter"
         @review="openDetailDialog"
       />
 
-      <div class="admin-table-footer">
+      <div v-if="!errorMessage" class="admin-table-footer">
         <span class="admin-table-count">
           Pagina {{ pagination.current_page }} de {{ pagination.last_page }} · {{ pagination.per_page }} por pagina
         </span>
@@ -268,8 +277,10 @@ onMounted(async () => {
       :open="detailDialogOpen"
       :detail="approvalDetail"
       :loading="isDetailLoading"
+      :error-message="detailErrorMessage"
       :mutating-approval-id="mutatingApprovalId"
       @close="closeDetailDialog"
+      @retry="retryApprovalDetail"
       @approve="handleApprove"
       @reject="handleReject"
       @suspend="handleSuspend"

@@ -52,6 +52,7 @@ const {
   founderConfig,
   founderUserCandidates,
   founderRegistrationResult,
+  founderErrorMessage,
   isLoading,
   isSaving,
   isUploadingLogo,
@@ -201,8 +202,7 @@ const refreshFounder = async () => {
   try {
     await fetchFounderConfig()
   } catch {
-    clearMessages()
-    founderError.value = 'No pudimos cargar el fundador'
+    founderError.value = founderErrorMessage.value || 'No pudimos cargar el fundador'
   }
 }
 
@@ -235,8 +235,7 @@ const handleFounderSearch = async (query: string) => {
   try {
     await searchFounderUsers(query)
   } catch {
-    clearMessages()
-    founderError.value = 'No pudimos buscar usuarios. Inténtalo nuevamente.'
+    founderError.value = founderErrorMessage.value || 'No pudimos buscar usuarios. Inténtalo nuevamente.'
   }
 }
 
@@ -274,11 +273,10 @@ const handleFounderSubmit = async (payload: WorkspaceFounderRegistrationPayload)
     clearMessages()
   } catch (error) {
     founderFieldErrors.value = getFounderFieldErrors(error)
-    clearMessages()
     if (founderRegistrationResult.value) {
-      founderError.value = 'No pudimos actualizar los datos del fundador. Reintenta la carga.'
+      founderError.value = founderErrorMessage.value || 'No pudimos actualizar los datos del fundador. Reintenta la carga.'
     } else {
-      founderError.value = 'No pudimos registrar el fundador. Revisa los datos e inténtalo nuevamente.'
+      founderError.value = founderErrorMessage.value || 'No pudimos registrar el fundador. Revisa los datos e inténtalo nuevamente.'
     }
   }
 }
@@ -384,7 +382,7 @@ void fetchProfile()
 
       <section class="config-v2__panel">
 
-      <div v-if="errorMessage" class="admin-alert admin-alert--error">
+      <div v-if="errorMessage && activeTab.value !== 'fundador'" class="admin-alert admin-alert--error">
         {{ errorMessage }}
         <button class="admin-alert__close" @click="clearMessages">✕</button>
       </div>

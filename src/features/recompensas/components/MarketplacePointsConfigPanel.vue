@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, shallowRef, watch } from 'vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import { useMarketplaceConfigApi } from '../composables/useMarketplaceConfigApi'
 
 const {
@@ -50,11 +51,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="errorMessage" class="inline-error">{{ errorMessage }}</div>
+    <ApiErrorState v-if="errorMessage" :message="errorMessage" :retrying="isLoading" @retry="fetchConfig" />
     <div v-if="successMessage" class="inline-success">{{ successMessage }}</div>
 
     <div v-if="isLoading" class="panel-state">Cargando configuracion...</div>
-    <form v-else class="config-form" @submit.prevent="save">
+    <form v-else-if="!errorMessage" class="config-form" @submit.prevent="save">
       <div class="form-row">
         <div class="form-group">
           <label>Moneda por punto (venta aprobada)</label>

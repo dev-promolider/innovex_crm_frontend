@@ -2,6 +2,7 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { ArrowLeft, ArrowRight, Check, KeyRound, LockKeyhole, RefreshCw, Search, UserRoundPlus } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import PhoneInput from '@/components/shared/PhoneInput.vue'
 import type {
   WorkspaceCommissionRule,
@@ -218,16 +219,12 @@ const handleSubmit = () => {
       <span class="founder__skeleton founder__skeleton--line founder__skeleton--short" />
     </section>
 
-    <section v-else-if="errorMessage && !founderConfig" class="founder__error" role="alert">
-      <p>No pudimos cargar el fundador</p>
-      <AppButton type="button" variant="ghost" :disabled="loading" @click="emit('refresh')">
-        <template #leading><RefreshCw class="size-4" /></template>
-        Reintentar
-      </AppButton>
+    <section v-else-if="errorMessage && !founderConfig" class="founder__error">
+      <ApiErrorState :message="errorMessage" :retrying="loading" @retry="emit('refresh')" />
     </section>
 
     <template v-else-if="founderConfig">
-      <div v-if="errorMessage" class="founder__alert founder__alert--error" role="alert">{{ errorMessage }}</div>
+      <ApiErrorState v-if="errorMessage" :message="errorMessage" :retrying="loading" @retry="emit('refresh')" />
       <div v-if="successMessage" class="founder__alert founder__alert--success" role="status">{{ successMessage }}</div>
 
       <template v-if="founderRegistered">

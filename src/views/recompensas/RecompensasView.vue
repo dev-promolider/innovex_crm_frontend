@@ -5,8 +5,13 @@
     </template>
 
     <div class="page-body">
-      <div v-if="errorMsg" class="alert-error">{{ errorMsg }}<button @click="errorMsg=''" class="alert-close">✕</button></div>
-      <div v-if="successMsg" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
+      <ApiErrorState
+        v-if="errorMsg && tabActivo === 'Market Places de Premios'"
+        :message="errorMsg"
+        :retrying="cargando || guardando"
+        @retry="cargarRecompensas"
+      />
+      <div v-if="successMsg && tabActivo === 'Market Places de Premios'" class="alert-success">{{ successMsg }}<button @click="successMsg=''" class="alert-close">✕</button></div>
 
       <div class="page-header">
         <div>
@@ -16,7 +21,7 @@
       </div>
 
       <div class="tabs-bar">
-        <button v-for="tab in tabs" :key="tab" class="tab-btn" :class="{ active: tabActivo === tab }" @click="tabActivo = tab">{{ tab }}</button>
+        <button v-for="tab in tabs" :key="tab" class="tab-btn" :class="{ active: tabActivo === tab }" @click="cambiarTab(tab)">{{ tab }}</button>
         <div style="flex:1"></div>
         <button class="btn-primary" @click="abrirModalNuevo">+ Nuevo Premio</button>
       </div>
@@ -37,7 +42,14 @@
           </select>
         </div>
 
-        <div v-if="cargando" class="loading-state">
+        <ApiErrorState
+          v-if="errorCatalogo"
+          :message="errorCatalogo"
+          :retrying="cargando"
+          @retry="cargarRecompensas"
+        />
+
+        <div v-else-if="cargando" class="loading-state">
           <div class="spinner"></div><span>Cargando recompensas...</span>
         </div>
 
@@ -222,10 +234,12 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { API_BASE_URL } from '@/app/apiClient'
 import AppShell from '../../components/layout/AppShell.vue'
+import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import RewardRedemptionsPanel from '@/features/recompensas/components/RewardRedemptionsPanel.vue'
 import ScoringAdminPanel from '@/features/recompensas/components/ScoringAdminPanel.vue'
 import MarketplacePointsConfigPanel from '@/features/recompensas/components/MarketplacePointsConfigPanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 
 const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
@@ -239,6 +253,7 @@ const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 // ── State ──
 const recompensas  = ref<any[]>([])
 const cargando     = ref(false)
+const errorCatalogo = ref('')
 const guardando    = ref(false)
 const errorMsg     = ref('')
 const successMsg   = ref('')
@@ -263,6 +278,11 @@ const formPremio   = ref({
   disponible_desde: '', disponible_hasta: '', imagen_url: '', activo: true
 })
 const imagenPreviewUrl = computed(() => imagenPreviewTemporal.value || formPremio.value.imagen_url || '')
+
+const cambiarTab = (tab: string) => {
+  tabActivo.value = tab
+  errorMsg.value = ''
+}
 
 // ── Helpers ──
 const labelCategoria = (tipo: string) => ({
@@ -293,22 +313,29 @@ const resetImagenPreviewTemporal = () => {
 // ── API ──
 const cargarRecompensas = async () => {
   cargando.value = true
-  errorMsg.value = ''
+  errorCatalogo.value = ''
   try {
     const params = new URLSearchParams()
     if (filtroTipo.value) params.set('tipo_premio', filtroTipo.value)
     if (filtroActivo.value !== '') params.set('activo', filtroActivo.value)
     const query = params.toString()
     const res  = await fetch(`${API_BASE}/workspace/admin/recompensas${query ? `?${query}` : ''}`, { headers: hdrs() })
-    if (res.status === 401) { cerrarSesion(); return }
+    if (res.status === 401) {
+      recompensas.value = []
+      errorCatalogo.value = getApiErrorMessage({ response: { status: res.status, data: null } })
+      cerrarSesion()
+      return
+    }
     const json = await res.json()
-    if (json.status === 'success') {
+    if (res.ok && json.status === 'success') {
       recompensas.value = json.data.data ?? json.data
     } else {
-      errorMsg.value = json.message ?? 'Error al cargar recompensas.'
+      recompensas.value = []
+      errorCatalogo.value = getApiErrorMessage({ response: { status: res.status, data: json } })
     }
-  } catch {
-    errorMsg.value = 'No se pudo conectar con el servidor.'
+  } catch (error) {
+    recompensas.value = []
+    errorCatalogo.value = getApiErrorMessage(error)
   } finally {
     cargando.value = false
   }
@@ -399,10 +426,10 @@ const guardarPremio = async () => {
     } else if (res.status === 422 && json.errors) {
       Object.keys(json.errors).forEach(k => { formErrors.value[k] = json.errors[k][0] })
     } else {
-      errorMsg.value = json.message ?? 'Error al guardar.'
+      errorMsg.value = getApiErrorMessage({ response: { status: res.status, data: json } })
     }
-  } catch {
-    errorMsg.value = 'No se pudo conectar.'
+  } catch (error) {
+    errorMsg.value = getApiErrorMessage(error)
   } finally {
     guardando.value = false
   }
@@ -417,10 +444,10 @@ const toggleActivo = async (r: any) => {
       successMsg.value = r.activo ? '✅ Premio activado.' : '⏸ Premio desactivado.'
       setTimeout(() => { successMsg.value = '' }, 2000)
     } else {
-      errorMsg.value = json.message ?? 'Error al cambiar estado.'
+      errorMsg.value = getApiErrorMessage({ response: { status: res.status, data: json } })
     }
-  } catch {
-    errorMsg.value = 'No se pudo conectar.'
+  } catch (error) {
+    errorMsg.value = getApiErrorMessage(error)
   }
 }
 
@@ -444,10 +471,10 @@ const eliminarPremio = async () => {
       setTimeout(() => { successMsg.value = '' }, 3000)
       await cargarRecompensas()
     } else {
-      errorMsg.value = json.message ?? 'Error al eliminar.'
+      errorMsg.value = getApiErrorMessage({ response: { status: res.status, data: json } })
     }
-  } catch {
-    errorMsg.value = 'No se pudo conectar.'
+  } catch (error) {
+    errorMsg.value = getApiErrorMessage(error)
   } finally {
     guardando.value = false
   }
