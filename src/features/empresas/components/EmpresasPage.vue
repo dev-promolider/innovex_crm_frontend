@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, shallowRef } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import ConfiguracionWorkspacePageV2 from '@/features/configuracion/components/ConfiguracionWorkspacePageV2.vue'
+import CredencialesAccesoDialog from '@/features/configuracion/components/CredencialesAccesoDialog.vue'
+import type { AccessCredentials } from '@/features/configuracion/components/CredencialesAccesoDialog.vue'
 import { useEmpresasApi } from '../composables/useEmpresasApi'
 import type { CreateEmpresaResult, EmpresaEstado, EmpresaListItem } from '../types'
 import CreateEmpresaDialog from './CreateEmpresaDialog.vue'
@@ -38,6 +40,8 @@ const configDialogOpen = shallowRef(false)
 const selectedEmpresaId = shallowRef<number | null>(null)
 const latestProvisioningResult = shallowRef<CreateEmpresaResult | null>(null)
 const createSuccessResult = shallowRef<CreateEmpresaResult | null>(null)
+const accessCredentials = shallowRef<AccessCredentials | null>(null)
+const accessCredentialsDialogOpen = shallowRef(false)
 
 const filteredEmpresas = computed(() => {
   const normalizedSearch = filters.search.trim().toLowerCase()
@@ -142,7 +146,13 @@ const handleDeleteEmpresa = async () => {
 const handleCreateEmpresa = async (payload: Parameters<typeof createEmpresa>[0]) => {
   try {
     const createdEmpresa = await createEmpresa(payload)
-    createSuccessResult.value = createdEmpresa
+    createSuccessResult.value = {
+      ...createdEmpresa,
+      primer_admin: {
+        ...createdEmpresa.primer_admin,
+        password_temporal: null,
+      },
+    }
     latestProvisioningResult.value = {
       ...createdEmpresa,
       primer_admin: {
@@ -150,9 +160,26 @@ const handleCreateEmpresa = async (payload: Parameters<typeof createEmpresa>[0])
         password_temporal: null,
       },
     }
+    const temporaryPassword = createdEmpresa.primer_admin.password_temporal
+    if (temporaryPassword) {
+      accessCredentials.value = {
+        personName: `${createdEmpresa.primer_admin.nombre} ${createdEmpresa.primer_admin.apellido}`.trim(),
+        companyName: createdEmpresa.empresa.nombre,
+        email: createdEmpresa.primer_admin.email,
+        password: temporaryPassword,
+      }
+      accessCredentialsDialogOpen.value = true
+    }
+    createDialogOpen.value = false
+    createSuccessResult.value = null
   } catch {
     return
   }
+}
+
+const closeAccessCredentials = () => {
+  accessCredentialsDialogOpen.value = false
+  accessCredentials.value = null
 }
 
 const openLatestCreatedWorkspace = async () => {
@@ -269,7 +296,7 @@ onMounted(async () => {
       <button class="admin-alert__close" @click="clearMessages">✕</button>
     </div>
 
-    <section v-if="latestProvisioningResult" class="provisioning-card">
+    <section v-if="latestProvisioningResult && !accessCredentialsDialogOpen" class="provisioning-card">
       <div>
         <p class="provisioning-card__eyebrow">Primer acceso listo</p>
         <h3 class="provisioning-card__title">
@@ -382,6 +409,12 @@ onMounted(async () => {
         title="Configuracion del workspace"
         subtitle="Ajusta perfil, marca, banca y estructura comercial sin salir del listado."
         @close="closeEmpresaConfig"
+      />
+
+      <CredencialesAccesoDialog
+        :open="accessCredentialsDialogOpen"
+        :credentials="accessCredentials"
+        @close="closeAccessCredentials"
       />
   </div>
 </template>

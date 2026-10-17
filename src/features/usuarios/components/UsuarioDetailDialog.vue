@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import AppModal from '@/components/shared/AppModal.vue'
+import PhoneInput from '@/components/shared/PhoneInput.vue'
+import { countries } from '@/utils/countries'
+import {
+  documentMaxLength,
+  isValidEmail,
+  sanitizeAddress,
+  sanitizeDocument,
+  sanitizeEmail,
+  sanitizePersonName,
+  validateDocument,
+  validatePhoneDigits,
+} from '@/utils/fieldRules'
+import type { DocumentType } from '@/utils/fieldRules'
 import type { UpdateUsuarioPayload, UsuarioDetail } from '../types'
 
 interface Props {
@@ -35,6 +48,33 @@ const form = reactive<UpdateUsuarioPayload>({
 })
 
 const suspensionReason = reactive({ motivo: '' })
+const touched = reactive<Record<string, boolean>>({})
+const documentError = computed(() => form.numero_documento
+  ? validateDocument(form.numero_documento, form.tipo_documento as DocumentType)
+  : touched.documento ? 'El número de documento es obligatorio.' : '')
+const phoneError = computed(() => {
+  if (!form.telefono) return 'Ingresa un teléfono.'
+  const country = form.telefono.startsWith('+')
+    ? [...countries]
+      .filter((item) => form.telefono.startsWith(item.prefijo))
+      .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]
+    : countries.find((item) => item.iso === 'PE')
+  if (!country) return 'Ingresa un teléfono válido.'
+  const digits = form.telefono.replace(/\D/g, '')
+  const nationalDigits = form.telefono.startsWith('+')
+    ? digits.slice(country.prefijo.replace(/\D/g, '').length)
+    : digits
+  return validatePhoneDigits(nationalDigits, country.iso)
+})
+const formIsValid = computed(() => Boolean(form.nombre.trim())
+  && form.nombre.length <= 100
+  && Boolean(form.apellido.trim())
+  && form.apellido.length <= 100
+  && isValidEmail(form.email)
+  && Boolean(form.numero_documento.trim())
+  && !documentError.value
+  && !phoneError.value
+  && (form.direccion?.length ?? 0) <= 255)
 
 watch(
   () => props.usuario,
@@ -48,7 +88,7 @@ watch(
     form.email = usuario.email
     form.telefono = usuario.telefono ?? ''
     form.tipo_documento = usuario.tipo_documento
-    form.numero_documento = usuario.numero_documento
+    form.numero_documento = sanitizeDocument(usuario.numero_documento, usuario.tipo_documento as DocumentType)
     form.direccion = usuario.direccion ?? ''
     suspensionReason.motivo = ''
   },
@@ -59,10 +99,44 @@ const headerTitle = computed(() => props.usuario?.nombre_completo ?? 'Detalle de
 const isGlobalMutation = computed(() => props.usuario != null && props.mutatingUsuarioId === props.usuario.id)
 
 const submit = () => {
+  if (!formIsValid.value) return
   emit('save', {
     ...form,
     direccion: form.direccion?.trim() || undefined,
   })
+}
+
+const handleNameInput = (field: 'nombre' | 'apellido', event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizePersonName(event.target.value)
+  event.target.value = value
+  form[field] = value
+}
+
+const handleEmailInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeEmail(event.target.value)
+  event.target.value = value
+  form.email = value
+}
+
+const handleDocumentTypeChange = () => {
+  form.numero_documento = sanitizeDocument(form.numero_documento, form.tipo_documento as DocumentType)
+  touched.documento = true
+}
+
+const handleDocumentInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeDocument(event.target.value, form.tipo_documento as DocumentType)
+  event.target.value = value
+  form.numero_documento = value
+}
+
+const handleAddressInput = (event: Event) => {
+  if (!(event.target instanceof HTMLTextAreaElement)) return
+  const value = sanitizeAddress(event.target.value)
+  event.target.value = value
+  form.direccion = value
 }
 
 const requestSuspend = () => {
@@ -132,27 +206,28 @@ const membershipActionLabel = (estadoValidacion: string) => {
         <div class="form-grid">
           <label class="field">
             <span>Nombre</span>
-            <input v-model="form.nombre" type="text" autocomplete="off" />
+            <input v-model="form.nombre" type="text" maxlength="100" autocomplete="given-name" @input="handleNameInput('nombre', $event)" />
           </label>
 
           <label class="field">
             <span>Apellido</span>
-            <input v-model="form.apellido" type="text" autocomplete="off" />
+            <input v-model="form.apellido" type="text" maxlength="100" autocomplete="family-name" @input="handleNameInput('apellido', $event)" />
           </label>
 
           <label class="field">
             <span>Correo</span>
-            <input v-model="form.email" type="email" autocomplete="off" />
+            <input v-model="form.email" type="email" maxlength="180" autocomplete="email" @input="handleEmailInput" />
           </label>
 
           <label class="field">
             <span>Telefono</span>
-            <input v-model="form.telefono" type="text" autocomplete="off" />
+            <PhoneInput v-model="form.telefono" required :invalid="Boolean(touched.telefono && phoneError)" @focusout="touched.telefono = true" />
+            <small v-if="touched.telefono && phoneError" class="field-error">{{ phoneError }}</small>
           </label>
 
           <label class="field">
             <span>Tipo documento</span>
-            <select v-model="form.tipo_documento">
+            <select v-model="form.tipo_documento" @change="handleDocumentTypeChange">
               <option value="dni">DNI</option>
               <option value="pasaporte">Pasaporte</option>
               <option value="cedula">Cedula</option>
@@ -163,12 +238,14 @@ const membershipActionLabel = (estadoValidacion: string) => {
 
           <label class="field">
             <span>Numero documento</span>
-            <input v-model="form.numero_documento" type="text" autocomplete="off" />
+            <input v-model="form.numero_documento" type="text" :maxlength="documentMaxLength(form.tipo_documento as DocumentType)" :inputmode="['dni', 'cedula', 'ruc'].includes(form.tipo_documento) ? 'numeric' : 'text'" :autocapitalize="['pasaporte', 'otro'].includes(form.tipo_documento) ? 'characters' : 'off'" autocomplete="off" @input="handleDocumentInput" @blur="touched.documento = true" />
+            <small v-if="touched.documento && documentError" class="field-error">{{ documentError }}</small>
+            <small v-if="touched.documento && ['dni', 'ruc'].includes(form.tipo_documento)" class="field-counter">{{ form.numero_documento.length }}/{{ documentMaxLength(form.tipo_documento as DocumentType) }}</small>
           </label>
 
           <label class="field field-full">
             <span>Direccion</span>
-            <textarea v-model="form.direccion" rows="3" />
+            <textarea v-model="form.direccion" rows="3" maxlength="255" autocomplete="street-address" @input="handleAddressInput" />
           </label>
         </div>
       </section>
@@ -272,7 +349,7 @@ const membershipActionLabel = (estadoValidacion: string) => {
 
     <template #footer>
       <button type="button" class="btn-outline" @click="emit('close')">Cerrar</button>
-      <button v-if="usuario" type="button" class="btn-primary" :disabled="saving" @click="submit">
+      <button v-if="usuario" type="button" class="btn-primary" :disabled="saving || !formIsValid" @click="submit">
         {{ saving ? 'Guardando...' : 'Guardar cambios' }}
       </button>
     </template>

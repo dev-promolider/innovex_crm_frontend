@@ -388,6 +388,7 @@ const normalizePayload = (): WorkspaceNetworkConfigurationPayload => ({
       : null,
     limite_kits_credito: kitLimitValue(rank),
     es_rango_ingreso: index === 0,
+    ...(index === 0 ? { es_rango_raiz: true } : {}),
     accesos_json: normalizeAccessList(rank.accesos_json),
     reglas_comision: index === 0
       ? []

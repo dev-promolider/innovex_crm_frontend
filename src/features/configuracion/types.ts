@@ -176,6 +176,7 @@ export interface WorkspaceNetworkConfigurationPayload {
         max_distribuidores_directos?: number | null
         limite_kits_credito: number
         es_rango_ingreso?: boolean
+        es_rango_raiz?: boolean
         accesos_json?: string[] | null
         reglas_comision?: WorkspaceCommissionRule[]
     }>

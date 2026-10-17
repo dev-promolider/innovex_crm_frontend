@@ -219,7 +219,8 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Email del distribuidor</label>
-            <input v-model="invitacionForm.email_invitado" type="email" placeholder="email@ejemplo.com" class="form-input" />
+            <input v-model="invitacionForm.email_invitado" type="email" maxlength="180" autocomplete="email" placeholder="email@ejemplo.com" class="form-input" @input="handleInviteEmailInput" />
+            <small v-if="invitacionForm.email_invitado && !invitationEmailValid" class="form-error">Escribe un correo electrónico válido de hasta 180 caracteres.</small>
           </div>
           <div class="form-group">
             <label>Vigencia (días)</label>
@@ -265,7 +266,7 @@
 
       <template #footer>
         <button type="button" class="btn-secondary" @click="cerrarModalPin">{{ pinGenerado ? 'Cerrar' : 'Cancelar' }}</button>
-        <button v-if="!pinGenerado" type="button" class="btn-primary" @click="generarPin" :disabled="generandoPin">
+        <button v-if="!pinGenerado" type="button" class="btn-primary" @click="generarPin" :disabled="generandoPin || !invitationEmailValid">
           {{ generandoPin ? 'Generando...' : 'Generar invitación' }}
         </button>
       </template>
@@ -282,6 +283,7 @@ import AppModal from '../../components/shared/AppModal.vue'
 import NetworkTreePanel from '@/features/distribuidores/components/NetworkTreePanel.vue'
 import SponsorChangeQueuePanel from '@/features/distribuidores/components/SponsorChangeQueuePanel.vue'
 import { useAuthenticatedSession } from '../../composables/useAuthenticatedSession'
+import { isValidEmail, sanitizeEmail } from '@/utils/fieldRules'
 
 const API_BASE = API_BASE_URL
 const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
@@ -319,6 +321,13 @@ const invitacionForm = reactive({
   notas: '',
   dias_vigencia: 7,
 })
+const invitationEmailValid = computed(() => isValidEmail(invitacionForm.email_invitado))
+const handleInviteEmailInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeEmail(event.target.value)
+  event.target.value = value
+  invitacionForm.email_invitado = value
+}
 
 function formatCodigoInvitacion(raw: string): string {
   const normalized = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()

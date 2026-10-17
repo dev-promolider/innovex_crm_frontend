@@ -4,6 +4,22 @@ import AppModal from '@/components/shared/AppModal.vue'
 import PhoneInput from '@/components/shared/PhoneInput.vue'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import { countries } from '@/utils/countries'
+import {
+  FIELD_LIMITS,
+  documentMaxLength,
+  isValidEmail,
+  sanitizeAddress,
+  sanitizeCompanyTaxId,
+  sanitizeDocument,
+  sanitizeEmail,
+  sanitizeMaxDistributors,
+  sanitizePersonName,
+  sanitizeText,
+  validateDocument,
+  validateMaxDistributors,
+  validatePhoneDigits,
+} from '@/utils/fieldRules'
+import type { DocumentType } from '@/utils/fieldRules'
 import type { CreateEmpresaPayload, CreateEmpresaResult } from '../types'
 
 interface Props {
@@ -55,8 +71,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const localError = shallowRef('')
 const fieldErrors = reactive<Record<string, string>>({})
 const submitted = ref(false)
-const copiedPassword = ref(false)
-const copyError = ref('')
+const touched = reactive<Record<string, boolean>>({})
 const adminEmailModel = computed({
   get: () => form.admin_email,
   set: (value: string) => {
@@ -75,8 +90,6 @@ const phoneDefaultCountry = computed(() =>
   form.moneda_iso === 'VES' || form.zona_horaria === 'America/Caracas' ? 'VE' : 'PE',
 )
 
-const emailIsValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)
-
 const getNationalPhoneDigits = (value: string) => {
   const digits = value.replace(/\D/g, '')
   const matchingCountry = [...countries]
@@ -86,6 +99,56 @@ const getNationalPhoneDigits = (value: string) => {
   return matchingCountry ? digits.slice(matchingCountry.prefijo.length - 1) : digits
 }
 
+const normalizeFieldValue = (field: string, value: string): string => {
+  switch (field) {
+    case 'nombre':
+    case 'nombre_comercial':
+    case 'admin_nombre':
+    case 'admin_apellido':
+      return sanitizePersonName(value)
+    case 'ruc_nit':
+      return sanitizeCompanyTaxId(value)
+    case 'email_contacto':
+    case 'admin_email':
+      return sanitizeEmail(value)
+    case 'max_distribuidores':
+      return sanitizeMaxDistributors(value)
+    case 'admin_numero_documento':
+      return sanitizeDocument(value, form.admin_tipo_documento as DocumentType)
+    case 'admin_direccion':
+      return sanitizeAddress(value)
+    default:
+      return sanitizeText(value, 255)
+  }
+}
+
+const isOptionalPhoneInvalid = (value: string) => {
+  if (!value) return false
+  const iso = [...countries]
+    .filter((country) => value.startsWith(country.prefijo))
+    .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]?.iso
+    ?? phoneDefaultCountry.value
+  return Boolean(validatePhoneDigits(getNationalPhoneDigits(value), iso))
+}
+
+const canCreate = computed(() => {
+  const validRequiredText = (value: string) => Boolean(value.trim()) && value.length <= FIELD_LIMITS.personName
+  return validRequiredText(form.nombre)
+    && form.nombre.trim().length >= 3
+    && validRequiredText(form.admin_nombre)
+    && validRequiredText(form.admin_apellido)
+    && isValidEmail(form.admin_email)
+    && !isOptionalPhoneInvalid(form.admin_telefono)
+    && Boolean(form.admin_telefono)
+    && !isOptionalPhoneInvalid(form.telefono_contacto)
+    && (!form.email_contacto || isValidEmail(form.email_contacto))
+    && (!form.ruc_nit || /^[A-Za-z0-9-]{1,20}$/.test(form.ruc_nit))
+    && !validateMaxDistributors(form.max_distribuidores)
+    && Boolean(form.admin_numero_documento)
+    && !validateDocument(form.admin_numero_documento, form.admin_tipo_documento as DocumentType)
+    && !Object.keys(fieldErrors).length
+})
+
 const validateField = (field: string) => {
   const value = String(form[field as keyof typeof form] ?? '').trim()
   let message = ''
@@ -93,37 +156,42 @@ const validateField = (field: string) => {
   switch (field) {
     case 'nombre':
       if (value.length < 3) message = 'El nombre debe tener al menos 3 caracteres.'
+      else if (value.length > FIELD_LIMITS.personName) message = 'El nombre no puede superar 100 caracteres.'
       break
     case 'ruc_nit':
       if (value && !/^[A-Za-z0-9-]{1,20}$/.test(value)) message = 'Usa solo letras, números o guiones (máximo 20 caracteres).'
       break
     case 'email_contacto':
-      if (value && !emailIsValid(value)) message = 'Escribe un correo electrónico válido.'
+      if (value && !isValidEmail(value)) message = 'Escribe un correo electrónico válido de hasta 180 caracteres.'
       break
     case 'telefono_contacto':
     case 'admin_telefono': {
       const phoneDigits = getNationalPhoneDigits(value)
+      const countryIso = [...countries]
+        .filter((country) => value.startsWith(country.prefijo))
+        .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]?.iso
+        ?? phoneDefaultCountry.value
       if (field === 'admin_telefono' && !value) {
         message = 'El teléfono del administrador es obligatorio.'
-      } else if (value && (phoneDigits.length < 6 || phoneDigits.length > 12)) {
-        message = 'El teléfono debe tener entre 6 y 12 dígitos.'
+      } else if (value) {
+        message = validatePhoneDigits(phoneDigits, countryIso)
       }
       break
     }
     case 'max_distribuidores':
-      if (value && (!/^\d+$/.test(value) || Number(value) < 1 || !Number.isSafeInteger(Number(value)))) {
-        message = 'Ingresa un entero positivo o deja el campo vacío para indicar sin límite.'
-      }
+      message = validateMaxDistributors(value)
       break
     case 'admin_nombre':
       if (!value) message = 'El nombre del administrador es obligatorio.'
+      else if (value.length > FIELD_LIMITS.personName) message = 'El nombre no puede superar 100 caracteres.'
       break
     case 'admin_apellido':
       if (!value) message = 'El apellido del administrador es obligatorio.'
+      else if (value.length > FIELD_LIMITS.personName) message = 'El apellido no puede superar 100 caracteres.'
       break
     case 'admin_email':
       if (!value) message = 'El correo del administrador es obligatorio.'
-      else if (!emailIsValid(value)) message = 'Escribe un correo electrónico válido.'
+      else if (!isValidEmail(value)) message = 'Escribe un correo electrónico válido de hasta 180 caracteres.'
       break
     case 'admin_tipo_documento':
       if (!value) message = 'Selecciona un tipo de documento.'
@@ -131,13 +199,7 @@ const validateField = (field: string) => {
     case 'admin_numero_documento':
       if (!value) {
         message = 'El número de documento es obligatorio.'
-      } else if (form.admin_tipo_documento === 'dni' && !/^\d{8}$/.test(value)) {
-        message = 'El DNI debe tener exactamente 8 dígitos.'
-      } else if (form.admin_tipo_documento === 'cedula' && !/^\d{6,10}$/.test(value)) {
-        message = 'La cédula debe tener entre 6 y 10 dígitos.'
-      } else if (form.admin_tipo_documento !== 'dni' && form.admin_tipo_documento !== 'cedula' && !/^[A-Za-z0-9]{5,20}$/.test(value)) {
-        message = 'Usa entre 5 y 20 letras o números.'
-      }
+      } else message = validateDocument(value, form.admin_tipo_documento as DocumentType)
       break
   }
 
@@ -190,12 +252,44 @@ watch(
   { deep: true, immediate: true },
 )
 
-const handleFieldInput = (field: string) => {
+const handleFieldInput = (field: string, event?: Event) => {
+  if (event?.target instanceof HTMLInputElement || event?.target instanceof HTMLTextAreaElement) {
+    const target = event.target
+    const cleanValue = normalizeFieldValue(field, target.value)
+    if (target.value !== cleanValue) target.value = cleanValue
+    form[field as keyof typeof form] = cleanValue
+  }
   delete fieldErrors[field]
   if (submitted.value) validateField(field)
 }
 
+const handleDocumentTypeChange = () => {
+  form.admin_numero_documento = sanitizeDocument(
+    form.admin_numero_documento,
+    form.admin_tipo_documento as DocumentType,
+  )
+  handleFieldInput('admin_numero_documento')
+  validateField('admin_tipo_documento')
+  if (submitted.value || touched.admin_numero_documento) validateField('admin_numero_documento')
+}
+
+
 const fieldError = (field: string) => fieldErrors[field] ?? ''
+
+const summaryValue = (field: string, value: string, fallback: string): string => {
+  if (field === 'nombre' && value.trim().length < 3) return 'Completa el nombre de la empresa'
+  if (field === 'admin_nombre' || field === 'admin_apellido') {
+    if (!value.trim()) return 'Completa los datos del administrador'
+  }
+  if ((field === 'email_contacto' || field === 'admin_email') && value && !isValidEmail(value)) {
+    return 'Revisa el correo'
+  }
+  if (field === 'admin_numero_documento' && value
+    && validateDocument(value, form.admin_tipo_documento as DocumentType)) return 'Revisa el documento'
+  if (field === 'ruc_nit' && value && !/^[A-Za-z0-9-]{1,20}$/.test(value)) return 'Revisa el RUC / NIT'
+  if (field === 'max_distribuidores' && value && validateMaxDistributors(value)) return 'Revisa el límite'
+  return value || fallback
+}
 
 const focusFirstInvalidField = async () => {
   await nextTick()
@@ -232,9 +326,8 @@ const resetForm = () => {
   form.admin_numero_documento = ''
   form.admin_direccion = ''
   for (const field of Object.keys(fieldErrors)) delete fieldErrors[field]
+  for (const field of Object.keys(touched)) delete touched[field]
   submitted.value = false
-  copiedPassword.value = false
-  copyError.value = ''
   revokeLogoPreview()
   logo.value = null
   if (fileInputRef.value) {
@@ -388,18 +481,6 @@ const handleSubmit = async () => {
   emit('submit', payload)
 }
 
-const copyTemporaryPassword = async () => {
-  const password = props.successResult?.primer_admin.password_temporal
-  if (!password) return
-
-  try {
-    await navigator.clipboard.writeText(password)
-    copiedPassword.value = true
-    copyError.value = ''
-  } catch {
-    copyError.value = 'No se pudo copiar automáticamente. Selecciona la contraseña para copiarla.'
-  }
-}
 </script>
 
 <template>
@@ -415,13 +496,7 @@ const copyTemporaryPassword = async () => {
         <div class="success-mark" aria-hidden="true">✓</div>
         <h3>Empresa creada correctamente</h3>
         <p>{{ successResult.empresa.nombre }} ya está registrada.</p>
-        <template v-if="successResult.primer_admin.password_temporal">
-          <p class="success-password-label">Contraseña temporal de {{ successResult.primer_admin.email }}</p>
-          <code class="temporary-password">{{ successResult.primer_admin.password_temporal }}</code>
-          <p class="password-warning">Guárdala ahora, no se volverá a mostrar.</p>
-          <p v-if="copyError" class="field-error" role="alert">{{ copyError }}</p>
-        </template>
-        <p v-else class="success-note">No se generó una contraseña temporal para esta cuenta.</p>
+        <p class="success-note">El acceso inicial se mostró en el diálogo de credenciales.</p>
       </section>
 
       <template v-else>
@@ -441,19 +516,19 @@ const copyTemporaryPassword = async () => {
             <div class="form-grid form-grid-two">
               <div class="form-group form-group-full">
                 <label class="form-label" for="empresa-nombre">Nombre <span class="required-mark">*</span></label>
-                <input id="empresa-nombre" v-model="form.nombre" class="form-input" :class="{ 'is-invalid': fieldError('nombre') }" type="text" placeholder="Innovex Peru" required aria-required="true" :aria-invalid="Boolean(fieldError('nombre'))" :aria-describedby="fieldError('nombre') ? 'empresa-nombre-error' : undefined" @input="handleFieldInput('nombre')" @blur="validateField('nombre')" />
+                <input id="empresa-nombre" v-model="form.nombre" class="form-input" :class="{ 'is-invalid': fieldError('nombre') }" type="text" maxlength="100" autocomplete="organization" placeholder="Innovex Peru" required aria-required="true" :aria-invalid="Boolean(fieldError('nombre'))" :aria-describedby="fieldError('nombre') ? 'empresa-nombre-error' : undefined" @input="handleFieldInput('nombre', $event)" @blur="touched.nombre = true; validateField('nombre')" />
                 <p v-if="fieldError('nombre')" id="empresa-nombre-error" class="field-error">{{ fieldError('nombre') }}</p>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="empresa-nombre-comercial">Nombre comercial</label>
-                <input id="empresa-nombre-comercial" v-model="form.nombre_comercial" class="form-input" :class="{ 'is-invalid': fieldError('nombre_comercial') }" type="text" placeholder="Innovex" :aria-invalid="Boolean(fieldError('nombre_comercial'))" :aria-describedby="fieldError('nombre_comercial') ? 'empresa-nombre-comercial-error' : undefined" @input="handleFieldInput('nombre_comercial')" />
+                <input id="empresa-nombre-comercial" v-model="form.nombre_comercial" class="form-input" :class="{ 'is-invalid': fieldError('nombre_comercial') }" type="text" maxlength="100" autocomplete="organization" placeholder="Innovex" :aria-invalid="Boolean(fieldError('nombre_comercial'))" :aria-describedby="fieldError('nombre_comercial') ? 'empresa-nombre-comercial-error' : undefined" @input="handleFieldInput('nombre_comercial', $event)" />
                 <p v-if="fieldError('nombre_comercial')" id="empresa-nombre-comercial-error" class="field-error">{{ fieldError('nombre_comercial') }}</p>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="empresa-ruc">RUC / NIT</label>
-                <input id="empresa-ruc" v-model="form.ruc_nit" class="form-input" :class="{ 'is-invalid': fieldError('ruc_nit') }" type="text" maxlength="20" placeholder="20123456789 o J-12345678-9" :aria-invalid="Boolean(fieldError('ruc_nit'))" :aria-describedby="fieldError('ruc_nit') ? 'empresa-ruc-error' : undefined" @input="handleFieldInput('ruc_nit')" @blur="validateField('ruc_nit')" />
+                <input id="empresa-ruc" v-model="form.ruc_nit" class="form-input" :class="{ 'is-invalid': fieldError('ruc_nit') }" type="text" maxlength="20" autocomplete="off" placeholder="20123456789 o J-12345678-9" :aria-invalid="Boolean(fieldError('ruc_nit'))" :aria-describedby="fieldError('ruc_nit') ? 'empresa-ruc-error' : undefined" @input="handleFieldInput('ruc_nit', $event)" @blur="touched.ruc_nit = true; validateField('ruc_nit')" />
                 <p v-if="fieldError('ruc_nit')" id="empresa-ruc-error" class="field-error">{{ fieldError('ruc_nit') }}</p>
               </div>
 
@@ -504,7 +579,7 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group">
                 <label class="form-label" for="empresa-email">Email de contacto</label>
-                <input id="empresa-email" v-model="form.email_contacto" class="form-input" :class="{ 'is-invalid': fieldError('email_contacto') }" type="email" placeholder="operaciones@innovex.com" :aria-invalid="Boolean(fieldError('email_contacto'))" :aria-describedby="fieldError('email_contacto') ? 'empresa-email-error' : undefined" @input="handleFieldInput('email_contacto')" @blur="validateField('email_contacto')" />
+                <input id="empresa-email" v-model="form.email_contacto" class="form-input" :class="{ 'is-invalid': fieldError('email_contacto') }" type="email" maxlength="180" autocomplete="email" placeholder="operaciones@innovex.com" :aria-invalid="Boolean(fieldError('email_contacto'))" :aria-describedby="fieldError('email_contacto') ? 'empresa-email-error' : undefined" @input="handleFieldInput('email_contacto', $event)" @blur="touched.email_contacto = true; validateField('email_contacto')" />
                 <p v-if="fieldError('email_contacto')" id="empresa-email-error" class="field-error">{{ fieldError('email_contacto') }}</p>
               </div>
 
@@ -527,6 +602,7 @@ const copyTemporaryPassword = async () => {
                   <option value="PEN">PEN</option>
                   <option value="COP">COP</option>
                   <option value="MXN">MXN</option>
+                  <option value="CLP">CLP</option>
                   <option value="VES">VES - Bolívar (Bs.)</option>
                 </select>
                 <p v-if="fieldError('moneda_iso')" id="empresa-moneda-error" class="field-error">{{ fieldError('moneda_iso') }}</p>
@@ -545,7 +621,7 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group form-group-full">
                 <label class="form-label" for="empresa-max-distribuidores">Máx. distribuidores</label>
-                <input id="empresa-max-distribuidores" v-model="form.max_distribuidores" class="form-input" :class="{ 'is-invalid': fieldError('max_distribuidores') }" inputmode="numeric" type="text" placeholder="Sin límite" :aria-invalid="Boolean(fieldError('max_distribuidores'))" :aria-describedby="fieldError('max_distribuidores') ? 'empresa-max-error' : undefined" @input="handleFieldInput('max_distribuidores')" @blur="validateField('max_distribuidores')" />
+                <input id="empresa-max-distribuidores" v-model="form.max_distribuidores" class="form-input" :class="{ 'is-invalid': fieldError('max_distribuidores') }" inputmode="numeric" type="text" maxlength="6" placeholder="Sin límite" :aria-invalid="Boolean(fieldError('max_distribuidores'))" :aria-describedby="fieldError('max_distribuidores') ? 'empresa-max-error' : undefined" @input="handleFieldInput('max_distribuidores', $event)" @blur="touched.max_distribuidores = true; validateField('max_distribuidores')" />
                 <p v-if="fieldError('max_distribuidores')" id="empresa-max-error" class="field-error">{{ fieldError('max_distribuidores') }}</p>
               </div>
             </div>
@@ -587,19 +663,19 @@ const copyTemporaryPassword = async () => {
             <div class="form-grid form-grid-two">
               <div class="form-group">
                 <label class="form-label" for="admin-nombre">Nombre <span class="required-mark">*</span></label>
-                <input id="admin-nombre" v-model="form.admin_nombre" class="form-input" :class="{ 'is-invalid': fieldError('admin_nombre') }" type="text" placeholder="Ana" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_nombre'))" :aria-describedby="fieldError('admin_nombre') ? 'admin-nombre-error' : undefined" @input="handleFieldInput('admin_nombre')" @blur="validateField('admin_nombre')" />
+                <input id="admin-nombre" v-model="form.admin_nombre" class="form-input" :class="{ 'is-invalid': fieldError('admin_nombre') }" type="text" maxlength="100" autocomplete="given-name" placeholder="Ana" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_nombre'))" :aria-describedby="fieldError('admin_nombre') ? 'admin-nombre-error' : undefined" @input="handleFieldInput('admin_nombre', $event)" @blur="touched.admin_nombre = true; validateField('admin_nombre')" />
                 <p v-if="fieldError('admin_nombre')" id="admin-nombre-error" class="field-error">{{ fieldError('admin_nombre') }}</p>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="admin-apellido">Apellido <span class="required-mark">*</span></label>
-                <input id="admin-apellido" v-model="form.admin_apellido" class="form-input" :class="{ 'is-invalid': fieldError('admin_apellido') }" type="text" placeholder="Quispe" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_apellido'))" :aria-describedby="fieldError('admin_apellido') ? 'admin-apellido-error' : undefined" @input="handleFieldInput('admin_apellido')" @blur="validateField('admin_apellido')" />
+                <input id="admin-apellido" v-model="form.admin_apellido" class="form-input" :class="{ 'is-invalid': fieldError('admin_apellido') }" type="text" maxlength="100" autocomplete="family-name" placeholder="Quispe" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_apellido'))" :aria-describedby="fieldError('admin_apellido') ? 'admin-apellido-error' : undefined" @input="handleFieldInput('admin_apellido', $event)" @blur="touched.admin_apellido = true; validateField('admin_apellido')" />
                 <p v-if="fieldError('admin_apellido')" id="admin-apellido-error" class="field-error">{{ fieldError('admin_apellido') }}</p>
               </div>
 
               <div class="form-group form-group-full">
                 <label class="form-label" for="admin-email">Correo de acceso <span class="required-mark">*</span></label>
-                <input id="admin-email" v-model="adminEmailModel" class="form-input" :class="{ 'is-invalid': fieldError('admin_email') }" type="email" placeholder="admin.empresa@innovex.com" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_email'))" :aria-describedby="fieldError('admin_email') ? 'admin-email-error' : undefined" @input="handleFieldInput('admin_email')" @blur="validateField('admin_email')" />
+                <input id="admin-email" v-model="adminEmailModel" class="form-input" :class="{ 'is-invalid': fieldError('admin_email') }" type="email" maxlength="180" autocomplete="email" placeholder="admin.empresa@innovex.com" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_email'))" :aria-describedby="fieldError('admin_email') ? 'admin-email-error' : undefined" @input="handleFieldInput('admin_email', $event)" @blur="touched.admin_email = true; validateField('admin_email')" />
                 <p v-if="fieldError('admin_email')" id="admin-email-error" class="field-error">{{ fieldError('admin_email') }}</p>
               </div>
 
@@ -611,7 +687,7 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group">
                 <label class="form-label" for="admin-tipo-documento">Tipo de documento <span class="required-mark">*</span></label>
-                <select id="admin-tipo-documento" v-model="form.admin_tipo_documento" class="form-input form-select" :class="{ 'is-invalid': fieldError('admin_tipo_documento') }" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_tipo_documento'))" :aria-describedby="fieldError('admin_tipo_documento') ? 'admin-tipo-error' : undefined" @change="handleFieldInput('admin_numero_documento'); validateField('admin_tipo_documento'); validateField('admin_numero_documento')" @blur="validateField('admin_tipo_documento')">
+                <select id="admin-tipo-documento" v-model="form.admin_tipo_documento" class="form-input form-select" :class="{ 'is-invalid': fieldError('admin_tipo_documento') }" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_tipo_documento'))" :aria-describedby="fieldError('admin_tipo_documento') ? 'admin-tipo-error' : undefined" @change="handleDocumentTypeChange" @blur="validateField('admin_tipo_documento')">
                   <option value="dni">DNI</option>
                   <option value="cedula">Cédula</option>
                   <option value="pasaporte">Pasaporte</option>
@@ -623,13 +699,14 @@ const copyTemporaryPassword = async () => {
 
               <div class="form-group">
                 <label class="form-label" for="admin-numero-documento">Número de documento <span class="required-mark">*</span></label>
-                <input id="admin-numero-documento" v-model="form.admin_numero_documento" class="form-input" :class="{ 'is-invalid': fieldError('admin_numero_documento') }" type="text" placeholder="76543210" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_numero_documento'))" :aria-describedby="fieldError('admin_numero_documento') ? 'admin-documento-error' : undefined" @input="handleFieldInput('admin_numero_documento')" @blur="validateField('admin_numero_documento')" />
+                <input id="admin-numero-documento" v-model="form.admin_numero_documento" class="form-input" :class="{ 'is-invalid': fieldError('admin_numero_documento') }" type="text" :inputmode="['dni', 'cedula', 'ruc'].includes(form.admin_tipo_documento) ? 'numeric' : 'text'" :maxlength="documentMaxLength(form.admin_tipo_documento as DocumentType)" :autocapitalize="['pasaporte', 'otro'].includes(form.admin_tipo_documento) ? 'characters' : 'off'" autocomplete="off" placeholder="Número de documento" required aria-required="true" :aria-invalid="Boolean(fieldError('admin_numero_documento'))" :aria-describedby="fieldError('admin_numero_documento') ? 'admin-documento-error' : undefined" @input="handleFieldInput('admin_numero_documento', $event)" @blur="touched.admin_numero_documento = true; validateField('admin_numero_documento')" />
                 <p v-if="fieldError('admin_numero_documento')" id="admin-documento-error" class="field-error">{{ fieldError('admin_numero_documento') }}</p>
+                <p v-if="touched.admin_numero_documento && ['dni', 'ruc'].includes(form.admin_tipo_documento)" class="field-hint">{{ form.admin_numero_documento.length }}/{{ documentMaxLength(form.admin_tipo_documento as DocumentType) }}</p>
               </div>
 
               <div class="form-group form-group-full">
                 <label class="form-label" for="admin-direccion">Dirección</label>
-                <input id="admin-direccion" v-model="form.admin_direccion" class="form-input" :class="{ 'is-invalid': fieldError('admin_direccion') }" type="text" placeholder="Av. Principal 123" :aria-invalid="Boolean(fieldError('admin_direccion'))" :aria-describedby="fieldError('admin_direccion') ? 'admin-direccion-error' : undefined" @input="handleFieldInput('admin_direccion')" />
+                <input id="admin-direccion" v-model="form.admin_direccion" class="form-input" :class="{ 'is-invalid': fieldError('admin_direccion') }" type="text" maxlength="255" autocomplete="street-address" placeholder="Av. Principal 123" :aria-invalid="Boolean(fieldError('admin_direccion'))" :aria-describedby="fieldError('admin_direccion') ? 'admin-direccion-error' : undefined" @input="handleFieldInput('admin_direccion', $event)" />
                 <p v-if="fieldError('admin_direccion')" id="admin-direccion-error" class="field-error">{{ fieldError('admin_direccion') }}</p>
               </div>
             </div>
@@ -647,29 +724,29 @@ const copyTemporaryPassword = async () => {
               <img :src="logoPreviewUrl" alt="Logo thumbnail" />
             </div>
             <div>
-              <p class="summary-name">{{ form.nombre.trim() || 'Nueva empresa' }}</p>
-              <p class="summary-muted">{{ form.nombre_comercial || 'Sin nombre comercial' }}</p>
-              <p class="summary-muted">RUC / NIT: {{ form.ruc_nit || 'No definido' }}</p>
+              <p class="summary-name">{{ summaryValue('nombre', form.nombre, 'Nueva empresa') }}</p>
+              <p class="summary-muted">{{ summaryValue('nombre_comercial', form.nombre_comercial, 'Sin nombre comercial') }}</p>
+              <p class="summary-muted">RUC / NIT: {{ summaryValue('ruc_nit', form.ruc_nit, 'No definido') }}</p>
             </div>
           </div>
 
           <div class="summary-list">
             <p>Plan: {{ form.plan_saas }}</p>
             <p>{{ planDescription }}</p>
-            <p>Moneda: {{ form.moneda_iso }} · {{ formatCurrency(0, form.moneda_iso) }}</p>
+            <p>Moneda: {{ fieldError('moneda_iso') ? 'Revisa la moneda seleccionada' : `${form.moneda_iso} · ${formatCurrency(0, form.moneda_iso)}` }}</p>
             <p>Zona horaria: {{ form.zona_horaria }}</p>
-            <p>Email: {{ form.email_contacto || 'No definido' }}</p>
-            <p>Teléfono: {{ form.telefono_contacto || 'No definido' }}</p>
+            <p>Email: {{ summaryValue('email_contacto', form.email_contacto, 'No definido') }}</p>
+            <p>Teléfono: {{ form.telefono_contacto && isOptionalPhoneInvalid(form.telefono_contacto) ? 'Revisa el teléfono' : form.telefono_contacto || 'No definido' }}</p>
             <p>Sitio web: {{ form.sitio_web || 'No definido' }}</p>
-            <p>Máx. distribuidores: {{ form.max_distribuidores || 'Sin límite' }}</p>
+            <p>Máx. distribuidores: {{ summaryValue('max_distribuidores', form.max_distribuidores, 'Sin límite') }}</p>
             <p>Paleta: {{ form.color_primario }} · {{ form.color_secundario }}</p>
           </div>
 
           <div class="summary-block summary-block-admin">
-            <p class="summary-name">{{ [form.admin_nombre.trim(), form.admin_apellido.trim()].filter(Boolean).join(' ') || 'Primer administrador pendiente' }}</p>
-            <p class="summary-muted">{{ form.admin_email.trim() || 'Sin correo de acceso' }}</p>
-            <p class="summary-muted">Teléfono: {{ form.admin_telefono || 'No definido' }}</p>
-            <p class="summary-muted">Documento: {{ form.admin_tipo_documento }} · {{ form.admin_numero_documento || 'No definido' }}</p>
+            <p class="summary-name">{{ form.admin_nombre.trim() && form.admin_apellido.trim() ? `${form.admin_nombre.trim()} ${form.admin_apellido.trim()}` : 'Completa los datos del administrador' }}</p>
+            <p class="summary-muted">{{ summaryValue('admin_email', form.admin_email, 'Sin correo de acceso') }}</p>
+            <p class="summary-muted">Teléfono: {{ form.admin_telefono && isOptionalPhoneInvalid(form.admin_telefono) ? 'Revisa el teléfono' : form.admin_telefono || 'No definido' }}</p>
+            <p class="summary-muted">Documento: {{ form.admin_tipo_documento }} · {{ summaryValue('admin_numero_documento', form.admin_numero_documento, 'No definido') }}</p>
             <p class="summary-muted">Dirección: {{ form.admin_direccion || 'No definida' }}</p>
           </div>
 
@@ -685,13 +762,10 @@ const copyTemporaryPassword = async () => {
     <template #footer>
       <template v-if="successResult">
         <button type="button" class="btn-secondary" @click="emit('update:open', false)">Cerrar</button>
-        <button v-if="successResult.primer_admin.password_temporal" type="button" class="btn-primary" @click="copyTemporaryPassword">
-          {{ copiedPassword ? 'Copiada' : 'Copiar' }}
-        </button>
       </template>
       <template v-else>
         <button type="button" class="btn-secondary" :disabled="submitting" @click="emit('update:open', false)">Cancelar</button>
-        <button type="button" class="btn-primary" :disabled="submitting" @click="handleSubmit">
+        <button type="button" class="btn-primary" :disabled="submitting || !canCreate" @click="handleSubmit">
           <span v-if="submitting" class="button-spinner" aria-hidden="true" />
           {{ submitting ? 'Creando...' : 'Crear empresa' }}
         </button>

@@ -60,16 +60,23 @@ const extractValidationErrors = (error: unknown): Record<string, string> => {
     }
 
     const responseErrors = error.response.data?.errors
-    if (!responseErrors || typeof responseErrors !== 'object') {
-        return {}
-    }
-
-    return Object.fromEntries(
+    const fieldErrors = responseErrors && typeof responseErrors === 'object'
+        ? Object.fromEntries(
         Object.entries(responseErrors).flatMap(([field, messages]) => {
             const message = Array.isArray(messages) ? messages[0] : messages
             return typeof message === 'string' ? [[field, message]] : []
         }),
     )
+        : {}
+    const responseMessage = error.response.data?.message
+    if (
+        !Object.keys(fieldErrors).some((field) => ['moneda_iso', 'moneda', 'currency'].includes(field))
+        && typeof responseMessage === 'string'
+        && /moneda|currency/i.test(responseMessage)
+    ) {
+        fieldErrors.moneda_iso = responseMessage
+    }
+    return fieldErrors
 }
 
 export function useEmpresasApi() {
