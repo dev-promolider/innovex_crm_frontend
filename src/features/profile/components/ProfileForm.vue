@@ -4,6 +4,15 @@ import { RefreshCw, Save, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import AppButton from '@/components/shared/AppButton.vue'
 import PhoneInput from '@/components/shared/PhoneInput.vue'
+import { countries } from '@/utils/countries'
+import {
+  documentMaxLength,
+  sanitizeAddress,
+  sanitizeDocument,
+  sanitizePersonName,
+  validateDocument,
+  validatePhoneDigits,
+} from '@/utils/fieldRules'
 import type { ProfileDocumentType, UpdateUserProfilePayload, UserProfile } from '../types'
 
 const props = defineProps<{
@@ -58,15 +67,22 @@ const initials = computed(() => fullName.value
 
 const documentError = computed(() => {
   const number = form.numero_documento.trim()
-  if (!number) return ''
-
-  const valid = form.tipo_documento === 'dni'
-    ? /^\d{8}$/.test(number)
-    : form.tipo_documento === 'cedula'
-      ? /^\d{6,10}$/.test(number)
-      : /^[a-zA-Z0-9]{5,20}$/.test(number)
-
-  return valid ? '' : t(`profile.documentValidation.${form.tipo_documento}`)
+  if (!number) return 'El número de documento es obligatorio.'
+  return validateDocument(number, form.tipo_documento)
+})
+const phoneError = computed(() => {
+  if (!form.telefono) return 'Ingresa un teléfono.'
+  const country = form.telefono.startsWith('+')
+    ? [...countries]
+      .filter((item) => form.telefono.startsWith(item.prefijo))
+      .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]
+    : countries.find((item) => item.iso === 'PE')
+  if (!country) return 'Selecciona el país del teléfono.'
+  const digits = form.telefono.replace(/\D/g, '')
+  const nationalDigits = form.telefono.startsWith('+')
+    ? digits.slice(country.prefijo.replace(/\D/g, '').length)
+    : digits
+  return validatePhoneDigits(nationalDigits, country.iso)
 })
 
 const isDirty = computed(() => Object.keys(originalForm).some((key) => {
@@ -80,7 +96,7 @@ watch(
     form.nombre = profile.nombre ?? ''
     form.apellido = profile.apellido ?? ''
     form.tipo_documento = profile.tipo_documento
-    form.numero_documento = profile.numero_documento ?? ''
+    form.numero_documento = sanitizeDocument(profile.numero_documento ?? '', profile.tipo_documento)
     form.email = profile.email ?? ''
     form.telefono = profile.telefono ?? ''
     form.direccion = profile.direccion ?? ''
@@ -109,7 +125,7 @@ const discardChanges = () => {
 }
 
 const handleSubmit = () => {
-  if (!isDirty.value || documentError.value) return
+  if (!isDirty.value || documentError.value || phoneError.value) return
 
   emit('submit', {
     nombre: form.nombre.trim(),
@@ -120,6 +136,25 @@ const handleSubmit = () => {
     telefono: form.telefono.trim(),
     direccion: form.direccion?.trim() || null,
   })
+}
+
+const handlePersonNameInput = (field: 'nombre' | 'apellido', event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const cleanValue = sanitizePersonName(event.target.value)
+  event.target.value = cleanValue
+  form[field] = cleanValue
+}
+
+const handleDocumentTypeChange = () => {
+  form.numero_documento = sanitizeDocument(form.numero_documento, form.tipo_documento)
+  touched.numero_documento = true
+}
+
+const handleAddressInput = (event: Event) => {
+  if (!(event.target instanceof HTMLTextAreaElement)) return
+  const cleanValue = sanitizeAddress(event.target.value)
+  event.target.value = cleanValue
+  form.direccion = cleanValue
 }
 </script>
 
@@ -190,6 +225,7 @@ const handleSubmit = () => {
                 autocomplete="given-name"
                 required
                 :aria-invalid="Boolean(fieldError('nombre'))"
+                @input="handlePersonNameInput('nombre', $event)"
                 @blur="markTouched('nombre')"
               />
               <span v-if="fieldError('nombre')" class="field__error">{{ fieldError('nombre') }}</span>
@@ -205,6 +241,7 @@ const handleSubmit = () => {
                 autocomplete="family-name"
                 required
                 :aria-invalid="Boolean(fieldError('apellido'))"
+                @input="handlePersonNameInput('apellido', $event)"
                 @blur="markTouched('apellido')"
               />
               <span v-if="fieldError('apellido')" class="field__error">{{ fieldError('apellido') }}</span>
@@ -212,7 +249,7 @@ const handleSubmit = () => {
 
             <label class="field">
               <span class="field__label">{{ t('profile.fields.documentType') }}</span>
-              <select v-model="form.tipo_documento" class="field__control" @blur="markTouched('tipo_documento')">
+              <select v-model="form.tipo_documento" class="field__control" @change="handleDocumentTypeChange" @blur="markTouched('tipo_documento')">
                 <option v-for="option in documentOptions" :key="option.value" :value="option.value">
                   {{ t(option.labelKey) }}
                 </option>
@@ -226,14 +263,18 @@ const handleSubmit = () => {
                 v-model="form.numero_documento"
                 class="field__control"
                 type="text"
-                maxlength="20"
+                :maxlength="documentMaxLength(form.tipo_documento)"
+                :inputmode="['dni', 'cedula', 'ruc'].includes(form.tipo_documento) ? 'numeric' : 'text'"
+                :autocapitalize="['pasaporte', 'otro'].includes(form.tipo_documento) ? 'characters' : 'off'"
                 autocomplete="off"
                 required
                 :aria-invalid="Boolean(fieldError('numero_documento') || (touched.numero_documento && documentError))"
+                @input="form.numero_documento = sanitizeDocument(form.numero_documento, form.tipo_documento)"
                 @blur="markTouched('numero_documento')"
               />
               <span v-if="fieldError('numero_documento')" class="field__error">{{ fieldError('numero_documento') }}</span>
               <span v-else-if="touched.numero_documento && documentError" class="field__error">{{ documentError }}</span>
+              <span v-if="touched.numero_documento && (form.tipo_documento === 'dni' || form.tipo_documento === 'ruc')" class="field__counter">{{ form.numero_documento.length }}/{{ documentMaxLength(form.tipo_documento) }}</span>
             </label>
           </div>
         </fieldset>
@@ -260,9 +301,11 @@ const handleSubmit = () => {
                 v-model="form.telefono"
                 class="field__phone"
                 :required="true"
-                :invalid="Boolean(fieldError('telefono'))"
+                :invalid="Boolean(fieldError('telefono') || (touched.telefono && phoneError))"
+                @focusout="markTouched('telefono')"
               />
               <span v-if="fieldError('telefono')" class="field__error">{{ fieldError('telefono') }}</span>
+              <span v-else-if="touched.telefono && phoneError" class="field__error">{{ phoneError }}</span>
             </div>
 
             <label class="field field--wide">
@@ -273,6 +316,7 @@ const handleSubmit = () => {
                 rows="3"
                 maxlength="255"
                 autocomplete="street-address"
+                @input="handleAddressInput"
                 :placeholder="t('common.optional')"
               />
               <span v-if="fieldError('direccion')" class="field__error">{{ fieldError('direccion') }}</span>

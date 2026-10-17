@@ -6,6 +6,8 @@ import AppModal from '@/components/shared/AppModal.vue'
 import AppButton from '@/components/shared/AppButton.vue'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import { useWorkspaceConfiguracionApi } from '../composables/useWorkspaceConfiguracionApi'
+import type { AccessCredentials } from './CredencialesAccesoDialog.vue'
+import CredencialesAccesoDialog from './CredencialesAccesoDialog.vue'
 import type { UpdateWorkspaceProfilePayload, WorkspaceFounderRegistrationPayload } from '../types'
 import WorkspaceBankAccountsSectionV2 from './WorkspaceBankAccountsSectionV2.vue'
 import WorkspaceCompanySectionV2 from './WorkspaceCompanySectionV2.vue'
@@ -60,6 +62,7 @@ const {
   isFounderLoading,
   isFounderSaving,
   isFounderUsersLoading,
+  isFounderAccessResetting,
   errorMessage,
   successMessage,
   clearMessages,
@@ -68,6 +71,8 @@ const {
   fetchFounderConfig,
   searchFounderUsers,
   registerFounder,
+  resetFounderAccess,
+  clearFounderTemporaryCredentials,
   updateProfile,
   uploadLogoPreview,
   confirmLogo,
@@ -82,6 +87,9 @@ const financeHasUnsavedChanges = ref(false)
 const founderError = shallowRef('')
 const founderSuccess = shallowRef('')
 const founderFieldErrors = shallowRef<Record<string, string>>({})
+const founderResetConfirmation = shallowRef<{ usuarioId: number; personName: string; email: string } | null>(null)
+const accessCredentials = shallowRef<AccessCredentials | null>(null)
+const accessCredentialsDialogOpen = shallowRef(false)
 const isPageSurface = computed(() => props.surface === 'page')
 const isModalSurface = computed(() => props.surface === 'modal')
 const isCompactLayout = computed(() => isModalSurface.value)
@@ -202,7 +210,7 @@ const refreshFounder = async () => {
   try {
     await fetchFounderConfig()
   } catch {
-    founderError.value = founderErrorMessage.value || 'No pudimos cargar el fundador'
+    founderError.value = 'No pudimos cargar el fundador. Inténtalo nuevamente.'
   }
 }
 
@@ -268,17 +276,90 @@ const handleFounderSubmit = async (payload: WorkspaceFounderRegistrationPayload)
   founderSuccess.value = ''
   founderFieldErrors.value = {}
   try {
-    await registerFounder(payload)
+    const registration = await registerFounder(payload)
+    void refreshFounder()
     founderSuccess.value = 'Fundador registrado correctamente.'
     clearMessages()
+    showFounderRegistrationCredentials(payload, registration)
   } catch (error) {
+    const registration = founderRegistrationResult.value
+    if (payload.usuario_nuevo && registration?.credenciales_entrega?.password_temporal) {
+      showFounderRegistrationCredentials(payload, registration)
+      founderSuccess.value = 'Fundador registrado correctamente.'
+      return
+    }
+
     founderFieldErrors.value = getFounderFieldErrors(error)
     if (founderRegistrationResult.value) {
-      founderError.value = founderErrorMessage.value || 'No pudimos actualizar los datos del fundador. Reintenta la carga.'
+      founderError.value = 'El fundador se registró, pero no pudimos actualizar los datos. Inténtalo nuevamente.'
     } else {
-      founderError.value = founderErrorMessage.value || 'No pudimos registrar el fundador. Revisa los datos e inténtalo nuevamente.'
+      founderError.value = 'No pudimos registrar el fundador. Revisa los datos e inténtalo nuevamente.'
     }
   }
+}
+
+const showFounderRegistrationCredentials = (
+  payload: WorkspaceFounderRegistrationPayload,
+  registration: typeof founderRegistrationResult.value,
+) => {
+  const credentials = registration?.credenciales_entrega
+  if (!payload.usuario_nuevo || !registration || !credentials?.password_temporal) return
+
+  accessCredentials.value = {
+    personName: [registration.usuario.nombre, registration.usuario.apellido].filter(Boolean).join(' ') || 'Fundador',
+    companyName: profile.value?.nombre_visible || profile.value?.nombre || 'Empresa',
+    email: credentials.email || registration.usuario.email || '',
+    password: credentials.password_temporal,
+  }
+  clearFounderTemporaryCredentials()
+  accessCredentialsDialogOpen.value = true
+}
+
+const closeFounderResetConfirmation = () => {
+  if (!isFounderAccessResetting.value) {
+    founderResetConfirmation.value = null
+  }
+}
+
+const requestFounderAccessReset = (usuarioId: number) => {
+  const founder = founderConfig.value?.fundador ?? founderRegistrationResult.value
+  if (!founder || founder.usuario_id !== usuarioId) return
+
+  founderResetConfirmation.value = {
+    usuarioId,
+    personName: [founder.usuario.nombre, founder.usuario.apellido].filter(Boolean).join(' ') || 'Fundador',
+    email: founder.usuario.email ?? '',
+  }
+}
+
+const confirmFounderAccessReset = async () => {
+  const founder = founderResetConfirmation.value
+  if (!founder) return
+
+  try {
+    const result = await resetFounderAccess(founder.usuarioId)
+    if (!result.password_temporal) {
+      founderError.value = 'No pudimos generar las nuevas credenciales. Inténtalo nuevamente.'
+      founderResetConfirmation.value = null
+      return
+    }
+
+    accessCredentials.value = {
+      personName: founder.personName,
+      companyName: profile.value?.nombre_visible || profile.value?.nombre || 'Empresa',
+      email: founder.email,
+      password: result.password_temporal,
+    }
+    founderResetConfirmation.value = null
+    accessCredentialsDialogOpen.value = true
+  } catch {
+    founderError.value = 'No pudimos restablecer el acceso. Inténtalo nuevamente.'
+  }
+}
+
+const closeAccessCredentials = () => {
+  accessCredentialsDialogOpen.value = false
+  accessCredentials.value = null
 }
 
 watch(
@@ -419,12 +500,15 @@ void fetchProfile()
         :loading="isFounderLoading"
         :searching-users="isFounderUsersLoading"
         :saving="isFounderSaving"
+        :resetting-access="isFounderAccessResetting"
+        :can-reset-access="props.empresaId != null"
         :error-message="founderError"
         :field-errors="founderFieldErrors"
         :success-message="founderSuccess"
         @refresh="refreshFounder"
         @search-users="handleFounderSearch"
         @submit="handleFounderSubmit"
+        @reset-access="requestFounderAccessReset"
         @go-to-ranks="activeTab.value = 'red'"
         @clear-field-error="clearFounderFieldError"
       />
@@ -457,10 +541,59 @@ void fetchProfile()
       </p>
       </section>
     </div>
+
+    <AppModal
+      :open="founderResetConfirmation !== null"
+      size="sm"
+      title="Restablecer acceso"
+      @close="closeFounderResetConfirmation"
+    >
+      <p>Se generará una contraseña temporal nueva y la actual dejará de funcionar. ¿Continuar?</p>
+      <template #footer>
+        <AppButton
+          type="button"
+          variant="ghost"
+          :disabled="isFounderAccessResetting"
+          @click="closeFounderResetConfirmation"
+        >
+          Cancelar
+        </AppButton>
+        <AppButton
+          type="button"
+          variant="primary"
+          :disabled="isFounderAccessResetting"
+          @click="confirmFounderAccessReset"
+        >
+          <template #leading>
+            <span v-if="isFounderAccessResetting" class="config-v2__spinner" aria-hidden="true" />
+          </template>
+          {{ isFounderAccessResetting ? 'Restableciendo…' : 'Continuar' }}
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <CredencialesAccesoDialog
+      :open="accessCredentialsDialogOpen"
+      :credentials="accessCredentials"
+      @close="closeAccessCredentials"
+    />
   </component>
 </template>
 
 <style scoped>
+.config-v2__spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: config-v2-spin 0.7s linear infinite;
+}
+
+@keyframes config-v2-spin {
+  to { transform: rotate(360deg); }
+}
+
 .config-v2-page {
   width: 100%;
   max-width: 1280px;

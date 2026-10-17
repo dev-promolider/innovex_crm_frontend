@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { countries } from '@/utils/countries'
 import type { PhoneCountry } from '@/utils/countries'
+import { maxPhoneDigits, phoneDigitLengths, sanitizePhoneDigits } from '@/utils/fieldRules'
 
 interface Props {
   modelValue?: string
@@ -39,6 +40,7 @@ const phoneDigits = ref('')
 const isCountryMenuOpen = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
+const phoneMaxDigits = computed(() => maxPhoneDigits(selectedCountry.value.iso))
 
 const normalizeText = (value: string) => value
   .normalize('NFD')
@@ -56,7 +58,7 @@ const filteredCountries = computed(() => {
   )
 })
 
-const cleanPhoneDigits = (value: string) => value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 12)
+const cleanPhoneDigits = (value: string) => sanitizePhoneDigits(value, selectedCountry.value.iso)
 
 const countriesForPrefix = (digits: string) => countries
   .filter((country) => digits.startsWith(country.prefijo.slice(1)))
@@ -81,15 +83,21 @@ const updatePhoneDigits = (value: string, input?: HTMLInputElement) => {
 
 const applyPastedValue = (value: string, input: HTMLInputElement) => {
   const trimmedValue = value.trim()
-  if (trimmedValue.startsWith('+')) {
-    const allDigits = trimmedValue.replace(/\D/g, '')
-    const matchingCountry = countryForPrefix(allDigits)
-    if (matchingCountry) {
-      selectedCountry.value = matchingCountry
-      const nationalNumber = allDigits.slice(matchingCountry.prefijo.length - 1)
-      updatePhoneDigits(nationalNumber, input)
-      return
-    }
+  const allDigits = trimmedValue.replace(/\D/g, '')
+  const hasInternationalPrefix = trimmedValue.startsWith('+') || trimmedValue.startsWith('00')
+  const normalizedDigits = trimmedValue.startsWith('00') ? allDigits.slice(2) : allDigits
+  const prefixMatches = countriesForPrefix(normalizedDigits)
+  const matchingCountry = hasInternationalPrefix
+    ? countryForPrefix(normalizedDigits)
+    : prefixMatches.find((country) =>
+      phoneDigitLengths(country.iso).includes(normalizedDigits.length - country.prefijo.length + 1),
+    )
+
+  if (matchingCountry) {
+    selectedCountry.value = matchingCountry
+    const nationalNumber = normalizedDigits.slice(matchingCountry.prefijo.length - 1)
+    updatePhoneDigits(nationalNumber, input)
+    return
   }
 
   updatePhoneDigits(trimmedValue, input)
@@ -119,6 +127,8 @@ watch(() => props.modelValue, parseModelValue, { immediate: true })
 watch(() => props.defaultCountry, (iso) => {
   if (!props.modelValue.startsWith('+')) {
     selectedCountry.value = countries.find((country) => country.iso === iso) ?? selectedCountry.value
+    phoneDigits.value = cleanPhoneDigits(phoneDigits.value)
+    emitPhoneValue()
   }
 })
 
@@ -147,6 +157,7 @@ const toggleCountryMenu = () => {
 
 const selectCountry = (country: PhoneCountry) => {
   selectedCountry.value = country
+  phoneDigits.value = cleanPhoneDigits(phoneDigits.value)
   closeCountryMenu(true)
   emitPhoneValue()
 }
@@ -265,7 +276,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
       :aria-required="required"
       :aria-invalid="invalid"
       aria-label="Número de teléfono"
-      maxlength="12"
+      :maxlength="phoneMaxDigits"
       @input="updatePhoneDigits(($event.target as HTMLInputElement).value, $event.target as HTMLInputElement)"
       @paste="handlePaste"
     />

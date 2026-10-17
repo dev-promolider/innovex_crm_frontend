@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue'
 import { RefreshCw, Save } from 'lucide-vue-next'
 import AppButton from '@/components/shared/AppButton.vue'
 import type { UpdateWorkspaceProfilePayload, WorkspaceProfile } from '../types'
+import { sanitizePersonName, sanitizeText } from '@/utils/fieldRules'
 
 const props = defineProps<{
   profile: WorkspaceProfile | null
@@ -62,6 +63,7 @@ const statusOptions = [
 ] as const
 
 const handleSubmit = () => {
+    if (!form.nombre.trim() || form.nombre.length > 100 || (form.nombre_comercial?.length ?? 0) > 100) return
     emit('submit', {
       nombre: form.nombre.trim(),
       nombre_comercial: form.nombre_comercial?.trim() || null,
@@ -71,6 +73,15 @@ const handleSubmit = () => {
         ? form.mensaje_estado_operativo?.trim() || null
         : null,
     })
+}
+
+const handleTextLimit = (field: 'nombre' | 'nombre_comercial', event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = field === 'nombre'
+    ? sanitizePersonName(event.target.value)
+    : sanitizeText(event.target.value, 100)
+  event.target.value = value
+  form[field] = value
 }
 </script>
 
@@ -102,12 +113,12 @@ const handleSubmit = () => {
       <div class="workspace-form__grid">
         <label class="workspace-field">
           <span class="workspace-field__label">Nombre legal</span>
-          <input v-model="form.nombre" class="workspace-input" type="text" maxlength="100" required />
+          <input v-model="form.nombre" class="workspace-input" type="text" maxlength="100" autocomplete="organization" required @input="handleTextLimit('nombre', $event)" />
         </label>
 
         <label class="workspace-field">
           <span class="workspace-field__label">Nombre comercial</span>
-          <input v-model="form.nombre_comercial" class="workspace-input" type="text" maxlength="100" placeholder="Opcional" />
+          <input v-model="form.nombre_comercial" class="workspace-input" type="text" maxlength="100" autocomplete="organization" placeholder="Opcional" @input="handleTextLimit('nombre_comercial', $event)" />
         </label>
 
         <label class="workspace-field">
@@ -149,7 +160,7 @@ const handleSubmit = () => {
       </div>
 
       <div class="workspace-form__actions">
-        <AppButton type="submit" variant="primary" class="workspace-primary-btn" :disabled="saving">
+        <AppButton type="submit" variant="primary" class="workspace-primary-btn" :disabled="saving || !form.nombre.trim() || form.nombre.length > 100 || (form.nombre_comercial?.length ?? 0) > 100">
           <template #leading>
             <Save class="size-4" />
           </template>

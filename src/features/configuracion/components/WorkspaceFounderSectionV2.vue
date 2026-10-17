@@ -4,6 +4,19 @@ import { ArrowLeft, ArrowRight, Check, KeyRound, LockKeyhole, RefreshCw, Search,
 import AppButton from '@/components/shared/AppButton.vue'
 import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import PhoneInput from '@/components/shared/PhoneInput.vue'
+import { countries } from '@/utils/countries'
+import {
+  FIELD_LIMITS,
+  documentMaxLength,
+  isValidEmail,
+  sanitizeAddress,
+  sanitizeDocument,
+  sanitizeEmail,
+  sanitizePersonName,
+  validateDocument,
+  validatePhoneDigits,
+} from '@/utils/fieldRules'
+import type { DocumentType } from '@/utils/fieldRules'
 import type {
   WorkspaceCommissionRule,
   WorkspaceFounderConfiguration,
@@ -31,6 +44,8 @@ const props = defineProps<{
   loading: boolean
   searchingUsers: boolean
   saving: boolean
+  resettingAccess?: boolean
+  canResetAccess?: boolean
   errorMessage: string
   fieldErrors: Record<string, string>
   successMessage: string
@@ -40,6 +55,7 @@ const emit = defineEmits<{
   refresh: []
   searchUsers: [query: string]
   submit: [payload: WorkspaceFounderRegistrationPayload]
+  resetAccess: [usuarioId: number]
   goToRanks: []
   clearFieldError: [field: string]
 }>()
@@ -81,20 +97,20 @@ const selectedCandidate = computed(() => props.userCandidates.find((candidate) =
 const hasRanks = computed(() => availableRanks.value.length > 0)
 const fullNewUserName = computed(() => [newUser.nombre, newUser.apellido].map((part) => part?.trim()).filter(Boolean).join(' '))
 const documentNumberError = computed(() => {
-  const documentType = newUser.tipo_documento as ProfileDocumentType
+  const documentType = newUser.tipo_documento as DocumentType
   const number = (newUser.numero_documento ?? '').trim()
-  if (!number) return ''
-
-  const valid = documentType === 'dni'
-    ? /^\d{8}$/.test(number)
-    : documentType === 'cedula'
-      ? /^\d{6,10}$/.test(number)
-      : /^[a-zA-Z0-9]{5,20}$/.test(number)
-
-  if (valid) return ''
-  if (documentType === 'dni') return 'El DNI debe tener exactamente 8 dígitos.'
-  if (documentType === 'cedula') return 'La cédula debe tener de 6 a 10 dígitos.'
-  return 'El número debe tener de 5 a 20 caracteres alfanuméricos.'
+  if (!number) return touched['usuario_nuevo.numero_documento'] ? 'El documento es obligatorio.' : ''
+  return validateDocument(number, documentType)
+})
+const emailError = computed(() => newUser.email ? (isValidEmail(newUser.email) ? '' : 'Escribe un correo electrónico válido de hasta 180 caracteres.') : 'El correo es obligatorio.')
+const phoneError = computed(() => {
+  const value = newUser.telefono ?? ''
+  if (!value) return 'El teléfono es obligatorio.'
+  const country = [...countries]
+    .filter((item) => value.startsWith(item.prefijo))
+    .sort((first, second) => second.prefijo.length - first.prefijo.length)[0]
+  if (!country) return 'Selecciona el país del teléfono.'
+  return validatePhoneDigits(value.replace(/\D/g, '').slice(country.prefijo.replace(/\D/g, '').length), country.iso)
 })
 
 const fieldError = (field: string) => {
@@ -104,8 +120,10 @@ const fieldError = (field: string) => {
 const newUserIsValid = computed(() => (
   Boolean(newUser.nombre?.trim())
   && Boolean(newUser.apellido?.trim())
-  && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email?.trim() ?? '')
-  && Boolean(newUser.telefono?.trim())
+  && newUser.nombre.length <= FIELD_LIMITS.personName
+  && newUser.apellido.length <= FIELD_LIMITS.personName
+  && !emailError.value
+  && !phoneError.value
   && Boolean(newUser.numero_documento?.trim())
   && !documentNumberError.value
   && !Object.keys(props.fieldErrors).some((field) =>
@@ -122,7 +140,6 @@ const canSubmit = computed(() => Boolean(
   && selectedRank.value?.id
   && canContinueFromPerson.value,
 ))
-const deliveryCredentials = computed(() => props.registrationResult?.credenciales_entrega ?? null)
 const founderRecord = computed(() => props.founderConfig?.fundador ?? props.registrationResult ?? null)
 const founderRegistered = computed(() => founderRecord.value !== null)
 const founderName = computed(() => {
@@ -169,6 +186,44 @@ const goToPreviousStep = () => {
 
 const markTouched = (field: string) => {
   touched[field] = true
+}
+
+const sanitizeNewUserName = (field: 'nombre' | 'apellido', event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizePersonName(event.target.value)
+  event.target.value = value
+  newUser[field] = value
+}
+
+const handleDocumentTypeChange = () => {
+  newUser.numero_documento = sanitizeDocument(
+    newUser.numero_documento ?? '',
+    newUser.tipo_documento as DocumentType,
+  )
+  touched['usuario_nuevo.numero_documento'] = true
+  clearFieldError('usuario_nuevo.tipo_documento')
+}
+
+const handleDocumentInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeDocument(event.target.value, newUser.tipo_documento as DocumentType)
+  event.target.value = value
+  newUser.numero_documento = value
+}
+
+const handleEmailInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeEmail(event.target.value)
+  event.target.value = value
+  newUser.email = value
+  clearFieldError('usuario_nuevo.email')
+}
+
+const handleAddressInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeAddress(event.target.value)
+  event.target.value = value
+  newUser.direccion = value
 }
 
 const clearFieldError = (field: string) => emit('clearFieldError', field)
@@ -260,6 +315,20 @@ const handleSubmit = () => {
             <LockKeyhole class="size-4" />
             Solo puede existir un fundador por empresa
           </p>
+          <AppButton
+            v-if="canResetAccess && founderRecord?.usuario_id"
+            type="button"
+            variant="ghost"
+            size="sm"
+            :disabled="resettingAccess"
+            @click="emit('resetAccess', founderRecord.usuario_id)"
+          >
+            <template #leading>
+              <span v-if="resettingAccess" class="founder__spinner" aria-hidden="true" />
+              <KeyRound v-else class="size-4" />
+            </template>
+            {{ resettingAccess ? 'Restableciendo…' : 'Restablecer acceso' }}
+          </AppButton>
           <p v-if="registrationResult && !founderConfig.fundador" class="founder__help">
             El registro se completó; vuelve a cargar para sincronizar los datos.
           </p>
@@ -292,7 +361,7 @@ const handleSubmit = () => {
         <section class="founder__explanation">
           <div class="founder__explanation-icon"><UserRoundPlus class="size-5" /></div>
           <div>
-            <h4>Agrega el fundador de la empresa</h4>
+            <h4>Aún no hay fundador registrado</h4>
             <p>El fundador es el primer patrocinador de la red y no tiene patrocinador directo. Solo puede existir uno por empresa.</p>
           </div>
           <AppButton
@@ -378,17 +447,17 @@ const handleSubmit = () => {
             <div v-else class="founder__form-grid">
               <label class="founder__field">
                 <span>Nombre</span>
-                <input v-model="newUser.nombre" type="text" autocomplete="given-name" required @input="clearFieldError('usuario_nuevo.nombre')" @blur="markTouched('usuario_nuevo.nombre')" />
+                <input v-model="newUser.nombre" type="text" maxlength="100" autocomplete="given-name" required @input="sanitizeNewUserName('nombre', $event); clearFieldError('usuario_nuevo.nombre')" @blur="markTouched('usuario_nuevo.nombre')" />
                 <small v-if="fieldError('usuario_nuevo.nombre')" class="founder__field-error">{{ fieldError('usuario_nuevo.nombre') }}</small>
               </label>
               <label class="founder__field">
                 <span>Apellido</span>
-                <input v-model="newUser.apellido" type="text" autocomplete="family-name" required @input="clearFieldError('usuario_nuevo.apellido')" @blur="markTouched('usuario_nuevo.apellido')" />
+                <input v-model="newUser.apellido" type="text" maxlength="100" autocomplete="family-name" required @input="sanitizeNewUserName('apellido', $event); clearFieldError('usuario_nuevo.apellido')" @blur="markTouched('usuario_nuevo.apellido')" />
                 <small v-if="fieldError('usuario_nuevo.apellido')" class="founder__field-error">{{ fieldError('usuario_nuevo.apellido') }}</small>
               </label>
               <label class="founder__field">
                 <span>Tipo de documento</span>
-                <select v-model="newUser.tipo_documento" required @change="clearFieldError('usuario_nuevo.tipo_documento')">
+                <select v-model="newUser.tipo_documento" required @change="handleDocumentTypeChange">
                   <option v-for="option in documentTypes" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
                 <small v-if="fieldError('usuario_nuevo.tipo_documento')" class="founder__field-error">{{ fieldError('usuario_nuevo.tipo_documento') }}</small>
@@ -398,27 +467,33 @@ const handleSubmit = () => {
                 <input
                   v-model="newUser.numero_documento"
                   type="text"
+                  :inputmode="['dni', 'cedula', 'ruc'].includes(newUser.tipo_documento ?? '') ? 'numeric' : 'text'"
+                  :maxlength="documentMaxLength((newUser.tipo_documento ?? 'dni') as DocumentType)"
+                  :autocapitalize="['pasaporte', 'otro'].includes(newUser.tipo_documento ?? '') ? 'characters' : 'off'"
                   autocomplete="off"
                   required
                   :aria-invalid="Boolean(fieldError('usuario_nuevo.numero_documento') || (touched['usuario_nuevo.numero_documento'] && documentNumberError))"
-                  @input="clearFieldError('usuario_nuevo.numero_documento')"
+                  @input="handleDocumentInput($event); clearFieldError('usuario_nuevo.numero_documento')"
                   @blur="markTouched('usuario_nuevo.numero_documento')"
                 />
                 <small v-if="fieldError('usuario_nuevo.numero_documento')" class="founder__field-error">{{ fieldError('usuario_nuevo.numero_documento') }}</small>
                 <small v-else-if="touched['usuario_nuevo.numero_documento'] && documentNumberError" class="founder__field-error">{{ documentNumberError }}</small>
+                <small v-if="touched['usuario_nuevo.numero_documento'] && ['dni', 'ruc'].includes(newUser.tipo_documento ?? '')" class="founder__help">{{ newUser.numero_documento?.length ?? 0 }}/{{ documentMaxLength((newUser.tipo_documento ?? 'dni') as DocumentType) }}</small>
               </label>
               <label class="founder__field founder__field--wide">
                 <span>Correo</span>
                 <input
                   v-model="newUser.email"
                   type="email"
+                  maxlength="180"
                   autocomplete="email"
                   required
                   :aria-invalid="Boolean(fieldError('usuario_nuevo.email'))"
-                  @input="clearFieldError('usuario_nuevo.email')"
+                  @input="handleEmailInput($event)"
                   @blur="markTouched('usuario_nuevo.email')"
                 />
                 <small v-if="fieldError('usuario_nuevo.email')" class="founder__field-error">{{ fieldError('usuario_nuevo.email') }}</small>
+                <small v-else-if="touched['usuario_nuevo.email'] && emailError" class="founder__field-error">{{ emailError }}</small>
               </label>
               <div class="founder__field founder__field--wide">
                 <label for="founder-phone">Teléfono</label>
@@ -426,14 +501,16 @@ const handleSubmit = () => {
                   id="founder-phone"
                   :model-value="newUser.telefono ?? ''"
                   :required="true"
-                  :invalid="Boolean(fieldError('usuario_nuevo.telefono'))"
+                  :invalid="Boolean(fieldError('usuario_nuevo.telefono') || (touched['usuario_nuevo.telefono'] && phoneError))"
                   @update:model-value="newUser.telefono = $event; clearFieldError('usuario_nuevo.telefono')"
+                  @focusout="markTouched('usuario_nuevo.telefono')"
                 />
                 <small v-if="fieldError('usuario_nuevo.telefono')" class="founder__field-error">{{ fieldError('usuario_nuevo.telefono') }}</small>
+                <small v-else-if="touched['usuario_nuevo.telefono'] && phoneError" class="founder__field-error">{{ phoneError }}</small>
               </div>
               <label class="founder__field founder__field--wide">
                 <span>Dirección <small>(opcional)</small></span>
-                <input v-model="newUser.direccion" type="text" autocomplete="street-address" @input="clearFieldError('usuario_nuevo.direccion')" />
+                <input v-model="newUser.direccion" type="text" maxlength="255" autocomplete="street-address" @input="handleAddressInput($event); clearFieldError('usuario_nuevo.direccion')" />
                 <small v-if="fieldError('usuario_nuevo.direccion')" class="founder__field-error">{{ fieldError('usuario_nuevo.direccion') }}</small>
               </label>
               <label class="founder__field founder__field--wide">
@@ -474,15 +551,15 @@ const handleSubmit = () => {
             <dl class="founder__review">
               <div>
                 <dt>Persona</dt>
-                <dd>{{ userMode === 'existing' ? selectedCandidate?.nombre_completo : fullNewUserName }}</dd>
+                <dd>{{ userMode === 'existing' ? selectedCandidate?.nombre_completo : newUserIsValid ? fullNewUserName : 'Completa los datos requeridos' }}</dd>
               </div>
               <div>
                 <dt>Documento</dt>
-                <dd>{{ userMode === 'existing' ? selectedCandidate?.numero_documento : newUser.numero_documento }}</dd>
+                <dd>{{ userMode === 'existing' ? selectedCandidate?.numero_documento : newUserIsValid ? newUser.numero_documento : 'Completa los datos requeridos' }}</dd>
               </div>
               <div>
                 <dt>Correo</dt>
-                <dd>{{ userMode === 'existing' ? selectedCandidate?.email : newUser.email }}</dd>
+                <dd>{{ userMode === 'existing' ? selectedCandidate?.email : newUserIsValid ? newUser.email : 'Completa los datos requeridos' }}</dd>
               </div>
               <div>
                 <dt>Cargo</dt>
@@ -512,15 +589,6 @@ const handleSubmit = () => {
         </section>
       </template>
 
-      <section v-if="deliveryCredentials" class="founder__credentials">
-        <KeyRound class="size-5" />
-        <div>
-          <h4>Credenciales temporales</h4>
-          <p>Guarda estos datos y compártelos de forma segura con el fundador.</p>
-          <strong>{{ deliveryCredentials.email }}</strong>
-          <code>{{ deliveryCredentials.password_temporal }}</code>
-        </div>
-      </section>
     </template>
   </div>
 </template>

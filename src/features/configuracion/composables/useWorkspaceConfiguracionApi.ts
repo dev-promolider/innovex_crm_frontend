@@ -85,12 +85,17 @@ const normalizeErrorMessage = (error: unknown): string => {
 }
 
 export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiOptions = {}) {
-    const { authHeaders, platformHeaders } = useAuthenticatedSession()
+    const { authHeaders, empresaId, platformHeaders } = useAuthenticatedSession()
     const isSuperadminScope = typeof options.empresaId === 'number'
     const basePath = isSuperadminScope
         ? `/superadmin/empresas/${options.empresaId}/configuracion`
         : '/workspace/admin/empresa'
     const requestHeaders = () => (isSuperadminScope ? platformHeaders() : authHeaders())
+    const fallbackEmpresaId = () => {
+        const sessionEmpresaId = Number(empresaId.value)
+        return options.empresaId
+            ?? (Number.isInteger(sessionEmpresaId) && sessionEmpresaId > 0 ? sessionEmpresaId : 0)
+    }
 
     const profile = shallowRef<WorkspaceProfile | null>(null)
     const logoPreview = shallowRef<WorkspaceLogoPreview | null>(null)
@@ -105,8 +110,39 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
     const isFounderLoading = shallowRef(false)
     const isFounderSaving = shallowRef(false)
     const isFounderUsersLoading = shallowRef(false)
+    const isFounderAccessResetting = shallowRef(false)
     const errorMessage = shallowRef('')
     const successMessage = shallowRef('')
+
+    const normalizeFounderConfiguration = (
+        configuration: Partial<WorkspaceFounderConfiguration> | null | undefined,
+    ): WorkspaceFounderConfiguration => {
+        const fundador = configuration?.fundador ?? null
+        const rangosDisponibles = Array.isArray(configuration?.rangos_disponibles)
+            ? configuration.rangos_disponibles
+            : []
+
+        return {
+            ...configuration,
+            empresa_id: configuration?.empresa_id ?? fallbackEmpresaId(),
+            estado_empresa: configuration?.estado_empresa ?? 'configuracion',
+            requiere_fundador_para_activar: configuration?.requiere_fundador_para_activar ?? true,
+            puede_registrar: configuration?.puede_registrar ?? (!fundador && rangosDisponibles.length > 0),
+            fundador,
+            rangos_disponibles: rangosDisponibles,
+        }
+    }
+
+    const getFounderErrorMessage = (error: unknown): string => {
+        const message = getApiErrorMessage(error, {
+            forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
+        })
+        const errorCode = axios.isAxiosError(error)
+            ? error.response?.status ?? error.code
+            : undefined
+
+        return errorCode ? `${message} (${errorCode})` : message
+    }
 
     const clearMessages = () => {
         errorMessage.value = ''
@@ -142,20 +178,18 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
         founderErrorMessage.value = ''
 
         try {
-            const response = await apiClient.get<SuccessResponse<WorkspaceFounderConfiguration>>(
+            const response = await apiClient.get<SuccessResponse<Partial<WorkspaceFounderConfiguration>>>(
                 `${basePath}/fundador`,
                 {
                     headers: requestHeaders(),
                 },
             )
 
-            founderConfig.value = response.data.data
-            return response.data.data
+            founderConfig.value = normalizeFounderConfiguration(response.data.data)
+            return founderConfig.value
         } catch (error) {
             founderConfig.value = null
-            founderErrorMessage.value = getApiErrorMessage(error, {
-                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
-            })
+            founderErrorMessage.value = getFounderErrorMessage(error)
             throw error
         } finally {
             isFounderLoading.value = false
@@ -201,9 +235,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
             return founderUserCandidates.value
         } catch (error) {
             founderUserCandidates.value = []
-            founderErrorMessage.value = getApiErrorMessage(error, {
-                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
-            })
+            founderErrorMessage.value = getFounderErrorMessage(error)
             throw error
         } finally {
             isFounderUsersLoading.value = false
@@ -214,6 +246,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
         isFounderSaving.value = true
         clearMessages()
         founderErrorMessage.value = ''
+        founderRegistrationResult.value = null
 
         try {
             const response = await apiClient.post<SuccessResponse<WorkspaceFounderRegistrationResult>>(
@@ -226,15 +259,39 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
 
             founderRegistrationResult.value = response.data.data
             successMessage.value = response.data.message ?? 'Patrocinador fundador registrado correctamente.'
-            await fetchFounderConfig()
             return response.data.data
         } catch (error) {
-            founderErrorMessage.value = getApiErrorMessage(error, {
-                forbiddenMessage: 'Solo el Superadministrador puede gestionar el fundador',
-            })
+            founderErrorMessage.value = getFounderErrorMessage(error)
             throw error
         } finally {
             isFounderSaving.value = false
+        }
+    }
+
+    const resetFounderAccess = async (usuarioId: number) => {
+        isFounderAccessResetting.value = true
+
+        try {
+            const response = await apiClient.post<SuccessResponse<{ password_temporal: string }>>(
+                `/superadmin/usuarios/${usuarioId}/restablecer-acceso`,
+                {},
+                {
+                    headers: platformHeaders(),
+                },
+            )
+
+            return response.data.data
+        } finally {
+            isFounderAccessResetting.value = false
+        }
+    }
+
+    const clearFounderTemporaryCredentials = () => {
+        if (founderRegistrationResult.value) {
+            founderRegistrationResult.value = {
+                ...founderRegistrationResult.value,
+                credenciales_entrega: null,
+            }
         }
     }
 
@@ -348,6 +405,7 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
         isFounderLoading: readonly(isFounderLoading),
         isFounderSaving: readonly(isFounderSaving),
         isFounderUsersLoading: readonly(isFounderUsersLoading),
+        isFounderAccessResetting: readonly(isFounderAccessResetting),
         errorMessage: readonly(errorMessage),
         successMessage: readonly(successMessage),
         clearMessages,
@@ -356,6 +414,8 @@ export function useWorkspaceConfiguracionApi(options: WorkspaceConfiguracionApiO
         fetchFounderConfig,
         searchFounderUsers,
         registerFounder,
+        resetFounderAccess,
+        clearFounderTemporaryCredentials,
         updateProfile,
         uploadLogoPreview,
         confirmLogo,

@@ -2,6 +2,7 @@
 import { reactive, watch, computed } from 'vue'
 import AppModal from '@/components/shared/AppModal.vue'
 import AppButton from '@/components/shared/AppButton.vue'
+import { sanitizeAccountNumber, sanitizeText } from '@/utils/fieldRules'
 import type { WorkspaceBankAccount, WorkspaceBankAccountPayload } from '../types'
 
 const bankOptions = [
@@ -71,6 +72,27 @@ const selectedCurrencySymbol = computed(() => {
   const found = currencyOptions.find((c) => c.value === form.moneda_iso)
   return found?.symbol ?? '$'
 })
+const formIsValid = computed(() => Boolean(
+  form.alias_cuenta.trim()
+  && form.numero_cuenta_cci.trim()
+  && form.titular_cuenta.trim()
+  && form.numero_cuenta_cci.length <= 34
+  && form.titular_cuenta.length <= 100,
+))
+
+const handleAccountNumberInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeAccountNumber(event.target.value)
+  event.target.value = value
+  form.numero_cuenta_cci = value
+}
+
+const handleAccountHolderInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
+  const value = sanitizeText(event.target.value, 100)
+  event.target.value = value
+  form.titular_cuenta = value
+}
 
 const availableBanks = computed(() =>
   bankOptions.filter((bank) => bank.country === (form.moneda_iso === 'VES' ? 'VE' : 'PE')),
@@ -180,12 +202,12 @@ const handleSubmit = () => {
 
           <label class="bank-dialog-v2__field bank-dialog-v2__field--wide">
             <span class="bank-dialog-v2__label">Número de cuenta / CCI</span>
-            <input v-model="form.numero_cuenta_cci" class="bank-dialog-v2__input bank-dialog-v2__input--mono" type="text" maxlength="34" placeholder="Ej: 01020123456789012345" />
+            <input v-model="form.numero_cuenta_cci" class="bank-dialog-v2__input bank-dialog-v2__input--mono" type="text" inputmode="numeric" maxlength="34" autocomplete="off" placeholder="Ej: 01020123456789012345" @input="handleAccountNumberInput" />
           </label>
 
           <label class="bank-dialog-v2__field bank-dialog-v2__field--wide">
             <span class="bank-dialog-v2__label">Titular de la cuenta</span>
-            <input v-model="form.titular_cuenta" class="bank-dialog-v2__input" type="text" maxlength="150" :placeholder="companyName" />
+            <input v-model="form.titular_cuenta" class="bank-dialog-v2__input" type="text" maxlength="100" autocomplete="name" :placeholder="companyName" @input="handleAccountHolderInput" />
             <p class="bank-dialog-v2__hint">Debe coincidir con la razón social o nombre del titular registrado en el banco.</p>
           </label>
         </div>
@@ -233,7 +255,7 @@ const handleSubmit = () => {
 
     <template #footer>
       <AppButton type="button" variant="ghost" size="sm" @click="emit('update:open', false)">Cancelar</AppButton>
-      <AppButton type="button" variant="primary" size="sm" :disabled="submitting" @click="handleSubmit">
+      <AppButton type="button" variant="primary" size="sm" :disabled="submitting || !formIsValid" @click="handleSubmit">
         {{ submitting ? 'Guardando...' : account ? 'Guardar cambios' : 'Registrar cuenta' }}
       </AppButton>
     </template>
