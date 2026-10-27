@@ -4,7 +4,7 @@
       <RouterView />
     </main>
 
-    <template v-if="route.name !== 'login'">
+    <template v-if="route.name !== 'login' && route.name !== 'catalogo-publico'">
       <FooterBar />
 
       <a 

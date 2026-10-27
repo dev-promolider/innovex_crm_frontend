@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import logoInnovex from '../assets/logo-innovex.png'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { primaryNavigation, secondaryNavigation } from '../app/navigation'
 import { useAuthenticatedSession } from '../composables/useAuthenticatedSession'
 import AppIcon from './layout/AppIcon.vue'
+import { useCatalogoDistribuidor } from '../composables/useCatalogoDistribuidor'
 
 const props = withDefaults(
 	defineProps<{
@@ -26,12 +27,16 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { isSuperadmin, empresaId } = useAuthenticatedSession()
+const { isSuperadmin, empresaId, isActiveDistributor } = useAuthenticatedSession()
 
 const hasWorkspaceContext = computed(() => empresaId.value.length > 0)
 
-const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceContext?: boolean }) => {
+const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceContext?: boolean; requiresActiveDistributor?: boolean }) => {
 	if (item.requiresSuperadmin && !isSuperadmin.value) {
+		return false
+	}
+
+	if (item.requiresActiveDistributor && !isActiveDistributor.value) {
 		return false
 	}
 
@@ -43,6 +48,12 @@ const canShowItem = (item: { requiresSuperadmin?: boolean; requiresWorkspaceCont
 }
 
 const visiblePrimaryNavigation = computed(() => primaryNavigation.filter(canShowItem))
+
+const { pendingCount, refrescarPendientes } = useCatalogoDistribuidor()
+const badgeFor = (item: { badgeKey?: string }) => (item.badgeKey === 'catalogOrders' ? pendingCount.value : 0)
+onMounted(() => {
+	if (isActiveDistributor.value) void refrescarPendientes()
+})
 const visibleSecondaryNavigation = computed(() => secondaryNavigation.filter(canShowItem))
 
 const hasBrandLogoError = ref(false)
@@ -222,6 +233,7 @@ const handleLogout = () => emit('logout')
 					<AppIcon :name="item.icon" :size="18" />
 				</span>
 				<strong class="app-sidebar__link-label">{{ t(item.labelKey) }}</strong>
+				<span v-if="badgeFor(item) > 0" class="app-sidebar__badge" :aria-label="`${badgeFor(item)}`">{{ badgeFor(item) > 99 ? '99+' : badgeFor(item) }}</span>
 			</RouterLink>
 		</nav>
 
@@ -420,6 +432,18 @@ const handleLogout = () => emit('logout')
 	font-size: 14px;
 	font-weight: 500;
 	color: inherit;
+}
+
+.app-sidebar__badge {
+	margin-left: auto;
+	min-width: 18px;
+	padding: 1px 6px;
+	border-radius: 9px;
+	background: #ef4444;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	text-align: center;
 }
 
 .app-sidebar__link:hover {

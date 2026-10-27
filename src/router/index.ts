@@ -98,6 +98,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresWorkspaceContext: true }
     },
     {
+      path: '/mi-catalogo',
+      name: 'mi-catalogo',
+      component: () => import('../views/catalogo/MiCatalogoView.vue'),
+      meta: { requiresAuth: true, requiresWorkspaceContext: true }
+    },
+    {
+      path: '/pedidos-catalogo',
+      name: 'pedidos-catalogo',
+      component: () => import('../views/catalogo/PedidosCatalogoView.vue'),
+      meta: { requiresAuth: true, requiresWorkspaceContext: true }
+    },
+    {
       path: '/deudas',
       name: 'deudas',
       component: DeudasView,
@@ -146,6 +158,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresWorkspaceContext: true }
     },
     {
+      path: '/catalogo/:slug',
+      name: 'catalogo-publico',
+      component: () => import('../views/catalogo/CatalogoPublicoView.vue'),
+      meta: { public: true }
+    },
+    {
       path: '/privacidad',
       name: 'privacidad',
       component: PrivacidadView
@@ -155,6 +173,11 @@ const router = createRouter({
 
 // Guard: si no hay token redirige al login
 router.beforeEach((to, _from, next) => {
+  if (to.meta.public) {
+    next()
+    return
+  }
+
   const isAuthenticated = localStorage.getItem('token')
   const isSuperadmin = localStorage.getItem('user_es_superadmin') === 'true'
   const workspaceRole = localStorage.getItem('workspace_role') ?? ''

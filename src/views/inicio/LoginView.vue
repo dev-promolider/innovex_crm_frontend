@@ -152,7 +152,7 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "@/app/apiClient";
-import { hydrateAuthenticatedSession, setWorkspaceContext, setWorkspaceLogo } from "@/composables/useAuthenticatedSession";
+import { hydrateAuthenticatedSession, setMembershipStatus, setWorkspaceContext, setWorkspaceLogo } from "@/composables/useAuthenticatedSession";
 
 import logoInnovexUrl from "../../assets/logo-innovex.png";
 
@@ -353,6 +353,8 @@ const handleLogin = async () => {
       ? data.data.panel_workspaces[0]
       : null;
     const isSuperadmin = Boolean(data.data.user.es_superadmin);
+    const lobbyMembership = Array.isArray(data.data.lobby) ? data.data.lobby[0] : null;
+    setMembershipStatus(typeof lobbyMembership?.estado_en_empresa === "string" ? lobbyMembership.estado_en_empresa : null);
 
     if (data.data.lobby && data.data.lobby.length > 0) {
       setWorkspaceContext(String(data.data.lobby[0].empresa_id), String(panelWorkspace?.rol ?? "") as "administrador_empresa" | "administrador_financiero" | "");

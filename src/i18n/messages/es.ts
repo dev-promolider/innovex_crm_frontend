@@ -44,6 +44,8 @@ const es = {
     approvals: { label: 'Aprobaciones', description: 'Revision administrativa de membresias e ingresos' },
     validation: { label: 'Validacion ventas', description: 'Revision operativa de ventas capturadas' },
     inventory: { label: 'Control inventario', description: 'Stock, solicitudes y movimientos de kits' },
+    myCatalog: { label: 'Mi catálogo', description: 'Enlace público para compartir con tus compradores' },
+    catalogOrders: { label: 'Pedidos de compradores', description: 'Solicitudes recibidas desde tu catálogo compartible' },
     debts: { label: 'Deudas y finanzas', description: 'Cobranza, pagos y ledger de deuda' },
     contracts: { label: 'Contratos', description: 'Contratos firmados, plantillas y huellas de integridad' },
     rewards: { label: 'Recompensas', description: 'Marketplace, scoring y catalogo de premios' },
