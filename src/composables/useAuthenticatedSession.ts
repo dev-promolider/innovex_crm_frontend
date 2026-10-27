@@ -13,6 +13,8 @@ const userEmail = shallowRef(localStorage.getItem('user_email') ?? '')
 const isSuperadmin = shallowRef(localStorage.getItem('user_es_superadmin') === 'true')
 const workspaceRole = shallowRef((localStorage.getItem('workspace_role') ?? '') as PanelRole | '')
 const workspaceLogo = shallowRef(localStorage.getItem('workspace_logo') ?? '')
+// Estado de la membresía de distribuidor en el workspace actual (lobby[].estado_en_empresa del login).
+const membershipStatus = shallowRef(localStorage.getItem('membership_estado') ?? '')
 
 const persistItem = (key: string, value: string) => {
   localStorage.setItem(key, value)
@@ -30,6 +32,18 @@ export function hydrateAuthenticatedSession() {
   isSuperadmin.value = localStorage.getItem('user_es_superadmin') === 'true'
   workspaceRole.value = (localStorage.getItem('workspace_role') ?? '') as PanelRole | ''
   workspaceLogo.value = localStorage.getItem('workspace_logo') ?? ''
+  membershipStatus.value = localStorage.getItem('membership_estado') ?? ''
+}
+
+export function setMembershipStatus(status: string | null) {
+  if (status && status.length > 0) {
+    persistItem('membership_estado', status)
+    membershipStatus.value = status
+    return
+  }
+
+  removeItem('membership_estado')
+  membershipStatus.value = ''
 }
 
 export function updateAuthenticatedUserProfile(profile: { nombre?: string | null; email?: string | null }) {
@@ -55,6 +69,7 @@ export function clearAuthenticatedSession() {
   isSuperadmin.value = false
   workspaceRole.value = ''
   workspaceLogo.value = ''
+  membershipStatus.value = ''
 }
 
 export function setWorkspaceLogo(nextLogoUrl: string | null) {
@@ -95,6 +110,9 @@ export function useAuthenticatedSession() {
   const hasPanelAccess = computed(() => isSuperadmin.value || workspaceRole.value.length > 0)
   const isWorkspaceAdmin = computed(() => workspaceRole.value === 'administrador_empresa')
   const isFinancialAdmin = computed(() => workspaceRole.value === 'administrador_financiero')
+  const isActiveDistributor = computed(
+    () => !isSuperadmin.value && empresaId.value.length > 0 && membershipStatus.value === 'activa',
+  )
   const userInitial = computed(() => userName.value.charAt(0).toUpperCase())
 
   const authHeaders = (extraHeaders: HeaderMap = {}): HeaderMap => ({
@@ -126,6 +144,7 @@ export function useAuthenticatedSession() {
     hasPanelAccess,
     isWorkspaceAdmin,
     isFinancialAdmin,
+    isActiveDistributor,
     userInitial,
     authHeaders,
     platformHeaders,
