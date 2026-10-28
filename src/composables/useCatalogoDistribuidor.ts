@@ -3,8 +3,9 @@ import { readonly, shallowRef } from 'vue'
 import apiClient from '@/app/apiClient'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import { getApiErrorMessage } from '@/utils/apiErrorMessage'
+import type { EstadoPedido } from '@/features/clientes/types'
 
-export type EstadoPedido = 'solicitado' | 'confirmado' | 'entregado' | 'cancelado'
+export type { EstadoPedido } from '@/features/clientes/types'
 
 export interface PedidoItem {
   kit_id: number

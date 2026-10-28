@@ -104,6 +104,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresWorkspaceContext: true }
     },
     {
+      path: '/clientes',
+      name: 'clientes',
+      component: () => import('../views/clientes/ClientesView.vue'),
+      meta: { requiresAuth: true, requiresWorkspaceContext: true }
+    },
+    {
+      path: '/mis-cuotas',
+      name: 'mis-cuotas',
+      component: () => import('../views/cuotas/MisCuotasView.vue'),
+      meta: { requiresAuth: true, requiresWorkspaceContext: true }
+    },
+    {
       path: '/pedidos-catalogo',
       name: 'pedidos-catalogo',
       component: () => import('../views/catalogo/PedidosCatalogoView.vue'),

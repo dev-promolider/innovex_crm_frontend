@@ -4,6 +4,7 @@ import AppDialog from '@/components/shared/AppDialog.vue'
 import DeudaLedgerPanel from './DeudaLedgerPanel.vue'
 import { useDeudasApi } from '../composables/useDeudasApi'
 import AjustesAdminPanel from '@/features/finanzas/components/AjustesAdminPanel.vue'
+import CuotasAdminPanel from '@/features/cuotas/components/CuotasAdminPanel.vue'
 import ComisionesAdminPanel from '@/features/finanzas/components/ComisionesAdminPanel.vue'
 import RetencionesAdminPanel from '@/features/finanzas/components/RetencionesAdminPanel.vue'
 import ReversarTransaccionDialog from '@/features/finanzas/components/ReversarTransaccionDialog.vue'
@@ -42,7 +43,7 @@ const {
 
 const { ensureCurrencyLoaded, formatCurrency: formatMoney } = useWorkspaceCurrency()
 
-type FinanceTab = 'cartera' | 'ajustes' | 'retenciones' | 'comisiones'
+type FinanceTab = 'cartera' | 'ajustes' | 'retenciones' | 'comisiones' | 'cuotas'
 
 const activeTab = shallowRef<FinanceTab>('cartera')
 const selectedMovement = shallowRef<LedgerMovement | null>(null)
@@ -161,6 +162,9 @@ onMounted(async () => {
       </button>
       <button class="finance-tabs__item" :class="{ 'finance-tabs__item--active': activeTab === 'comisiones' }" type="button" @click="activeTab = 'comisiones'">
         Comisiones
+      </button>
+      <button class="finance-tabs__item" :class="{ 'finance-tabs__item--active': activeTab === 'cuotas' }" type="button" @click="activeTab = 'cuotas'">
+        Cuotas
       </button>
     </nav>
 
@@ -327,7 +331,8 @@ onMounted(async () => {
 
     <AjustesAdminPanel v-else-if="activeTab === 'ajustes'" :selected-membresia-id="selectedMembresiaId" />
     <RetencionesAdminPanel v-else-if="activeTab === 'retenciones'" :selected-membresia-id="selectedMembresiaId" />
-    <ComisionesAdminPanel v-else />
+    <ComisionesAdminPanel v-else-if="activeTab === 'comisiones'" />
+    <CuotasAdminPanel v-else />
 
     <ReversarTransaccionDialog
       v-model:open="showReversalDialog"

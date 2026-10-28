@@ -45,6 +45,8 @@ const en = {
     validation: { label: 'Sales validation', description: 'Operational review of captured sales' },
     inventory: { label: 'Inventory control', description: 'Stock, requests, and kit movements' },
     myCatalog: { label: 'My catalog', description: 'Public link to share with your buyers' },
+    installments: { label: 'My installments', description: 'Installments, due dates and payments' },
+    clients: { label: 'Clients', description: 'Buyers and order history' },
     catalogOrders: { label: 'Buyer orders', description: 'Requests received from your shareable catalog' },
     debts: { label: 'Debts and finance', description: 'Collections, payments, and debt ledger' },
     contracts: { label: 'Contracts', description: 'Signed contracts, templates, and integrity fingerprints' },
