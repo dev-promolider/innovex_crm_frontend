@@ -11,7 +11,9 @@ export type NavigationIconName =
   | 'inventory'
   | 'catalog'
   | 'orders'
+  | 'clients'
   | 'debts'
+  | 'installments'
   | 'rewards'
   | 'reports'
   | 'settings'
@@ -33,12 +35,14 @@ export const primaryNavigation: NavigationItem[] = [
   { to: '/empresas', labelKey: 'nav.companies.label', icon: 'companies', descriptionKey: 'nav.companies.description', requiresSuperadmin: true },
   { to: '/campanas', labelKey: 'nav.campaigns.label', icon: 'campaigns', descriptionKey: 'nav.campaigns.description', requiresWorkspaceContext: true },
   { to: '/distribuidores', labelKey: 'nav.leaders.label', icon: 'leaders', descriptionKey: 'nav.leaders.description', requiresWorkspaceContext: true },
+  { to: '/clientes', labelKey: 'nav.clients.label', icon: 'clients', descriptionKey: 'nav.clients.description', requiresWorkspaceContext: true },
   { to: '/aprobaciones', labelKey: 'nav.approvals.label', icon: 'approvals', descriptionKey: 'nav.approvals.description', requiresWorkspaceContext: true },
   { to: '/validacion', labelKey: 'nav.validation.label', icon: 'validation', descriptionKey: 'nav.validation.description', requiresWorkspaceContext: true },
   { to: '/inventario', labelKey: 'nav.inventory.label', icon: 'inventory', descriptionKey: 'nav.inventory.description', requiresWorkspaceContext: true },
   { to: '/mi-catalogo', labelKey: 'nav.myCatalog.label', icon: 'catalog', descriptionKey: 'nav.myCatalog.description', requiresWorkspaceContext: true, requiresActiveDistributor: true },
   { to: '/pedidos-catalogo', labelKey: 'nav.catalogOrders.label', icon: 'orders', descriptionKey: 'nav.catalogOrders.description', requiresWorkspaceContext: true, requiresActiveDistributor: true, badgeKey: 'catalogOrders' },
   { to: '/deudas', labelKey: 'nav.debts.label', icon: 'debts', descriptionKey: 'nav.debts.description', requiresWorkspaceContext: true },
+  { to: '/mis-cuotas', labelKey: 'nav.installments.label', icon: 'installments', descriptionKey: 'nav.installments.description', requiresWorkspaceContext: true, requiresActiveDistributor: true },
   { to: '/contratos', labelKey: 'nav.contracts.label', icon: 'contracts', descriptionKey: 'nav.contracts.description', requiresWorkspaceContext: true },
   { to: '/recompensas', labelKey: 'nav.rewards.label', icon: 'rewards', descriptionKey: 'nav.rewards.description', requiresWorkspaceContext: true },
   { to: '/metricas', labelKey: 'nav.metrics.label', icon: 'metrics', descriptionKey: 'nav.metrics.description', requiresWorkspaceContext: true },
