@@ -197,8 +197,10 @@ const requestClose = () => {
   emit('close')
 }
 
+const canManageFounder = computed(() => typeof props.empresaId === 'number' && props.empresaId > 0)
+
 const refreshFounder = async () => {
-  if (!showFounderTab.value) {
+  if (!showFounderTab.value || !canManageFounder.value) {
     return
   }
 
@@ -491,6 +493,13 @@ void fetchProfile()
         @confirm-logo="handleConfirmLogo"
         @discard-logo-preview="clearLogoPreview"
       />
+
+      <p
+        v-else-if="activeTab.value === 'fundador' && showFounderTab && !canManageFounder"
+        role="status"
+      >
+        El patrocinador fundador solo puede gestionarse desde el panel de Superadministrador. Esta sección es de solo lectura.
+      </p>
 
       <WorkspaceFounderSectionV2
         v-else-if="activeTab.value === 'fundador' && showFounderTab"
