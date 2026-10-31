@@ -56,7 +56,10 @@ export const catalogoErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error) && error.response) {
     const { status, data } = error.response as { status: number; data?: { message?: unknown } }
     const message = typeof data?.message === 'string' ? data.message.trim() : ''
-    if (message && [403, 409, 423, 429].includes(status)) {
+    if (status === 403 || status === 404) {
+      return 'Disponible solo para distribuidores'
+    }
+    if (message && [409, 423, 429].includes(status)) {
       return message
     }
     if (status === 429) {

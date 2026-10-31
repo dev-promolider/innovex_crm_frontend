@@ -150,13 +150,14 @@ export function useClientesApi() {
 
     try {
       const { data } = await apiClient.get<ApiResponse<MiCredito>>(
-        '/mi-credito',
+        '/workspace/mobile/mi-credito',
         { headers: authHeaders() },
       )
       credito.value = data.data
     } catch (error) {
       creditError.value = getApiErrorMessage(error, {
-        forbiddenMessage: 'Esta información solo está disponible para distribuidores activos.',
+        forbiddenMessage: 'Disponible solo para distribuidores',
+        unavailableMessage: 'Disponible solo para distribuidores',
       })
       credito.value = null
     } finally {
