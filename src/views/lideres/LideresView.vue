@@ -286,7 +286,7 @@ import { useAuthenticatedSession } from '../../composables/useAuthenticatedSessi
 import { isValidEmail, sanitizeEmail } from '@/utils/fieldRules'
 
 const API_BASE = API_BASE_URL
-const { authHeaders, logout: cerrarSesion } = useAuthenticatedSession()
+const { authHeaders, logout: cerrarSesion, isSuperadmin, isWorkspaceAdmin } = useAuthenticatedSession()
 
 const hdrs = () => authHeaders({ 'Content-Type': 'application/json' })
 
@@ -429,8 +429,10 @@ const refrescarRed = async () => {
 }
 
 const cargarRangos = async () => {
+  if (!isWorkspaceAdmin.value && !isSuperadmin.value) return
   try {
     const res = await fetch(`${API_BASE}/workspace/admin/rangos`, { headers: hdrs() })
+    if (res.status === 403) return
     if (res.status === 401) { cerrarSesion(); return }
     const json = await res.json()
     if (res.ok && json.status === 'success') {

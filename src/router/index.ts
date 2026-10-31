@@ -194,8 +194,8 @@ router.beforeEach((to, _from, next) => {
   const isSuperadmin = localStorage.getItem('user_es_superadmin') === 'true'
   const workspaceRole = localStorage.getItem('workspace_role') ?? ''
   const empresaId = localStorage.getItem('empresa_id') ?? ''
-  const hasPanelAccess = isSuperadmin || workspaceRole.length > 0
   const hasWorkspaceContext = empresaId.length > 0
+  const hasPanelAccess = isSuperadmin || workspaceRole.length > 0 || hasWorkspaceContext
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
