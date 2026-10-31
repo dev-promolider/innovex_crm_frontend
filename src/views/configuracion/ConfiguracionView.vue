@@ -11,7 +11,7 @@ const resolvedEmpresaId = computed(() => {
     return undefined
   }
 
-  const parsedEmpresaId = Number(empresaId)
+  const parsedEmpresaId = Number(empresaId.value)
 
   return Number.isFinite(parsedEmpresaId) && parsedEmpresaId > 0
     ? parsedEmpresaId

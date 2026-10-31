@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import ApiErrorState from '@/components/shared/ApiErrorState.vue'
 import DistributorOnlyNotice from '@/components/shared/DistributorOnlyNotice.vue'
@@ -8,6 +8,7 @@ import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
 import CuotaEstadoBadge from '@/features/cuotas/components/CuotaEstadoBadge.vue'
 import PagoMovilCuotaDialog from '@/features/cuotas/components/PagoMovilCuotaDialog.vue'
 import { useCuotasApi } from '@/features/cuotas/composables/useCuotasApi'
+import { usePagoMovilApi } from '@/features/cuotas/composables/usePagoMovilApi'
 import { estadosCuota, type MiCuota } from '@/features/cuotas/types'
 import { diasLabel, formatVencimiento } from '@/features/cuotas/utils'
 
@@ -17,6 +18,8 @@ const {
   misCuotas, resumen, misCuotasFilterEstado, misCuotasPagination, isLoadingMisCuotas, misCuotasError,
   fetchMisCuotas,
 } = useCuotasApi()
+
+const { consultarPago } = usePagoMovilApi()
 
 const selected = shallowRef<MiCuota | null>(null)
 const dialogOpen = shallowRef(false)
@@ -39,11 +42,49 @@ const onPaid = async () => {
 
 watch(misCuotasFilterEstado, () => void fetchMisCuotas(1))
 
+const POLL_MS = 3000
+const POLL_MAX = 10
+const pagoResult = shallowRef<'' | 'confirmado' | 'pendiente' | 'fallido' | 'verificando'>('')
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+const clasificarEstado = (estado: string) => {
+  const value = estado.toLowerCase()
+  if (['confirmado', 'pagado', 'pagada', 'aprobado', 'completado', 'exitoso'].includes(value)) return 'confirmado'
+  if (['fallido', 'rechazado', 'cancelado', 'expirado', 'error'].includes(value)) return 'fallido'
+  return 'pendiente'
+}
+
+const pollPago = (pagoId: string, attempt = 1) => {
+  pagoResult.value = 'verificando'
+  pollTimer = setTimeout(async () => {
+    let resultado: 'confirmado' | 'pendiente' | 'fallido' = 'pendiente'
+    try {
+      resultado = clasificarEstado((await consultarPago(pagoId)).estado ?? '')
+    } catch {
+      resultado = 'pendiente'
+    }
+    if (resultado === 'confirmado') {
+      pagoResult.value = 'confirmado'
+      await fetchMisCuotas(misCuotasPagination.current_page)
+    } else if (resultado === 'fallido') {
+      pagoResult.value = 'fallido'
+    } else if (attempt >= POLL_MAX) {
+      pagoResult.value = 'pendiente'
+    } else {
+      pollPago(pagoId, attempt + 1)
+    }
+  }, POLL_MS)
+}
+
 onMounted(() => {
   if (!isActiveDistributor.value) return
   void ensureCurrencyLoaded()
   void fetchMisCuotas(1)
+  const pagoId = new URLSearchParams(window.location.search).get('pago')
+  if (pagoId) pollPago(pagoId)
 })
+
+onBeforeUnmount(() => clearTimeout(pollTimer))
 </script>
 
 <template>
@@ -56,6 +97,13 @@ onMounted(() => {
       </div>
 
       <div v-if="successMsg" class="mc-alert mc-alert--ok" role="status">{{ successMsg }}<button type="button" aria-label="Cerrar" @click="successMsg = ''">✕</button></div>
+
+      <div v-if="pagoResult" class="mc-alert" :class="{ 'mc-alert--ok': pagoResult === 'confirmado', 'mc-alert--warn': pagoResult === 'pendiente' || pagoResult === 'verificando', 'mc-alert--bad': pagoResult === 'fallido' }" role="status">
+        <template v-if="pagoResult === 'confirmado'">Pago confirmado</template>
+        <template v-else-if="pagoResult === 'fallido'">Pago fallido</template>
+        <template v-else-if="pagoResult === 'pendiente'">Pendiente de confirmación</template>
+        <template v-else>Verificando tu pago…</template>
+      </div>
 
       <div v-if="showBanner" class="mc-alert" :class="hasOverdue ? 'mc-alert--bad' : 'mc-alert--warn'" role="alert">
         <template v-if="hasOverdue">Tienes cuotas vencidas por {{ formatCurrency(resumen?.total_vencido ?? 0, moneda) }}. Regulariza tu pago lo antes posible.</template>

@@ -7,6 +7,7 @@ const retryMessage = 'No pudimos cargar la información. Inténtalo de nuevo'
 
 interface ApiErrorMessageOptions {
   forbiddenMessage?: string
+  unavailableMessage?: string
 }
 
 const firstFieldError = (errors: unknown): string | null => {
@@ -41,7 +42,7 @@ export const getApiErrorMessage = (error: unknown, options: ApiErrorMessageOptio
   const status = response?.status
 
   if (status === 404) {
-    return unavailableMessage
+    return options.unavailableMessage ?? unavailableMessage
   }
 
   if (status === 401) {

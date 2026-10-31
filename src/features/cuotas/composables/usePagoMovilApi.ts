@@ -23,6 +23,12 @@ export interface PagoIniciado {
   expira_en: string
   monto: number
   moneda: string
+  payment_url?: string | null
+}
+
+export interface PagoEstado {
+  id?: number
+  estado: string
 }
 
 export interface PagoConfirmado {
@@ -60,5 +66,9 @@ export function usePagoMovilApi() {
     apiClient.post<{ data: PagoConfirmado }>(`/pagos/${pagoId}/confirmar`, { codigo }, { headers: authHeaders() })
       .then(({ data }) => data.data)
 
-  return { bancos, isLoadingBancos, bancosError, fetchBancos, iniciarPago, confirmarPago }
+  const consultarPago = (pagoId: number | string) =>
+    apiClient.get<{ data?: PagoEstado } & Partial<PagoEstado>>(`/pagos/${pagoId}`, { headers: authHeaders() })
+      .then(({ data }) => (data.data ?? data) as PagoEstado)
+
+  return { bancos, isLoadingBancos, bancosError, fetchBancos, iniciarPago, confirmarPago, consultarPago }
 }

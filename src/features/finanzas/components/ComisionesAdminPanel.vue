@@ -4,6 +4,7 @@ import apiClient from '@/app/apiClient'
 import DatePicker from '@/components/shared/DatePicker.vue'
 import { useAuthenticatedSession } from '@/composables/useAuthenticatedSession'
 import { useWorkspaceCurrency } from '@/composables/useWorkspaceCurrency'
+import { getApiErrorMessage } from '@/utils/apiErrorMessage'
 import { formatDateTime } from '@/utils/formatters'
 
 interface ComisionItem {
@@ -47,7 +48,25 @@ interface ComisionesResponse {
   }
 }
 
+interface FilterOption {
+  id: number
+  label: string
+}
+
+interface MembresiaListItem {
+  id: number
+  nombre?: string | null
+  usuario?: { nombre?: string | null; apellido?: string | null } | null
+}
+
+interface CampanaListItem {
+  id: number
+  nombre: string
+}
+
 const { authHeaders } = useAuthenticatedSession()
+const membresiaOptions = shallowRef<FilterOption[]>([])
+const campanaOptions = shallowRef<FilterOption[]>([])
 const isLoading = shallowRef(false)
 const errorMessage = shallowRef('')
 const comisiones = shallowRef<ComisionItem[]>([])
@@ -84,6 +103,45 @@ const totalAmount = computed(() =>
   Object.values(totalsByState.value).reduce((acc, item) => acc + item.monto, 0),
 )
 
+const loadFilterOptions = async () => {
+  try {
+    const { data } = await apiClient.get<{ data: { data: MembresiaListItem[] } }>(
+      '/workspace/admin/distribuidores',
+      { headers: authHeaders(), params: { page: 1, per_page: 100 } },
+    )
+    membresiaOptions.value = (data.data.data ?? []).map((item) => ({
+      id: item.id,
+      label: item.nombre?.trim()
+        || `${item.usuario?.nombre ?? ''} ${item.usuario?.apellido ?? ''}`.trim()
+        || `Membresía ${item.id}`,
+    }))
+  } catch (error) {
+    membresiaOptions.value = []
+    errorMessage.value = getApiErrorMessage(error)
+  }
+
+  try {
+    const options: FilterOption[] = []
+    let page = 1
+    let lastPage = 1
+
+    do {
+      const { data } = await apiClient.get<{ data: { data: CampanaListItem[]; last_page: number } }>(
+        '/workspace/admin/campanas',
+        { headers: authHeaders(), params: { page } },
+      )
+      options.push(...(data.data.data ?? []).map((item) => ({ id: item.id, label: item.nombre })))
+      lastPage = data.data.last_page ?? 1
+      page += 1
+    } while (page <= lastPage)
+
+    campanaOptions.value = options
+  } catch (error) {
+    campanaOptions.value = []
+    errorMessage.value = getApiErrorMessage(error)
+  }
+}
+
 const loadCommissions = async (page = 1) => {
   isLoading.value = true
   errorMessage.value = ''
@@ -93,7 +151,7 @@ const loadCommissions = async (page = 1) => {
       headers: authHeaders(),
       params: {
         page,
-        estado: filters.estado,
+        estado: filters.estado && filters.estado !== 'todos' ? filters.estado : undefined,
         desde: filters.desde || undefined,
         hasta: filters.hasta || undefined,
         membresia_id: filters.membresia_id || undefined,
@@ -108,13 +166,14 @@ const loadCommissions = async (page = 1) => {
     pagination.last_page = response.data.data.comisiones.last_page
     pagination.total = response.data.data.comisiones.total
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'No se pudieron cargar comisiones.'
+    errorMessage.value = getApiErrorMessage(error)
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(() => {
+  void loadFilterOptions()
   void ensureCurrencyLoaded().then(() => loadCommissions())
 })
 </script>
@@ -158,8 +217,20 @@ onMounted(() => {
         :range-end="filters.hasta"
         @update:model-value="updateDateTo"
       />
-      <input v-model="filters.membresia_id" class="admin-input" type="number" min="1" placeholder="ID membresía" @change="loadCommissions(1)" />
-      <input v-model="filters.campana_id" class="admin-input" type="number" min="1" placeholder="ID campaña" @change="loadCommissions(1)" />
+      <label class="commission-filter-field">
+        <span>Membresía</span>
+        <select v-model="filters.membresia_id" class="admin-select-filter" @change="loadCommissions(1)">
+          <option value="">Todas</option>
+          <option v-for="option in membresiaOptions" :key="option.id" :value="String(option.id)">{{ option.label }}</option>
+        </select>
+      </label>
+      <label class="commission-filter-field">
+        <span>Campaña</span>
+        <select v-model="filters.campana_id" class="admin-select-filter" @change="loadCommissions(1)">
+          <option value="">Todas</option>
+          <option v-for="option in campanaOptions" :key="option.id" :value="String(option.id)">{{ option.label }}</option>
+        </select>
+      </label>
     </div>
 
     <div v-if="errorMessage" class="admin-alert admin-alert--error">{{ errorMessage }}</div>
@@ -279,6 +350,13 @@ onMounted(() => {
   flex: 1 1 165px;
   width: auto;
   min-width: 165px;
+}
+
+.commission-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
 }
 
 .admin-input {

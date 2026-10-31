@@ -142,6 +142,10 @@ const submitDatos = async () => {
       telefono: form.telefono,
       monto: Number(form.monto),
     })
+    if (iniciado.value.payment_url) {
+      window.location.href = iniciado.value.payment_url
+      return
+    }
     intentos.value = MAX_INTENTOS
     codigo.value = ''
     now.value = Date.now()
