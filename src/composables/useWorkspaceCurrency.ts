@@ -46,9 +46,13 @@ const resolveCurrencySymbol = (currency: string, fallback: string) => {
 }
 
 export function useWorkspaceCurrency() {
-    const { authHeaders } = useAuthenticatedSession()
+    const { authHeaders, isWorkspaceAdmin, isSuperadmin } = useAuthenticatedSession()
 
     const ensureCurrencyLoaded = async (force = false) => {
+        if (!isWorkspaceAdmin.value && !isSuperadmin.value) {
+            return workspaceCurrencyCode.value
+        }
+
         if (isCurrencyLoaded.value && !force) {
             return workspaceCurrencyCode.value
         }

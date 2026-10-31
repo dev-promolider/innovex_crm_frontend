@@ -372,7 +372,12 @@ const handleLogin = async () => {
     }
 
     hydrateAuthenticatedSession();
-    router.push({ name: isSuperadmin && !localStorage.getItem("empresa_id") ? "usuarios" : "dashboard" });
+    const isDistributor = !isSuperadmin && !localStorage.getItem("workspace_role");
+    await router.push({
+      name: isDistributor
+        ? "mi-catalogo"
+        : isSuperadmin && !localStorage.getItem("empresa_id") ? "usuarios" : "dashboard",
+    });
   } catch (error: any) {
     resetRecaptcha();
     errorMsg.value = error.message || "Error al conectar con el servidor.";

@@ -41,6 +41,8 @@ export function useWorkspaceBranding() {
             setWorkspaceLogo(nextLogo)
 
             return nextLogo
+        } catch {
+            return workspaceLogo.value || null
         } finally {
             isRefreshing.value = false
         }
